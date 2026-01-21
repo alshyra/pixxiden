@@ -4,22 +4,23 @@ import * as api from '@/services/api'
 import { demoGames } from '@/composables/useDemoGames'
 import type { Game } from '@/types'
 
-// Use demo mode when backend is unavailable
-const USE_DEMO_MODE = true
+// Use demo mode when Tauri is unavailable (e.g., browser dev)
+const USE_DEMO_MODE = !('__TAURI__' in window)
 
 export const useLibraryStore = defineStore('library', () => {
   const games = ref<Game[]>([])
   const selectedGame = ref<Game | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const syncErrors = ref<string[]>([])
 
   async function fetchGames() {
     loading.value = true
     error.value = null
     try {
       if (USE_DEMO_MODE) {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Demo mode for browser development
+        await new Promise(resolve => setTimeout(resolve, 300))
         games.value = demoGames
       } else {
         const data = await api.getGames()
@@ -38,8 +39,18 @@ export const useLibraryStore = defineStore('library', () => {
   async function syncLibrary() {
     loading.value = true
     error.value = null
+    syncErrors.value = []
     try {
-      await api.syncGames()
+      if (USE_DEMO_MODE) {
+        // Demo mode - simulate sync
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        games.value = demoGames
+      } else {
+        const result = await api.syncGames()
+        syncErrors.value = result.errors
+        // Refresh games after sync
+        await fetchGames()
+      }
     } catch (err) {
       error.value = 'Failed to sync library'
       console.error(err)

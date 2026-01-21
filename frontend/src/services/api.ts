@@ -1,56 +1,103 @@
-import axios from 'axios'
+import { invoke } from '@tauri-apps/api/core'
 import type { Game } from '@/types'
 
-const API_BASE_URL = 'http://localhost:9090/api'
-
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Games API
-
-export async function getGames(): Promise<Game[]> {
-  const response = await apiClient.get<Game[]>('/games')
-  return response.data
+// Types for Tauri responses
+interface SyncResult {
+  total_synced: number
+  errors: string[]
 }
 
-export async function syncGames(): Promise<void> {
-  await apiClient.post('/games/sync')
+interface StoreStatus {
+  id: string
+  name: string
+  available: boolean
+  authenticated: boolean
+  cli_tool: string
+}
+
+// Games API - Direct IPC calls to Rust backend
+
+export async function getGames(): Promise<Game[]> {
+  try {
+    const games = await invoke<Game[]>('get_games')
+    return games
+  } catch (error) {
+    console.error('Failed to get games:', error)
+    throw error
+  }
+}
+
+export async function getGame(gameId: string): Promise<Game | null> {
+  try {
+    const game = await invoke<Game | null>('get_game', { id: gameId })
+    return game
+  } catch (error) {
+    console.error('Failed to get game:', error)
+    throw error
+  }
+}
+
+export async function syncGames(): Promise<SyncResult> {
+  try {
+    const result = await invoke<SyncResult>('sync_games')
+    return result
+  } catch (error) {
+    console.error('Failed to sync games:', error)
+    throw error
+  }
 }
 
 export async function launchGame(gameId: string): Promise<void> {
-  await apiClient.post('/games/launch', { app_id: gameId })
+  try {
+    await invoke('launch_game', { id: gameId })
+  } catch (error) {
+    console.error('Failed to launch game:', error)
+    throw error
+  }
 }
 
 export async function installGame(gameId: string, installPath?: string): Promise<void> {
-  const body: { app_id: string; install_path?: string } = { app_id: gameId }
-  if (installPath) {
-    body.install_path = installPath
+  try {
+    await invoke('install_game', { id: gameId })
+  } catch (error) {
+    console.error('Failed to install game:', error)
+    throw error
   }
-  await apiClient.post('/games/install', body)
 }
 
 export async function uninstallGame(gameId: string): Promise<void> {
-  await apiClient.delete(`/games/${gameId}`)
+  try {
+    await invoke('uninstall_game', { id: gameId })
+  } catch (error) {
+    console.error('Failed to uninstall game:', error)
+    throw error
+  }
 }
 
 // Store API
 
+export async function getStoreStatus(): Promise<StoreStatus[]> {
+  try {
+    const stores = await invoke<StoreStatus[]>('get_store_status')
+    return stores
+  } catch (error) {
+    console.error('Failed to get store status:', error)
+    throw error
+  }
+}
+
+// Legacy compatibility functions
 export async function authenticateLegendary(): Promise<void> {
-  await apiClient.post('/stores/legendary/auth')
+  console.warn('authenticateLegendary: Run "legendary auth" in terminal')
 }
 
 export async function checkLegendaryStatus(): Promise<{ authenticated: boolean }> {
-  const response = await apiClient.get('/stores/legendary/status')
-  return response.data
+  const stores = await getStoreStatus()
+  const epic = stores.find(s => s.id === 'epic')
+  return { authenticated: epic?.authenticated ?? false }
 }
 
-// Health Check
-
 export async function checkHealth(): Promise<{ status: string; version: string }> {
-  const response = await apiClient.get('/health')
-  return response.data
+  // With Tauri, we're always "healthy" if this code runs
+  return { status: 'ok', version: '0.1.0' }
 }
