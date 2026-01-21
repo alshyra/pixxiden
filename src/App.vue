@@ -1,11 +1,20 @@
 <template>
   <div id="app" class="min-h-screen bg-black text-white">
     <router-view />
+    
+    <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
+    <GameOverlay ref="gameOverlay" />
   </div>
 </template>
 
 <script setup lang="ts">
-// App is now minimal - all layout is handled by views
+import { ref, provide } from 'vue'
+import { GameOverlay } from '@/components/game'
+
+const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null)
+
+// Provide overlay control to child components
+provide('gameOverlay', gameOverlay)
 </script>
 
 <style>

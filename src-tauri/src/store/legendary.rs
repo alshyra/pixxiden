@@ -1,11 +1,14 @@
 use crate::database::Game;
 use crate::store::StoreAdapter;
+use crate::commands::InstallProgressEvent;
 use async_trait::async_trait;
 use chrono::Utc;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::process::Command;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tauri::{Window, Emitter};
 
 /// Legendary adapter for Epic Games Store
 /// Uses Heroic Launcher's legendary binary and config
@@ -199,6 +202,72 @@ impl LegendaryAdapter {
         }
         
         None
+    }
+    
+    /// Install with progress events (must be outside trait impl)
+    pub async fn install_game_with_progress(&self, store_id: &str, window: &Window, game_id: &str) -> anyhow::Result<()> {
+        log::info!("Installing Epic game with progress: {}", store_id);
+        
+        let mut child = Command::new(&self.binary_path)
+            .args(["install", store_id, "-y", "--status-update-freq", "0.5"])
+            .env("LEGENDARY_CONFIG_PATH", &self.config_path)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+        
+        let stderr = child.stderr.take().ok_or_else(|| anyhow::anyhow!("Failed to capture stderr"))?;
+        let mut reader = BufReader::new(stderr).lines();
+        
+        // Parse progress from legendary output
+        // Format: [cli] INFO: = Progress: 45.32% (1.23/2.72 GiB), Running for 00:05:32, ETA: 00:06:30
+        while let Some(line) = reader.next_line().await? {
+            log::debug!("Legendary output: {}", line);
+            
+            if line.contains("Progress:") {
+                if let Some(progress_data) = Self::parse_legendary_progress(&line) {
+                    let event = InstallProgressEvent {
+                        game_id: game_id.to_string(),
+                        progress: progress_data.0,
+                        downloaded: progress_data.1,
+                        total: progress_data.2,
+                        speed: progress_data.3,
+                        eta: progress_data.4,
+                    };
+                    let _ = window.emit("game-install-progress", &event);
+                }
+            }
+        }
+        
+        let status = child.wait().await?;
+        if !status.success() {
+            anyhow::bail!("Legendary install failed with exit code: {:?}", status.code());
+        }
+        
+        Ok(())
+    }
+    
+    /// Parse legendary progress line
+    fn parse_legendary_progress(line: &str) -> Option<(f32, String, String, String, String)> {
+        let progress_start = line.find("Progress:")? + 10;
+        let progress_end = line[progress_start..].find('%')? + progress_start;
+        let progress: f32 = line[progress_start..progress_end].trim().parse().ok()?;
+        
+        let paren_start = line.find('(')? + 1;
+        let paren_end = line.find(')')?;
+        let size_str = &line[paren_start..paren_end];
+        let size_parts: Vec<&str> = size_str.split('/').collect();
+        let downloaded = size_parts.get(0).unwrap_or(&"0").trim().to_string();
+        let total_with_unit = size_parts.get(1).unwrap_or(&"0").trim().to_string();
+        
+        let eta = if let Some(eta_start) = line.find("ETA:") {
+            line[eta_start + 4..].trim().to_string()
+        } else {
+            "Calculating...".to_string()
+        };
+        
+        let speed = "N/A".to_string();
+        
+        Some((progress, downloaded, total_with_unit, speed, eta))
     }
 }
 

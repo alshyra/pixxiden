@@ -1,5 +1,6 @@
 mod commands;
 mod database;
+mod gamepad;
 mod store;
 
 #[cfg(test)]
@@ -10,9 +11,10 @@ use commands::{
     AppState,
 };
 use database::Database;
+use gamepad::GamepadMonitor;
 use store::{gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter};
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Manager, Window};
 use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -48,6 +50,10 @@ pub fn run() {
             };
 
             app.manage(state);
+            
+            // Initialize gamepad monitor
+            let gamepad_monitor = Arc::new(GamepadMonitor::new());
+            app.manage(gamepad_monitor);
 
             log::info!("PixiDen initialized successfully!");
             Ok(())
@@ -62,7 +68,35 @@ pub fn run() {
             install_game,
             uninstall_game,
             get_store_status,
+            start_gamepad_monitoring,
+            stop_gamepad_monitoring,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Start gamepad monitoring for overlay toggle
+#[tauri::command]
+fn start_gamepad_monitoring(
+    window: Window,
+    monitor: tauri::State<'_, Arc<GamepadMonitor>>,
+) -> Result<(), String> {
+    if monitor.is_running() {
+        log::info!("Gamepad monitor already running");
+        return Ok(());
+    }
+    
+    monitor.start(window);
+    log::info!("Gamepad monitoring started");
+    Ok(())
+}
+
+/// Stop gamepad monitoring
+#[tauri::command]
+fn stop_gamepad_monitoring(
+    monitor: tauri::State<'_, Arc<GamepadMonitor>>,
+) -> Result<(), String> {
+    monitor.stop();
+    log::info!("Gamepad monitoring stopped");
+    Ok(())
 }

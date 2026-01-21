@@ -2,7 +2,8 @@ use crate::database::{Database, Game};
 use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileAdapter, StoreAdapter};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tauri::State;
+use std::time::Duration;
+use tauri::{State, Window, Emitter};
 use tokio::sync::Mutex;
 
 pub struct AppState {
@@ -10,6 +11,60 @@ pub struct AppState {
     pub legendary: Arc<LegendaryAdapter>,
     pub gogdl: Arc<GogdlAdapter>,
     pub nile: Arc<NileAdapter>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchEvent {
+    pub game_id: String,
+    pub game_title: String,
+    pub store: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchSuccessEvent {
+    pub game_id: String,
+    pub pid: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchErrorEvent {
+    pub game_id: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallEvent {
+    pub game_id: String,
+    pub game_title: String,
+    pub store: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallProgressEvent {
+    pub game_id: String,
+    pub progress: f32,
+    pub downloaded: String,
+    pub total: String,
+    pub speed: String,
+    pub eta: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallSuccessEvent {
+    pub game_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallErrorEvent {
+    pub game_id: String,
+    pub error: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -103,37 +158,95 @@ pub async fn sync_games(state: State<'_, AppState>) -> Result<SyncResult, String
 }
 
 #[tauri::command]
-pub async fn launch_game(id: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn launch_game(id: String, window: Window, state: State<'_, AppState>) -> Result<(), String> {
     let db = state.db.lock().await;
     let game = db.get_game(&id).await.map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Game {} not found", id))?;
     
     drop(db); // Release lock before launching
     
-    match game.store.as_str() {
+    // Emit launching event
+    let launch_event = LaunchEvent {
+        game_id: id.clone(),
+        game_title: game.title.clone(),
+        store: game.store.clone(),
+    };
+    let _ = window.emit("game-launching", &launch_event);
+    log::info!("Launching game: {} ({})", game.title, game.store);
+    
+    // Launch the game
+    let result = match game.store.as_str() {
         "epic" => state.legendary.launch_game(&game.store_id).await,
         "gog" => state.gogdl.launch_game(&game.store_id).await,
         "amazon" => state.nile.launch_game(&game.store_id).await,
         _ => Err(anyhow::anyhow!("Unknown store: {}", game.store)),
+    };
+    
+    match result {
+        Ok(()) => {
+            // Wait a bit for the process to start
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            
+            // Emit success event
+            let success_event = LaunchSuccessEvent {
+                game_id: id.clone(),
+                pid: None, // We could track PIDs if needed
+            };
+            let _ = window.emit("game-launched", &success_event);
+            log::info!("Game launched successfully: {}", game.title);
+            
+            Ok(())
+        }
+        Err(e) => {
+            // Emit error event
+            let error_event = LaunchErrorEvent {
+                game_id: id.clone(),
+                error: e.to_string(),
+            };
+            let _ = window.emit("game-launch-failed", &error_event);
+            log::error!("Failed to launch game {}: {}", game.title, e);
+            
+            Err(e.to_string())
+        }
     }
-    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn install_game(id: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn install_game(id: String, window: Window, state: State<'_, AppState>) -> Result<(), String> {
     let db = state.db.lock().await;
     let game = db.get_game(&id).await.map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Game {} not found", id))?;
     
     drop(db);
     
-    match game.store.as_str() {
-        "epic" => state.legendary.install_game(&game.store_id).await,
-        "gog" => state.gogdl.install_game(&game.store_id).await,
+    // Emit install started event
+    let install_event = InstallEvent {
+        game_id: id.clone(),
+        game_title: game.title.clone(),
+        store: game.store.clone(),
+    };
+    let _ = window.emit("game-installing", &install_event);
+    
+    let result = match game.store.as_str() {
+        "epic" => state.legendary.install_game_with_progress(&game.store_id, &window, &id).await,
+        "gog" => state.gogdl.install_game_with_progress(&game.store_id, &window, &id).await,
         "amazon" => state.nile.install_game(&game.store_id).await,
         _ => Err(anyhow::anyhow!("Unknown store: {}", game.store)),
+    };
+    
+    match &result {
+        Ok(_) => {
+            let _ = window.emit("game-installed", InstallSuccessEvent { game_id: id.clone() });
+        }
+        Err(e) => {
+            let _ = window.emit("game-install-failed", InstallErrorEvent {
+                game_id: id.clone(),
+                error: e.to_string(),
+            });
+        }
     }
-    .map_err(|e| e.to_string())
+    
+    result.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -179,6 +292,7 @@ pub async fn get_store_status(state: State<'_, AppState>) -> Result<Vec<StoreSta
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameConfig {
     pub id: String,
     pub title: String,

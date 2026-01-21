@@ -135,15 +135,42 @@
       :game-id="gameId"
       @close="showSettings = false"
     />
+    
+    <!-- Launch Overlay -->
+    <LaunchOverlay
+      :is-visible="isLaunching"
+      :game-title="game?.title || 'Game'"
+      :runner="launchRunner"
+      :error="launchError"
+      @close="closeLaunchOverlay"
+    />
+    
+    <!-- Download Overlay -->
+    <DownloadOverlay
+      :is-visible="isDownloading"
+      :game-title="game?.title || 'Game'"
+      :runner="launchRunner"
+      :error="downloadError"
+      :progress="downloadProgress"
+      :downloaded="downloadedSize"
+      :total="totalSize"
+      :speed="downloadSpeed"
+      :eta="downloadEta"
+      @close="closeDownloadOverlay"
+      @cancel="cancelDownload"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { useLibraryStore } from '@/stores/library'
 import { Button, Badge } from '@/components/ui'
 import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
+import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
+import DownloadOverlay from '@/components/game/DownloadOverlay.vue'
 import type { Metadata } from '@/types'
 
 const route = useRoute()
@@ -170,6 +197,37 @@ const isPlaying = ref(false)
 const installing = ref(false)
 const metacriticScore = ref<number | null>(85) // TODO: Get from API
 
+// Launch overlay state
+const isLaunching = ref(false)
+const launchError = ref<string | null>(null)
+const launchRunner = computed(() => {
+  if (!game.value) return undefined
+  switch (game.value.store) {
+    case 'epic': return 'Legendary (Epic Games)'
+    case 'gog': return 'GOGdl (GOG Galaxy)'
+    case 'amazon': return 'Nile (Amazon Games)'
+    default: return game.value.store
+  }
+})
+
+// Download overlay state
+const isDownloading = ref(false)
+const downloadError = ref<string | null>(null)
+const downloadProgress = ref(0)
+const downloadedSize = ref('0 MB')
+const totalSize = ref('0 MB')
+const downloadSpeed = ref('Calculating...')
+const downloadEta = ref('Calculating...')
+
+// Event listeners
+let unlistenLaunching: UnlistenFn | undefined
+let unlistenLaunched: UnlistenFn | undefined
+let unlistenFailed: UnlistenFn | undefined
+let unlistenInstalling: UnlistenFn | undefined
+let unlistenInstallProgress: UnlistenFn | undefined
+let unlistenInstalled: UnlistenFn | undefined
+let unlistenInstallFailed: UnlistenFn | undefined
+
 const achievements = computed(() => {
   // TODO: Get from API
   return '17/60 (29%)'
@@ -195,24 +253,54 @@ const formattedLastPlayed = computed(() => {
 
 async function playGame() {
   if (!game.value) return
+  
+  // Reset state and show overlay
+  launchError.value = null
+  isLaunching.value = true
+  
   try {
     await libraryStore.launchGame(game.value.id)
-    isPlaying.value = true
-  } catch (error) {
+    // Success will be handled by event listener
+  } catch (error: any) {
+    launchError.value = error?.message || error?.toString() || 'Unknown error'
     console.error('Failed to launch game:', error)
   }
+}
+
+function closeLaunchOverlay() {
+  isLaunching.value = false
+  launchError.value = null
 }
 
 async function installGame() {
   if (!game.value) return
   installing.value = true
+  isDownloading.value = true
+  downloadProgress.value = 0
+  downloadError.value = null
+  
   try {
     await libraryStore.installGame(game.value.id)
-  } catch (error) {
+    // Success will be handled by event listener
+  } catch (error: any) {
+    downloadError.value = error?.message || error?.toString() || 'Download failed'
     console.error('Failed to install game:', error)
   } finally {
     installing.value = false
   }
+}
+
+function closeDownloadOverlay() {
+  isDownloading.value = false
+  downloadError.value = null
+  downloadProgress.value = 0
+}
+
+function cancelDownload() {
+  // TODO: Implement cancel download via Tauri command
+  console.log('Cancel download requested')
+  closeDownloadOverlay()
+  installing.value = false
 }
 
 function returnToGame() {
@@ -225,6 +313,83 @@ function exitGame() {
 }
 
 onMounted(async () => {
-  // TODO: Fetch metadata from API
+  // Listen to Tauri events - Launch
+  unlistenLaunching = await listen('game-launching', (event: any) => {
+    console.log('🚀 Game launching:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      isLaunching.value = true
+      launchError.value = null
+    }
+  })
+  
+  unlistenLaunched = await listen('game-launched', (event: any) => {
+    console.log('✅ Game launched:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      // Small delay before hiding overlay for smoother UX
+      setTimeout(() => {
+        isLaunching.value = false
+        isPlaying.value = true
+      }, 500)
+    }
+  })
+  
+  unlistenFailed = await listen('game-launch-failed', (event: any) => {
+    console.log('❌ Game launch failed:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      launchError.value = event.payload?.error || 'Unknown error'
+    }
+  })
+  
+  // Listen to Tauri events - Install/Download
+  unlistenInstalling = await listen('game-installing', (event: any) => {
+    console.log('📥 Game installing:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      isDownloading.value = true
+      downloadError.value = null
+      downloadProgress.value = 0
+    }
+  })
+  
+  unlistenInstallProgress = await listen('game-install-progress', (event: any) => {
+    console.log('📊 Download progress:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      downloadProgress.value = event.payload.progress || 0
+      downloadedSize.value = event.payload.downloaded || '0 MB'
+      totalSize.value = event.payload.total || '0 MB'
+      downloadSpeed.value = event.payload.speed || 'N/A'
+      downloadEta.value = event.payload.eta || 'Calculating...'
+    }
+  })
+  
+  unlistenInstalled = await listen('game-installed', (event: any) => {
+    console.log('✅ Game installed:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      downloadProgress.value = 100
+      // Refresh game data after install
+      setTimeout(async () => {
+        isDownloading.value = false
+        installing.value = false
+        await libraryStore.fetchGames()
+      }, 1500)
+    }
+  })
+  
+  unlistenInstallFailed = await listen('game-install-failed', (event: any) => {
+    console.log('❌ Game install failed:', event.payload)
+    if (event.payload?.gameId === gameId.value) {
+      downloadError.value = event.payload?.error || 'Download failed'
+      installing.value = false
+    }
+  })
+})
+
+onUnmounted(() => {
+  unlistenLaunching?.()
+  unlistenLaunched?.()
+  unlistenFailed?.()
+  unlistenInstalling?.()
+  unlistenInstallProgress?.()
+  unlistenInstalled?.()
+  unlistenInstallFailed?.()
 })
 </script>
