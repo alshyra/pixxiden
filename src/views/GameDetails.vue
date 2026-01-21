@@ -5,9 +5,9 @@
       <img 
         v-if="game?.backgroundUrl || game?.coverUrl"
         :src="game?.backgroundUrl || game?.coverUrl"
-        class="w-full h-full object-cover opacity-50 blur-sm scale-110"
+        class="w-full h-full object-cover opacity-50 scale-110"
       />
-      <div class="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
+      <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
     </div>
     

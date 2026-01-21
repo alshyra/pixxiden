@@ -3,10 +3,10 @@
     <!-- Background Image with Blur -->
     <div class="absolute inset-0">
       <img 
-        v-if="game?.coverUrl"
-        :src="game.coverUrl"
+        v-if="game?.backgroundUrl"
+        :src="game.backgroundUrl"
         :alt="game.title"
-        class="w-full h-full object-cover scale-110 blur-sm"
+        class="w-full h-full object-cover scale-110 object-[center_10%]"
       />
       <div 
         v-else 

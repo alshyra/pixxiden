@@ -2,6 +2,9 @@ mod commands;
 mod database;
 mod store;
 
+#[cfg(test)]
+mod tests;
+
 use commands::{
     get_game, get_games, get_store_status, get_game_config, install_game, launch_game, sync_games, uninstall_game,
     AppState,
