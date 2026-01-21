@@ -3,12 +3,12 @@
     <!-- Background -->
     <div class="absolute inset-0 overflow-hidden">
       <img 
-        v-if="game?.coverUrl"
-        :src="game.coverUrl"
-        class="w-full h-full object-cover opacity-30 blur-2xl scale-110"
+        v-if="game?.backgroundUrl || game?.coverUrl"
+        :src="game?.backgroundUrl || game?.coverUrl"
+        class="w-full h-full object-cover opacity-50 blur-sm scale-110"
       />
-      <div class="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50" />
+      <div class="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
     </div>
     
     <!-- Content -->
@@ -89,7 +89,7 @@
             Install
           </Button>
           
-          <Button variant="secondary">
+          <Button variant="secondary" @click="showSettings = true">
             •••
           </Button>
           
@@ -128,6 +128,13 @@
         </div>
       </div>
     </div>
+    
+    <!-- Settings Modal -->
+    <GameSettingsModal 
+      :show="showSettings" 
+      :game-id="gameId"
+      @close="showSettings = false"
+    />
   </div>
 </template>
 
@@ -136,13 +143,28 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { Button, Badge } from '@/components/ui'
+import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
 import type { Metadata } from '@/types'
 
 const route = useRoute()
 const libraryStore = useLibraryStore()
 
 const gameId = computed(() => route.params.id as string)
-const game = computed(() => libraryStore.games.find(g => g.id === gameId.value))
+const showSettings = ref(false)
+const game = computed(() => {
+  const g = libraryStore.games.find(g => g.id === gameId.value)
+  if (g) {
+    console.log('🎮 Game data:', {
+      id: g.id,
+      title: g.title,
+      hasCover: !!g.coverUrl,
+      hasBackground: !!g.backgroundUrl,
+      coverUrl: g.coverUrl?.substring(0, 50),
+      backgroundUrl: g.backgroundUrl?.substring(0, 50)
+    })
+  }
+  return g
+})
 const metadata = ref<Metadata | null>(null)
 const isPlaying = ref(false)
 const installing = ref(false)

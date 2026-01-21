@@ -128,7 +128,7 @@ const syncing = computed(() => libraryStore.syncing)
 
 const stores = [
   { id: 'all', name: 'All Games' },
-  { id: 'epic', name: 'Epic' },
+  { id: 'epic', name: 'Epic Games' },
   { id: 'gog', name: 'GOG' },
   { id: 'amazon', name: 'Amazon' },
 ]

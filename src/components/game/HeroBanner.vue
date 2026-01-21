@@ -61,6 +61,10 @@ const props = defineProps<{
   }
 }>()
 
+const emit = defineEmits<{
+  openDetails: []
+}>()
+
 const releaseYear = computed(() => {
   if (props.metadata?.releaseDate) {
     return new Date(props.metadata.releaseDate).getFullYear()

@@ -11,6 +11,7 @@
     <HeroBanner 
       :game="selectedGame" 
       :metadata="selectedMetadata"
+      @open-details="openGameDetails()"
     />
     
     <!-- Games Carousel -->
@@ -20,6 +21,7 @@
         :selected-id="selectedGame?.id"
         :playing-id="playingGame?.id"
         @select="selectGame"
+        @open="openGameDetails"
       />
     </div>
     
@@ -96,6 +98,13 @@ function selectGame(game: Game) {
   // TODO: Fetch metadata for the game
 }
 
+function openGameDetails(game?: Game) {
+  const gameToOpen = game || selectedGame.value
+  if (gameToOpen) {
+    router.push(`/game/${gameToOpen.id}`)
+  }
+}
+
 function toggleViewMode() {
   router.push('/library/grid')
 }
@@ -122,9 +131,21 @@ watch(filteredGames, (games) => {
   }
 })
 
+
+function handleKeyPress(e: KeyboardEvent) {
+  // Enter or Space to open details
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    openGameDetails()
+  }
+}
+
 onMounted(() => {
   loadGames()
+  // Keyboard/Gamepad navigation
+  window.addEventListener('keydown', handleKeyPress)
 })
+
 </script>
 
 <style scoped>

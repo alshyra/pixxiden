@@ -14,6 +14,10 @@ pub struct Game {
     pub installed: bool,
     #[serde(rename = "installPath")]
     pub install_path: Option<String>,
+    #[serde(rename = "winePrefix")]
+    pub wine_prefix: Option<String>,
+    #[serde(rename = "wineVersion")]
+    pub wine_version: Option<String>,
     #[serde(rename = "coverUrl")]
     pub cover_url: Option<String>,
     #[serde(rename = "backgroundUrl")]
@@ -70,6 +74,8 @@ impl Database {
                 store_id TEXT NOT NULL,
                 installed INTEGER DEFAULT 0,
                 install_path TEXT,
+                wine_prefix TEXT,
+                wine_version TEXT,
                 cover_url TEXT,
                 background_url TEXT,
                 developer TEXT,
@@ -109,6 +115,7 @@ impl Database {
         let rows = sqlx::query(
             r#"
             SELECT id, title, store, store_id, installed, install_path,
+                   wine_prefix, wine_version,
                    cover_url, background_url, developer, publisher, description,
                    release_date, last_played, play_time_minutes, created_at, updated_at
             FROM games
@@ -127,6 +134,8 @@ impl Database {
                 store_id: row.get("store_id"),
                 installed: row.get::<i32, _>("installed") == 1,
                 install_path: row.get("install_path"),
+                wine_prefix: row.get("wine_prefix"),
+                wine_version: row.get("wine_version"),
                 cover_url: row.get("cover_url"),
                 background_url: row.get("background_url"),
                 developer: row.get("developer"),
@@ -154,6 +163,7 @@ impl Database {
         let row = sqlx::query(
             r#"
             SELECT id, title, store, store_id, installed, install_path,
+                   wine_prefix, wine_version,
                    cover_url, background_url, developer, publisher, description,
                    release_date, last_played, play_time_minutes, created_at, updated_at
             FROM games WHERE id = ?
@@ -170,6 +180,8 @@ impl Database {
             store_id: row.get("store_id"),
             installed: row.get::<i32, _>("installed") == 1,
             install_path: row.get("install_path"),
+            wine_prefix: row.get("wine_prefix"),
+            wine_version: row.get("wine_version"),
             cover_url: row.get("cover_url"),
             background_url: row.get("background_url"),
             developer: row.get("developer"),
@@ -194,13 +206,16 @@ impl Database {
         sqlx::query(
             r#"
             INSERT INTO games (id, title, store, store_id, installed, install_path,
+                              wine_prefix, wine_version,
                               cover_url, background_url, developer, publisher, description,
                               release_date, last_played, play_time_minutes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(store, store_id) DO UPDATE SET
                 title = excluded.title,
                 installed = excluded.installed,
                 install_path = excluded.install_path,
+                wine_prefix = excluded.wine_prefix,
+                wine_version = excluded.wine_version,
                 cover_url = excluded.cover_url,
                 background_url = excluded.background_url,
                 developer = excluded.developer,
@@ -216,6 +231,8 @@ impl Database {
         .bind(&game.store_id)
         .bind(if game.installed { 1 } else { 0 })
         .bind(&game.install_path)
+        .bind(&game.wine_prefix)
+        .bind(&game.wine_version)
         .bind(&game.cover_url)
         .bind(&game.background_url)
         .bind(&game.developer)

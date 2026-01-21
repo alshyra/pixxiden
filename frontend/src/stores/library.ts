@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as api from '@/services/api'
+import { demoGames } from '@/composables/useDemoGames'
 import type { Game } from '@/types'
+
+// Use demo mode when Tauri is unavailable (e.g., browser dev)
+const USE_DEMO_MODE = !('__TAURI__' in window)
 
 export const useLibraryStore = defineStore('library', () => {
   const games = ref<Game[]>([])
@@ -13,45 +17,61 @@ export const useLibraryStore = defineStore('library', () => {
   const hasSynced = ref(false)
 
   async function fetchGames() {
-    console.log('🎮 fetchGames()')
     loading.value = true
     error.value = null
     try {
-      const data = await api.getGames()
-      console.log('🎮 Got', data.length, 'games')
-      // If no games in DB and never synced, auto-sync
-      if (data.length === 0 && !hasSynced.value) {
-        console.log('🎮 No games, triggering sync...')
-        await syncLibrary()
-        return
+      if (USE_DEMO_MODE) {
+        // Demo mode for browser development
+        await new Promise(resolve => setTimeout(resolve, 300))
+        games.value = demoGames
+      } else {
+        const data = await api.getGames()
+        // If no games in DB and never synced, auto-sync
+        if (data.length === 0 && !hasSynced.value) {
+          console.log('No games found, triggering initial sync...')
+          await syncLibrary()
+          return
+        }
+        games.value = data
       }
-      games.value = data
     } catch (err) {
       error.value = 'Failed to fetch games'
-      console.error('🎮 Error:', err)
+      console.error(err)
+      // Fallback to demo data on error
+      games.value = demoGames
     } finally {
       loading.value = false
     }
   }
 
   async function syncLibrary() {
-    console.log('🎮 syncLibrary()')
     syncing.value = true
     loading.value = true
     error.value = null
     syncErrors.value = []
     try {
-      const result = await api.syncGames()
-      console.log('🎮 Sync result:', result)
-      syncErrors.value = result.errors || []
-      hasSynced.value = true
-      // Refresh games after sync
-      const data = await api.getGames()
-      games.value = data
-      console.log('🎮 Loaded', data.length, 'games')
+      if (USE_DEMO_MODE) {
+        // Demo mode - simulate sync
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        games.value = demoGames
+      } else {
+        console.log('Syncing games from stores...')
+        const result = await api.syncGames()
+        console.log('Sync result:', result)
+        syncErrors.value = result.errors || []
+        hasSynced.value = true
+        // Refresh games after sync
+        const data = await api.getGames()
+        games.value = data
+        console.log(`Loaded ${data.length} games from database`)
+      }
     } catch (err) {
       error.value = 'Failed to sync library'
-      console.error('🎮 Sync error:', err)
+      console.error('Sync error:', err)
+      // Show demo games as fallback
+      if (games.value.length === 0) {
+        games.value = demoGames
+      }
     } finally {
       loading.value = false
       syncing.value = false

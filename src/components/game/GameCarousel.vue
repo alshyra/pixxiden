@@ -5,6 +5,7 @@
       ref="carouselRef"
       class="flex gap-4 overflow-x-auto scrollbar-hide px-12 py-4 scroll-smooth"
       @scroll="updateScrollState"
+      @wheel="handleWheel"
     >
       <GameCard
         v-for="game in games"
@@ -13,7 +14,8 @@
         :selected="selectedId === game.id"
         :playing="playingId === game.id"
         class="flex-shrink-0 w-36 md:w-44"
-        @click="$emit('select', game)"
+        @mouseenter="emit('select', game)"
+        @click="emit('open', game)"
       />
     </div>
     
@@ -51,8 +53,9 @@ defineProps<{
   playingId?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: [game: Game]
+  open: [game: Game]
 }>()
 
 const carouselRef = ref<HTMLElement>()
@@ -72,6 +75,12 @@ function scrollLeft() {
 
 function scrollRight() {
   carouselRef.value?.scrollBy({ left: 400, behavior: 'smooth' })
+}
+
+function handleWheel(e: WheelEvent) {
+  e.preventDefault()
+  // Augmente la vitesse du scroll (multiplie par 2)
+  carouselRef.value?.scrollBy({ left: e.deltaY * 2, behavior: 'auto' })
 }
 
 onMounted(() => {

@@ -153,6 +153,53 @@ impl LegendaryAdapter {
             })
         })
     }
+    
+    /// Read Heroic's installed.json to get installed games and their paths
+    fn read_installed_json(&self) -> std::collections::HashMap<String, String> {
+        let installed_path = self.config_path.join("installed.json");
+        let mut result = std::collections::HashMap::new();
+        
+        if let Ok(content) = std::fs::read_to_string(&installed_path) {
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(obj) = data.as_object() {
+                    for (app_name, info) in obj {
+                        if let Some(install_path) = info.get("install_path").and_then(|v| v.as_str()) {
+                            result.insert(app_name.clone(), install_path.to_string());
+                        }
+                    }
+                }
+            }
+        }
+        
+        log::info!("Found {} installed Epic games from Heroic", result.len());
+        result
+    }
+    
+    /// Read Heroic's GamesConfig/{app_name}.json to get wine config
+    fn read_heroic_game_config(&self, app_name: &str) -> Option<(String, String)> {
+        let config_dir = dirs::home_dir()?.join(".config/heroic/GamesConfig");
+        let config_path = config_dir.join(format!("{}.json", app_name));
+        
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(game_config) = data.get(app_name) {
+                    let wine_prefix = game_config.get("winePrefix")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let wine_version = game_config.get("wineVersion")
+                        .and_then(|v| v.get("name"))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    
+                    if let (Some(prefix), Some(version)) = (wine_prefix, wine_version) {
+                        return Some((prefix, version));
+                    }
+                }
+            }
+        }
+        
+        None
+    }
 }
 
 #[async_trait]
@@ -182,26 +229,28 @@ impl StoreAdapter for LegendaryAdapter {
         let output = self.run_command(&["list", "--json"]).await?;
         let games_data: Vec<LegendaryGameInfo> = serde_json::from_str(&output)?;
         
-        // Get installed games
-        let installed_output = self.run_command(&["list-installed", "--json"]).await.unwrap_or_default();
-        let installed_games: Vec<LegendaryGameInfo> = serde_json::from_str(&installed_output).unwrap_or_default();
-        let installed_ids: std::collections::HashSet<String> = installed_games
-            .iter()
-            .map(|g| g.app_name.clone())
-            .collect();
+        // Get installed games from Heroic's installed.json (more reliable)
+        let installed_data = self.read_installed_json();
+        let installed_ids: std::collections::HashSet<String> = installed_data.keys().cloned().collect();
+        let install_paths: std::collections::HashMap<String, String> = installed_data;
         
         let now = Utc::now();
         let games: Vec<Game> = games_data
             .into_iter()
             .map(|g| {
                 let id = format!("epic_{}", g.app_name);
+                let (wine_prefix, wine_version) = self.read_heroic_game_config(&g.app_name)
+                    .unwrap_or((String::new(), String::new()));
+                
                 Game {
                     id,
                     title: g.app_title,
                     store: "epic".to_string(),
                     store_id: g.app_name.clone(),
                     installed: installed_ids.contains(&g.app_name),
-                    install_path: None,
+                    install_path: install_paths.get(&g.app_name).cloned(),
+                    wine_prefix: if wine_prefix.is_empty() { None } else { Some(wine_prefix) },
+                    wine_version: if wine_version.is_empty() { None } else { Some(wine_version) },
                     cover_url: Self::extract_cover_url(&g.metadata),
                     background_url: Self::extract_background_url(&g.metadata),
                     developer: g.metadata.as_ref().and_then(|m| m.developer.clone()),
@@ -225,11 +274,21 @@ impl StoreAdapter for LegendaryAdapter {
     async fn launch_game(&self, store_id: &str) -> anyhow::Result<()> {
         log::info!("Launching Epic game: {}", store_id);
         
-        // Use spawn to launch without waiting
-        Command::new(&self.binary_path)
-            .args(["launch", store_id])
-            .env("LEGENDARY_CONFIG_PATH", &self.config_path)
-            .spawn()?;
+        // Read wine config from Heroic
+        let (wine_prefix, _wine_version) = self.read_heroic_game_config(store_id)
+            .unwrap_or((String::new(), String::new()));
+        
+        let mut cmd = Command::new(&self.binary_path);
+        cmd.args(["launch", store_id])
+            .env("LEGENDARY_CONFIG_PATH", &self.config_path);
+        
+        // If wine prefix exists, pass it to legendary
+        if !wine_prefix.is_empty() {
+            log::info!("Using wine prefix: {}", wine_prefix);
+            cmd.env("WINEPREFIX", wine_prefix);
+        }
+        
+        cmd.spawn()?;
         
         Ok(())
     }

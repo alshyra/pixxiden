@@ -177,3 +177,33 @@ pub async fn get_store_status(state: State<'_, AppState>) -> Result<Vec<StoreSta
     
     Ok(statuses)
 }
+
+#[derive(Debug, Serialize)]
+pub struct GameConfig {
+    pub id: String,
+    pub title: String,
+    pub store: String,
+    pub store_id: String,
+    pub install_path: Option<String>,
+    pub wine_prefix: Option<String>,
+    pub wine_version: Option<String>,
+    pub installed: bool,
+}
+
+#[tauri::command]
+pub async fn get_game_config(id: String, state: State<'_, AppState>) -> Result<GameConfig, String> {
+    let db = state.db.lock().await;
+    let game = db.get_game(&id).await.map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Game {} not found", id))?;
+    
+    Ok(GameConfig {
+        id: game.id,
+        title: game.title,
+        store: game.store,
+        store_id: game.store_id,
+        install_path: game.install_path,
+        wine_prefix: game.wine_prefix,
+        wine_version: game.wine_version,
+        installed: game.installed,
+    })
+}

@@ -141,6 +141,8 @@ impl StoreAdapter for GogdlAdapter {
                             store_id: app_name.to_string(),
                             installed: g.get("is_installed").and_then(|i| i.as_bool()).unwrap_or(false),
                             install_path: g.get("install_path").and_then(|p| p.as_str()).map(String::from),
+                            wine_prefix: None,
+                            wine_version: None,
                             cover_url: g.get("art_square").and_then(|u| u.as_str()).map(String::from),
                             background_url: g.get("art_cover").and_then(|u| u.as_str()).map(String::from),
                             developer: g.get("developer").and_then(|d| d.as_str()).map(String::from),
