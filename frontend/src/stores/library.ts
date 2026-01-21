@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as api from '@/services/api'
+import { demoGames } from '@/composables/useDemoGames'
 import type { Game } from '@/types'
+
+// Use demo mode when backend is unavailable
+const USE_DEMO_MODE = true
 
 export const useLibraryStore = defineStore('library', () => {
   const games = ref<Game[]>([])
@@ -13,11 +17,19 @@ export const useLibraryStore = defineStore('library', () => {
     loading.value = true
     error.value = null
     try {
-      const data = await api.getGames()
-      games.value = data
+      if (USE_DEMO_MODE) {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500))
+        games.value = demoGames
+      } else {
+        const data = await api.getGames()
+        games.value = data
+      }
     } catch (err) {
       error.value = 'Failed to fetch games'
       console.error(err)
+      // Fallback to demo data
+      games.value = demoGames
     } finally {
       loading.value = false
     }

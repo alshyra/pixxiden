@@ -1,16 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LibraryView from '@/views/LibraryView.vue'
+import LibraryFullscreen from '@/views/LibraryFullscreen.vue'
 
 const routes = [
   {
     path: '/',
     name: 'library',
-    component: LibraryView,
+    component: LibraryFullscreen,
+  },
+  {
+    path: '/library/grid',
+    name: 'library-grid',
+    component: () => import('@/views/LibraryGrid.vue'),
   },
   {
     path: '/game/:id',
     name: 'game-detail',
-    component: () => import('@/views/GameDetailView.vue'),
+    component: () => import('@/views/GameDetails.vue'),
   },
   {
     path: '/downloads',
