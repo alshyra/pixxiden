@@ -79,7 +79,7 @@
             </h3>
             <div class="flex items-center gap-2">
               <span class="px-2 py-1 rounded-full text-xs font-medium bg-remix-accent/20 text-remix-accent">
-                {{ game.storeId }}
+                {{ game.store }}
               </span>
               <span v-if="game.installed" class="px-2 py-1 rounded-full text-xs font-medium bg-remix-success/20 text-remix-success">
                 Installed
@@ -119,10 +119,12 @@ import type { Game } from '@/types'
 const router = useRouter()
 const libraryStore = useLibraryStore()
 
-const loading = ref(true)
-const syncing = ref(false)
 const selectedStore = ref('all')
 const sortBy = ref('title')
+
+// Use store's loading/syncing states
+const loading = computed(() => libraryStore.loading)
+const syncing = computed(() => libraryStore.syncing)
 
 const stores = [
   { id: 'all', name: 'All Games' },
@@ -136,7 +138,7 @@ const filteredGames = computed(() => {
   
   // Filter by store
   if (selectedStore.value !== 'all') {
-    games = games.filter(g => g.storeId === selectedStore.value)
+    games = games.filter(g => g.store === selectedStore.value)
   }
   
   // Sort
@@ -159,27 +161,8 @@ const filteredGames = computed(() => {
   return games
 })
 
-async function loadGames() {
-  loading.value = true
-  try {
-    await libraryStore.fetchGames()
-  } catch (error) {
-    console.error('Failed to load games:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
 async function syncLibrary() {
-  syncing.value = true
-  try {
-    await libraryStore.syncLibrary()
-    await loadGames()
-  } catch (error) {
-    console.error('Failed to sync library:', error)
-  } finally {
-    syncing.value = false
-  }
+  await libraryStore.syncLibrary()
 }
 
 function selectGame(game: Game) {
@@ -203,6 +186,6 @@ async function playGame(gameId: string) {
 }
 
 onMounted(() => {
-  loadGames()
+  libraryStore.fetchGames()
 })
 </script>

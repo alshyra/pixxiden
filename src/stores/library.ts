@@ -11,8 +11,10 @@ export const useLibraryStore = defineStore('library', () => {
   const games = ref<Game[]>([])
   const selectedGame = ref<Game | null>(null)
   const loading = ref(false)
+  const syncing = ref(false)
   const error = ref<string | null>(null)
   const syncErrors = ref<string[]>([])
+  const hasSynced = ref(false)
 
   async function fetchGames() {
     loading.value = true
@@ -24,12 +26,18 @@ export const useLibraryStore = defineStore('library', () => {
         games.value = demoGames
       } else {
         const data = await api.getGames()
+        // If no games in DB and never synced, auto-sync
+        if (data.length === 0 && !hasSynced.value) {
+          console.log('No games found, triggering initial sync...')
+          await syncLibrary()
+          return
+        }
         games.value = data
       }
     } catch (err) {
       error.value = 'Failed to fetch games'
       console.error(err)
-      // Fallback to demo data
+      // Fallback to demo data on error
       games.value = demoGames
     } finally {
       loading.value = false
@@ -37,6 +45,7 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   async function syncLibrary() {
+    syncing.value = true
     loading.value = true
     error.value = null
     syncErrors.value = []
@@ -46,16 +55,26 @@ export const useLibraryStore = defineStore('library', () => {
         await new Promise(resolve => setTimeout(resolve, 1000))
         games.value = demoGames
       } else {
+        console.log('Syncing games from stores...')
         const result = await api.syncGames()
-        syncErrors.value = result.errors
+        console.log('Sync result:', result)
+        syncErrors.value = result.errors || []
+        hasSynced.value = true
         // Refresh games after sync
-        await fetchGames()
+        const data = await api.getGames()
+        games.value = data
+        console.log(`Loaded ${data.length} games from database`)
       }
     } catch (err) {
       error.value = 'Failed to sync library'
-      console.error(err)
+      console.error('Sync error:', err)
+      // Show demo games as fallback
+      if (games.value.length === 0) {
+        games.value = demoGames
+      }
     } finally {
       loading.value = false
+      syncing.value = false
     }
   }
 
@@ -117,7 +136,9 @@ export const useLibraryStore = defineStore('library', () => {
     games,
     selectedGame,
     loading,
+    syncing,
     error,
+    syncErrors,
     fetchGames,
     syncLibrary,
     launchGame,

@@ -1,16 +1,22 @@
 export interface Game {
   id: string
   title: string
+  store: string
   storeId: string
-  appId: string
+  appId?: string // Alias for storeId in some contexts
   installed: boolean
-  installPath: string
-  executablePath: string
-  runner?: string
-  playTime?: number
-  lastPlayed?: string
+  installPath?: string
+  executablePath?: string
   coverUrl?: string
+  backgroundUrl?: string
   developer?: string
+  publisher?: string
+  description?: string
+  releaseDate?: string
+  runner?: string
+  playTime?: number // Alias for playTimeMinutes
+  playTimeMinutes?: number
+  lastPlayed?: string
   downloading?: boolean
   downloadProgress?: number
   createdAt?: string

@@ -4,22 +4,32 @@ use sqlx::{sqlite::SqlitePoolOptions, Pool, Row, Sqlite};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Game {
     pub id: String,
     pub title: String,
     pub store: String,
+    #[serde(rename = "storeId")]
     pub store_id: String,
     pub installed: bool,
+    #[serde(rename = "installPath")]
     pub install_path: Option<String>,
+    #[serde(rename = "coverUrl")]
     pub cover_url: Option<String>,
+    #[serde(rename = "backgroundUrl")]
     pub background_url: Option<String>,
     pub developer: Option<String>,
     pub publisher: Option<String>,
     pub description: Option<String>,
+    #[serde(rename = "releaseDate")]
     pub release_date: Option<String>,
+    #[serde(rename = "lastPlayed")]
     pub last_played: Option<DateTime<Utc>>,
+    #[serde(rename = "playTimeMinutes")]
     pub play_time_minutes: i64,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
+    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }
 
