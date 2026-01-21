@@ -1,0 +1,57 @@
+# Binaries
+/backend/pixiden-daemon
+/backend/cmd/pixiden-daemon/pixiden-daemon
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go
+/backend/vendor/
+go.work
+
+# Frontend / Node
+/frontend/node_modules/
+/frontend/dist/
+/frontend/dist-ssr/
+/frontend/.vite/
+
+# Tauri
+/frontend/src-tauri/target/
+/frontend/src-tauri/WixTools/
+
+# Build outputs
+*.AppImage
+*.deb
+*.rpm
+*.flatpak
+
+# Config
+config.yaml
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Runtime
+/prefixes/
+/downloads/
+
+# Temporary
+tmp/
+temp/
+*.tmp

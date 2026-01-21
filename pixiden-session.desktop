@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PixiDen Gaming Session
+Comment=Fullscreen game library launcher for Linux
+Exec=/usr/bin/pixiden-session
+TryExec=/usr/bin/pixiden-session
+Type=Application
+DesktopNames=PixiDen
+X-GDM-SessionRegisters=true

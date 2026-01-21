@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# PixiDen Session Launcher with Gamescope
+
+# Résolution (peut être overridé)
+RESOLUTION="${PIXIDEN_RESOLUTION:-1920x1080}"
+WIDTH=$(echo $RESOLUTION | cut -d'x' -f1)
+HEIGHT=$(echo $RESOLUTION | cut -d'x' -f2)
+
+# Vérifier que Gamescope est installé
+if ! command -v gamescope &> /dev/null; then
+    echo "Error: Gamescope is not installed"
+    echo "Install it with: sudo pacman -S gamescope (Arch) or via Flatpak"
+    exit 1
+fi
+
+# Vérifier que PixiDen est installé
+if ! command -v pixiden &> /dev/null; then
+    echo "Error: PixiDen is not installed"
+    exit 1
+fi
+
+# Lancer PixiDen avec Gamescope
+exec gamescope \
+    -W $WIDTH \
+    -H $HEIGHT \
+    -w $WIDTH \
+    -h $HEIGHT \
+    -f \
+    -e \
+    --force-grab-cursor \
+    --adaptive-sync \
+    -- pixiden --fullscreen --session-mode
