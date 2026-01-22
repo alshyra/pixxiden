@@ -1,0 +1,69 @@
+# PixiDen - External Binary Dependencies
+# Update versions here to trigger new downloads
+
+version: "1.0"
+
+binaries:
+  legendary:
+    enabled: true
+    version: "0.20.34"
+    sources:
+      linux-x86_64:
+        # Note: legendary n'a pas de releases binaires officielles
+        # URL alternative: utiliser notre propre build ou community build
+        url: ""
+      linux-aarch64:
+        url: ""
+      windows-x86_64:
+        url: ""
+    fallback:
+      type: "python-wrapper"
+      package: "legendary-gl"
+    
+  gogdl:
+    enabled: true
+    version: "1.1.2"
+    sources:
+      linux-x86_64:
+        # Note: Check https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases for actual URLs
+        # Format may vary by release
+        url: ""
+        checksum: ""
+      linux-aarch64:
+        url: ""
+        checksum: ""
+      windows-x86_64:
+        url: ""
+        checksum: ""
+      darwin-x86_64:
+        url: ""
+        checksum: ""
+      darwin-aarch64:
+        url: ""
+        checksum: ""
+    fallback:
+      type: "python-wrapper"
+      package: "heroic-gogdl"
+  
+  nile:
+    enabled: true
+    version: "1.1.1"
+    sources:
+      linux-x86_64:
+        # Note: Check https://github.com/imLinguin/nile/releases for actual binary URLs
+        url: ""
+        checksum: ""
+      windows-x86_64:
+        url: ""
+        checksum: ""
+    fallback:
+      type: "python-wrapper"
+      package: "nile"
+
+# Mapping Rust target → Platform naming
+target_mappings:
+  x86_64-unknown-linux-gnu: "linux-x86_64"
+  aarch64-unknown-linux-gnu: "linux-aarch64"
+  x86_64-pc-windows-msvc: "windows-x86_64"
+  x86_64-apple-darwin: "darwin-x86_64"
+  aarch64-apple-darwin: "darwin-aarch64"

@@ -34,14 +34,24 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
       
-      - name: Install CLI tools
+      - name: Cache sidecar binaries
+        id: cache-binaries
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/binaries
+          key: ${{ runner.os }}-binaries-${{ hashFiles('scripts/dependencies.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-binaries-
+      
+      - name: Install CLI tools (fallback for binaries)
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
         run: |
-          pip3 install legendary-gl --break-system-packages
-          pip3 install nile --break-system-packages
-          # TODO: Install gogdl
+          pip3 install legendary-gl --break-system-packages || true
+          pip3 install nile --break-system-packages || true
+          # GOGDL will be downloaded by download-sidecars.sh
       
       - name: Setup sidecars
-        run: bash scripts/setup-sidecars.sh
+        run: bash scripts/download-sidecars.sh
       
       - name: Install frontend dependencies
         run: npm install
@@ -54,3 +64,4 @@ jobs:
         with:
           name: pixiden-appimage
           path: src-tauri/target/release/bundle/appimage/*.AppImage
+
