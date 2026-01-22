@@ -321,3 +321,22 @@ pub async fn get_game_config(id: String, state: State<'_, AppState>) -> Result<G
         installed: game.installed,
     })
 }
+
+#[tauri::command]
+pub async fn close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
+    log::info!("Closing splash screen and showing main window");
+    
+    // Get the splash screen window
+    if let Some(splash_window) = app.get_webview_window("splashscreen") {
+        // Close the splash screen
+        splash_window.close().map_err(|e| e.to_string())?;
+    }
+    
+    // Get the main window and show it
+    if let Some(main_window) = app.get_webview_window("main") {
+        main_window.show().map_err(|e| e.to_string())?;
+        main_window.set_focus().map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}

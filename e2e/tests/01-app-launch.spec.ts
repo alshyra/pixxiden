@@ -2,6 +2,7 @@
  * PixiDen E2E Tests - Application Launch
  * 
  * Tests that the application launches correctly and basic UI is functional.
+ * Note: The splash screen may or may not be visible when tests start, depending on timing.
  */
 
 import { waitForAppReady, takeScreenshot } from '../helpers'
@@ -9,7 +10,7 @@ import { Selectors } from '../helpers/selectors'
 
 describe('Application Launch', () => {
   before(async () => {
-    // Wait for app to be fully loaded
+    // Wait for app to be fully loaded (splash screen should be closed)
     await waitForAppReady()
   })
 
@@ -21,6 +22,12 @@ describe('Application Launch', () => {
   it('should display the main app container', async () => {
     const app = await $(Selectors.app)
     expect(await app.isDisplayed()).toBe(true)
+  })
+
+  it('should not show splash screen in main window', async () => {
+    // Verify splash screen is not present in the main window
+    const splashContainer = await $('.splash-container')
+    expect(await splashContainer.isExisting()).toBe(false)
   })
 
   it('should have window title set correctly', async () => {

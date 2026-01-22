@@ -12,11 +12,24 @@
   "app": {
     "windows": [
       {
-        "title": "PixiDen",
-        "width": 800,
-        "height": 600,
+        "label": "main",
+        "title": "Pixxiden",
+        "visible": false,
+        "width": 1280,
+        "height": 720,
         "resizable": true,
         "fullscreen": false
+      },
+      {
+        "label": "splashscreen",
+        "url": "index.html?splash",
+        "width": 500,
+        "height": 500,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "center": true,
+        "resizable": false
       }
     ],
     "security": {
