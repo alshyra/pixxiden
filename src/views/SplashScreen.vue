@@ -21,24 +21,51 @@
         </div>
       </div>
       <h1 class="app-title">PixiDen</h1>
-      <p class="loading-text">Loading your game library...</p>
+      <p class="loading-text">{{ loadingMessage }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+
+const loadingMessage = ref('Initializing...')
 
 onMounted(async () => {
   try {
-    // Simulate initial loading (sync operations would happen here)
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Step 1: Check initial setup
+    loadingMessage.value = 'Checking game libraries...'
+    await new Promise(resolve => setTimeout(resolve, 500))
     
-    // Close splash screen and show main window
+    // Step 2: Get games to check if initial sync is needed
+    const games = await invoke<any[]>('get_games')
+    
+    // If no games exist, perform initial sync
+    if (games.length === 0) {
+      loadingMessage.value = 'Syncing game libraries...'
+      try {
+        await invoke('sync_games')
+      } catch (error) {
+        console.warn('Initial sync failed (may need authentication):', error)
+      }
+    }
+    
+    // Step 3: Final preparation
+    loadingMessage.value = 'Loading your library...'
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // Step 4: Close splash screen and show main window
     await invoke('close_splashscreen')
   } catch (error) {
-    console.error('Error closing splash screen:', error)
+    console.error('Error during splash screen initialization:', error)
+    // Even if there's an error, show the main window after a delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    try {
+      await invoke('close_splashscreen')
+    } catch (e) {
+      console.error('Failed to close splash screen:', e)
+    }
   }
 })
 </script>
