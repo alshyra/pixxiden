@@ -1,0 +1,56 @@
+name: Build PixiDen
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+      
+      - name: Install CLI tools
+        run: |
+          pip3 install legendary-gl --break-system-packages
+          pip3 install nile --break-system-packages
+          # TODO: Install gogdl
+      
+      - name: Setup sidecars
+        run: bash scripts/setup-sidecars.sh
+      
+      - name: Install frontend dependencies
+        run: npm install
+      
+      - name: Build Tauri
+        run: npm run tauri:build
+      
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixiden-appimage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
