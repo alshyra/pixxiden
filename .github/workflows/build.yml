@@ -21,7 +21,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y \
@@ -32,8 +32,9 @@ jobs:
             file \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev
-      
+            librsvg2-dev \
+            libudev-dev
+
       - name: Cache sidecar binaries
         id: cache-binaries
         uses: actions/cache@v4
