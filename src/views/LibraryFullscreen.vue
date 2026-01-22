@@ -3,8 +3,6 @@
     <!-- Top Bar -->
     <TopBar 
       :now-playing="playingGame"
-      @settings="showSettings = true"
-      @toggle-view="toggleViewMode"
     />
     
     <!-- Hero Banner -->
@@ -53,7 +51,6 @@ const router = useRouter()
 const libraryStore = useLibraryStore()
 
 const loading = ref(true)
-const showSettings = ref(false)
 const currentFilter = ref('all')
 const selectedGame = ref<Game | null>(null)
 const playingGame = ref<Game | null>(null)
@@ -103,10 +100,6 @@ function openGameDetails(game?: Game) {
   if (gameToOpen) {
     router.push(`/game/${gameToOpen.id}`)
   }
-}
-
-function toggleViewMode() {
-  router.push('/library/grid')
 }
 
 async function loadGames() {
