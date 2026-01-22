@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import type { Game } from '@/types'
 
 const loadingMessage = ref('Initializing...')
 
@@ -39,7 +40,7 @@ onMounted(async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
     
     // Step 2: Get games to check if initial sync is needed
-    const games = await invoke<any[]>('get_games')
+    const games = await invoke<Game[]>('get_games')
     
     // If no games exist, perform initial sync
     if (games.length === 0) {
