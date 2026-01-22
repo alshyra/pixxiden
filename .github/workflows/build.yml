@@ -50,9 +50,6 @@ jobs:
           pip3 install nile --break-system-packages || true
           # GOGDL will be downloaded by download-sidecars.sh
       
-      - name: Setup sidecars
-        run: bash scripts/download-sidecars.sh
-      
       - name: Install frontend dependencies
         run: npm install
       
