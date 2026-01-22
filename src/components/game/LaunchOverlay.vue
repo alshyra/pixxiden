@@ -85,7 +85,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 interface Props {
   isVisible: boolean
@@ -97,6 +98,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
+  launched: []
 }>()
 
 const progressTexts = [
@@ -113,6 +115,24 @@ const progress = ref(0)
 let textInterval: ReturnType<typeof setInterval> | undefined
 let progressInterval: ReturnType<typeof setInterval> | undefined
 let textIndex = 0
+
+// Listen to Tauri events
+let unlistenLaunched: UnlistenFn | null = null
+let unlistenFailed: UnlistenFn | null = null
+
+onMounted(async () => {
+  // Listen for successful game launch
+  unlistenLaunched = await listen('game-launched', (event) => {
+    console.log('Game launched event:', event)
+    emit('launched')
+  })
+  
+  // Listen for launch failures
+  unlistenFailed = await listen('game-launch-failed', (event: any) => {
+    console.error('Game launch failed event:', event)
+    // Error is handled via props
+  })
+})
 
 // Cycle through progress texts and update progress bar
 watch(() => props.isVisible, (visible) => {
@@ -153,6 +173,8 @@ watch(() => props.error, (error) => {
 onUnmounted(() => {
   clearInterval(textInterval)
   clearInterval(progressInterval)
+  if (unlistenLaunched) unlistenLaunched()
+  if (unlistenFailed) unlistenFailed()
 })
 
 function close() {

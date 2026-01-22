@@ -11,7 +11,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:build:appimage": "tauri build --target appimage",
-    "postinstall": "bash scripts/download-sidecars.sh",
+    "postinstall": "node scripts/postinstall.js",
     "setup:sidecars": "bash scripts/download-sidecars.sh",
     "setup:sidecars:legacy": "bash scripts/setup-sidecars.sh",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",

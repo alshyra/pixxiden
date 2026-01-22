@@ -2,8 +2,7 @@ node_modules
 dist
 
 # Tauri sidecar binaries (downloaded automatically via npm run setup:sidecars)
-src-tauri/binaries/*-x86_64-unknown-linux-gnu
-src-tauri/binaries/*-aarch64-unknown-linux-gnu
-src-tauri/binaries/*-x86_64-pc-windows-msvc
-src-tauri/binaries/*-x86_64-apple-darwin
-src-tauri/binaries/*-aarch64-apple-darwin
+# Ignore all binaries but keep .gitkeep and README.md
+src-tauri/binaries/*
+!src-tauri/binaries/.gitkeep
+!src-tauri/binaries/README.md

@@ -39,6 +39,17 @@
           <span :class="{ 'animate-spin': syncing }">↻</span>
           Sync
         </button>
+        
+        <!-- Scan GOG Button -->
+        <button 
+          @click="scanGogGames"
+          :disabled="loading"
+          class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50
+                 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          title="Scan ~/GOG Games/ directory">
+          <span>🔍</span>
+          Scan GOG
+        </button>
       </div>
     </div>
 
@@ -107,13 +118,25 @@
         </div>
       </div>
     </div>
+    
+    <!-- Launch Overlay -->
+    <LaunchOverlay 
+      :is-visible="isLaunching"
+      :game-title="launchingGame?.title || 'Game'"
+      :runner="launchRunner"
+      :error="launchError"
+      @close="closeLaunchOverlay"
+      @launched="onGameLaunched"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useLibraryStore } from '@/stores/library'
+import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
 import type { Game } from '@/types'
 
 const router = useRouter()
@@ -125,6 +148,25 @@ const sortBy = ref('title')
 // Use store's loading/syncing states
 const loading = computed(() => libraryStore.loading)
 const syncing = computed(() => libraryStore.syncing)
+
+// Launch overlay state
+const isLaunching = ref(false)
+const launchingGame = ref<Game | null>(null)
+const launchError = ref<string | null>(null)
+const launchRunner = computed(() => {
+  if (!launchingGame.value) return undefined
+  switch (launchingGame.value.store) {
+    case 'epic': return 'Legendary (Epic Games)'
+    case 'gog': return 'Wine-GE (GOG)'
+    case 'amazon': return 'Nile (Amazon Games)'
+    default: return launchingGame.value.store
+  }
+})
+
+// Event listeners
+let unlistenLaunching: UnlistenFn | undefined
+let unlistenLaunched: UnlistenFn | undefined
+let unlistenFailed: UnlistenFn | undefined
 
 const stores = [
   { id: 'all', name: 'All Games' },
@@ -165,6 +207,14 @@ async function syncLibrary() {
   await libraryStore.syncLibrary()
 }
 
+async function scanGogGames() {
+  try {
+    await libraryStore.scanGogInstalled()
+  } catch (error) {
+    console.error('Failed to scan GOG games:', error)
+  }
+}
+
 function selectGame(game: Game) {
   router.push(`/game/${game.id}`)
 }
@@ -178,14 +228,65 @@ async function installGame(gameId: string) {
 }
 
 async function playGame(gameId: string) {
+  const game = libraryStore.games.find(g => g.id === gameId)
+  if (!game) return
+  
+  // Reset state and show overlay
+  launchingGame.value = game
+  launchError.value = null
+  isLaunching.value = true
+  
   try {
     await libraryStore.launchGame(gameId)
-  } catch (error) {
+    // Success will be handled by event listener
+  } catch (error: any) {
+    launchError.value = error?.message || error?.toString() || 'Unknown error'
     console.error('Failed to launch game:', error)
   }
 }
 
-onMounted(() => {
+function closeLaunchOverlay() {
+  isLaunching.value = false
+  launchError.value = null
+  launchingGame.value = null
+}
+
+function onGameLaunched() {
+  // Hide overlay after successful launch
+  setTimeout(() => {
+    isLaunching.value = false
+    launchingGame.value = null
+  }, 500)
+}
+
+onMounted(async () => {
   libraryStore.fetchGames()
+  
+  // Listen to Tauri events
+  unlistenLaunching = await listen('game-launching', (event: any) => {
+    console.log('🚀 Game launching:', event.payload)
+    const game = libraryStore.games.find(g => g.id === event.payload?.gameId)
+    if (game) {
+      launchingGame.value = game
+      isLaunching.value = true
+      launchError.value = null
+    }
+  })
+  
+  unlistenLaunched = await listen('game-launched', (event: any) => {
+    console.log('✅ Game launched:', event.payload)
+    onGameLaunched()
+  })
+  
+  unlistenFailed = await listen('game-launch-failed', (event: any) => {
+    console.log('❌ Game launch failed:', event.payload)
+    launchError.value = event.payload?.error || 'Unknown error'
+  })
+})
+
+onUnmounted(() => {
+  if (unlistenLaunching) unlistenLaunching()
+  if (unlistenLaunched) unlistenLaunched()
+  if (unlistenFailed) unlistenFailed()
 })
 </script>

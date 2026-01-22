@@ -108,6 +108,27 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  async function scanGogInstalled() {
+    console.log('🎮 scanGogInstalled()')
+    loading.value = true
+    error.value = null
+    try {
+      const gogGames = await api.scanGogInstalled()
+      console.log('🎮 Found', gogGames.length, 'GOG games in ~/GOG Games/')
+      
+      // Merge with existing games
+      const data = await api.getGames()
+      games.value = data
+      console.log('🎮 Total games:', data.length)
+    } catch (err) {
+      error.value = 'Failed to scan GOG games'
+      console.error('🎮 Scan error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   function selectGameById(gameId: string) {
     selectedGame.value = games.value.find(g => g.id === gameId) || null
   }
@@ -121,6 +142,7 @@ export const useLibraryStore = defineStore('library', () => {
     syncErrors,
     fetchGames,
     syncLibrary,
+    scanGogInstalled,
     launchGame,
     installGame,
     uninstallGame,

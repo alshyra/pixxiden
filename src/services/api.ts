@@ -47,6 +47,16 @@ export async function syncGames(): Promise<SyncResult> {
   }
 }
 
+export async function scanGogInstalled(): Promise<Game[]> {
+  try {
+    const games = await invoke<Game[]>('scan_gog_installed')
+    return games
+  } catch (error) {
+    console.error('Failed to scan GOG installed games:', error)
+    throw error
+  }
+}
+
 export async function launchGame(gameId: string): Promise<void> {
   try {
     await invoke('launch_game', { id: gameId })
