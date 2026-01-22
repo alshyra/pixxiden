@@ -9,12 +9,15 @@
       </div>
       
       <!-- Navigation -->
-      <nav class="space-y-8 flex-1">
+      <nav class="space-y-8 flex-1" role="tablist" aria-label="Configuration sections">
         <div class="text-xs font-bold text-[#8e8e93] tracking-wider mb-4 px-2">CONFIGURATION</div>
         <button
           v-for="section in sections"
           :key="section.id"
           @click="activeSection = section.id"
+          role="tab"
+          :aria-selected="activeSection === section.id"
+          :aria-controls="`panel-${section.id}`"
           class="remix-nav-item block text-sm font-bold text-left w-full px-2"
           :class="activeSection === section.id ? 'active' : 'text-gray-400'"
         >
@@ -32,7 +35,7 @@
     <!-- Main Content -->
     <main class="flex-1 p-24 bg-gradient-to-b from-[#5e5ce6]/5 to-transparent overflow-y-auto">
       <!-- Système Section -->
-      <div v-if="activeSection === 'systeme'" class="animate-fade-in">
+      <div v-if="activeSection === 'systeme'" id="panel-systeme" role="tabpanel" aria-labelledby="tab-systeme" class="animate-fade-in">
         <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Système</h1>
         <p class="text-[#8e8e93] mb-8">Informations machine et gestion des mises à jour.</p>
         
@@ -63,7 +66,7 @@
       </div>
 
       <!-- Comptes Section -->
-      <div v-if="activeSection === 'comptes'" class="animate-fade-in">
+      <div v-if="activeSection === 'comptes'" id="panel-comptes" role="tabpanel" aria-labelledby="tab-comptes" class="animate-fade-in">
         <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Comptes</h1>
         <p class="text-[#8e8e93] mb-8">Connectez vos stores pour synchroniser votre bibliothèque.</p>
         
@@ -119,7 +122,7 @@
       </div>
 
       <!-- Avancé Section -->
-      <div v-if="activeSection === 'avance'" class="animate-fade-in">
+      <div v-if="activeSection === 'avance'" id="panel-avance" role="tabpanel" aria-labelledby="tab-avance" class="animate-fade-in">
         <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Avancé</h1>
         <p class="text-[#8e8e93] mb-8">Configuration experte de la couche de compatibilité.</p>
         
@@ -133,6 +136,7 @@
             <div class="relative">
               <select 
                 v-model="protonVersion"
+                aria-label="Select Proton version"
                 class="appearance-none bg-[#000000] border border-[#1f1f1f] rounded-lg px-6 py-3 pr-12 font-semibold text-sm focus:outline-none focus:border-[#5e5ce6] focus:shadow-[0_0_15px_rgba(94,92,230,0.3)] transition-all cursor-pointer"
               >
                 <option value="ge-proton-8-32">GE-Proton 8-32</option>
@@ -156,6 +160,9 @@
             </div>
             <button 
               @click="mangoHudEnabled = !mangoHudEnabled"
+              role="switch"
+              :aria-checked="mangoHudEnabled"
+              aria-label="Toggle MangoHud overlay"
               class="remix-switch relative w-14 h-7 rounded-full transition-all duration-300"
               :class="mangoHudEnabled ? 'bg-[#5e5ce6] shadow-[0_0_20px_rgba(94,92,230,0.6)]' : 'bg-[#1f1f1f]'"
             >
