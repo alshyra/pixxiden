@@ -7,19 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ReMiX Theme Colors
+        // ReMiX Theme Colors (Jono Sellier - Pitch Black with Neon Indigo)
         'remix': {
-          'bg-dark': '#0A0A0B',
-          'bg-card': '#1A1A1D',
+          'bg-dark': '#000000',        // Pure Black
+          'bg-card': '#0a0a0a',        // Dark Grey
           'bg-hover': '#2A2A2F',
-          'accent': '#6366F1',
-          'accent-hover': '#818CF8',
-          'text-primary': '#F5F5F7',
-          'text-secondary': '#9CA3AF',
+          'accent': '#5e5ce6',         // Indigo Neon
+          'accent-hover': '#7c7ae8',
+          'text-primary': '#ffffff',
+          'text-secondary': '#8e8e93',
+          'text-muted': '#8e8e93',
           'success': '#10B981',
           'warning': '#F59E0B',
           'error': '#EF4444',
-          'border': '#2A2A2F',
+          'border': '#1f1f1f',
         }
       },
       fontFamily: {

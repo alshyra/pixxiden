@@ -1,607 +1,227 @@
 <template>
-  <div class="settings-view">
-    <h1 class="text-3xl font-display font-bold mb-8">Settings</h1>
-
-    <div class="grid grid-cols-4 gap-8">
-      <!-- Sidebar navigation -->
-      <nav class="col-span-1">
-        <ul class="space-y-1">
-          <li v-for="section in sections" :key="section.id">
-            <button
-              @click="activeSection = section.id"
-              class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors"
-              :class="activeSection === section.id 
-                ? 'bg-remix-accent/20 text-remix-accent' 
-                : 'text-remix-text-secondary hover:bg-remix-bg-hover hover:text-remix-text-primary'"
-            >
-              <component :is="section.icon" class="w-5 h-5" />
-              {{ section.label }}
-            </button>
-          </li>
-        </ul>
+  <div class="flex h-screen bg-black text-white font-['Inter']">
+    <!-- Sidebar -->
+    <aside class="w-72 border-r border-[#1f1f1f] p-10 flex flex-col">
+      <!-- Logo -->
+      <div class="flex items-center gap-3 mb-16 px-2">
+        <div class="w-7 h-7 rounded-lg bg-[#5e5ce6] shadow-[0_0_20px_rgba(94,92,230,0.5)]"></div>
+        <span class="text-xl font-bold italic">Pixxiden</span>
+      </div>
+      
+      <!-- Navigation -->
+      <nav class="space-y-8 flex-1">
+        <div class="text-xs font-bold text-[#8e8e93] tracking-wider mb-4 px-2">CONFIGURATION</div>
+        <button
+          v-for="section in sections"
+          :key="section.id"
+          @click="activeSection = section.id"
+          class="remix-nav-item block text-sm font-bold text-left w-full px-2"
+          :class="activeSection === section.id ? 'active' : 'text-gray-400'"
+        >
+          {{ section.label }}
+        </button>
       </nav>
 
-      <!-- Content area -->
-      <div class="col-span-3">
-        <!-- Stores Section -->
-        <div v-if="activeSection === 'stores'" class="space-y-6 animate-fade-in">
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-6">Store Accounts</h2>
-            
-            <!-- Epic Games -->
-            <div class="flex items-center justify-between py-4 border-b border-remix-border">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-gradient-to-br from-[#313131] to-[#1a1a1a] rounded-lg flex items-center justify-center">
-                  <span class="text-lg font-bold">E</span>
-                </div>
-                <div>
-                  <h3 class="font-semibold">Epic Games Store</h3>
-                  <p class="text-sm text-remix-text-secondary">
-                    {{ stores.legendary.authenticated ? 'Connected' : 'Not connected' }}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <button
-                  v-if="stores.legendary.authenticated"
-                  @click="syncStore('legendary')"
-                  :disabled="stores.legendary.syncing"
-                  class="flex items-center gap-2 px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors"
-                >
-                  <RefreshCwIcon :class="['w-4 h-4', stores.legendary.syncing && 'animate-spin']" />
-                  Sync
-                </button>
-                <button
-                  @click="toggleStore('legendary')"
-                  class="px-4 py-2 rounded-lg transition-colors"
-                  :class="stores.legendary.authenticated 
-                    ? 'bg-remix-error/20 text-remix-error hover:bg-remix-error/30' 
-                    : 'bg-remix-accent hover:bg-remix-accent-hover text-white'"
-                >
-                  {{ stores.legendary.authenticated ? 'Disconnect' : 'Connect' }}
-                </button>
-              </div>
-            </div>
+      <!-- Version Badge -->
+      <div class="mt-auto px-2 py-4 border border-[#1f1f1f] rounded-lg text-center">
+        <div class="text-xs font-bold text-[#8e8e93] mb-1">VERSION</div>
+        <div class="text-sm font-bold text-[#5e5ce6]">v0.1.0-alpha</div>
+      </div>
+    </aside>
 
-            <!-- GOG -->
-            <div class="flex items-center justify-between py-4 border-b border-remix-border">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-gradient-to-br from-[#86328a] to-[#5c1d5f] rounded-lg flex items-center justify-center">
-                  <span class="text-lg font-bold">G</span>
-                </div>
-                <div>
-                  <h3 class="font-semibold">GOG.com</h3>
-                  <p class="text-sm text-remix-text-secondary">
-                    {{ stores.gogdl.authenticated ? 'Connected' : 'Not connected' }}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <button
-                  v-if="stores.gogdl.authenticated"
-                  @click="syncStore('gogdl')"
-                  :disabled="stores.gogdl.syncing"
-                  class="flex items-center gap-2 px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors"
-                >
-                  <RefreshCwIcon :class="['w-4 h-4', stores.gogdl.syncing && 'animate-spin']" />
-                  Sync
-                </button>
-                <button
-                  @click="toggleStore('gogdl')"
-                  class="px-4 py-2 rounded-lg transition-colors"
-                  :class="stores.gogdl.authenticated 
-                    ? 'bg-remix-error/20 text-remix-error hover:bg-remix-error/30' 
-                    : 'bg-remix-accent hover:bg-remix-accent-hover text-white'"
-                >
-                  {{ stores.gogdl.authenticated ? 'Disconnect' : 'Connect' }}
-                </button>
-              </div>
-            </div>
+    <!-- Main Content -->
+    <main class="flex-1 p-24 bg-gradient-to-b from-[#5e5ce6]/5 to-transparent overflow-y-auto">
+      <!-- Système Section -->
+      <div v-if="activeSection === 'systeme'" class="animate-fade-in">
+        <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Système</h1>
+        <p class="text-[#8e8e93] mb-8">Informations machine et gestion des mises à jour.</p>
+        
+        <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-[14px] p-8 mb-6">
+          <!-- OS -->
+          <div class="flex items-center justify-between py-4 border-b border-[#1f1f1f]">
+            <span class="text-[#8e8e93]">OS</span>
+            <span class="font-semibold">PixxOS (Arch)</span>
+          </div>
 
-            <!-- Amazon Games -->
-            <div class="flex items-center justify-between py-4">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-gradient-to-br from-[#ff9900] to-[#cc7a00] rounded-lg flex items-center justify-center">
-                  <span class="text-lg font-bold text-black">A</span>
-                </div>
-                <div>
-                  <h3 class="font-semibold">Amazon Games</h3>
-                  <p class="text-sm text-remix-text-secondary">
-                    {{ stores.nile.authenticated ? 'Connected' : 'Not connected' }}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <button
-                  v-if="stores.nile.authenticated"
-                  @click="syncStore('nile')"
-                  :disabled="stores.nile.syncing"
-                  class="flex items-center gap-2 px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors"
-                >
-                  <RefreshCwIcon :class="['w-4 h-4', stores.nile.syncing && 'animate-spin']" />
-                  Sync
-                </button>
-                <button
-                  @click="toggleStore('nile')"
-                  class="px-4 py-2 rounded-lg transition-colors"
-                  :class="stores.nile.authenticated 
-                    ? 'bg-remix-error/20 text-remix-error hover:bg-remix-error/30' 
-                    : 'bg-remix-accent hover:bg-remix-accent-hover text-white'"
-                >
-                  {{ stores.nile.authenticated ? 'Disconnect' : 'Connect' }}
-                </button>
-              </div>
-            </div>
+          <!-- Kernel -->
+          <div class="flex items-center justify-between py-4 border-b border-[#1f1f1f]">
+            <span class="text-[#8e8e93]">Kernel</span>
+            <span class="font-semibold text-[#5e5ce6]">6.7.2-zen1-1-zen</span>
+          </div>
+
+          <!-- Hardware -->
+          <div class="flex items-center justify-between py-4">
+            <span class="text-[#8e8e93]">Hardware</span>
+            <span class="font-semibold">AMD Custom APU (Aerith)</span>
           </div>
         </div>
 
-        <!-- Paths Section -->
-        <div v-if="activeSection === 'paths'" class="space-y-6 animate-fade-in">
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-6">Paths & Storage</h2>
-            
-            <div class="space-y-6">
-              <div>
-                <label class="block text-sm text-remix-text-secondary mb-2">
-                  Default Install Location
-                </label>
-                <div class="flex gap-3">
-                  <input 
-                    type="text"
-                    v-model="paths.defaultInstall"
-                    class="flex-1 bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent"
-                  />
-                  <button class="px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors">
-                    <FolderOpenIcon class="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+        <!-- Update Button -->
+        <button class="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-[14px] py-6 font-bold text-sm tracking-widest hover:border-[#5e5ce6] hover:shadow-[0_0_20px_rgba(94,92,230,0.3)] transition-all">
+          VÉRIFIER LES MISES À JOUR
+        </button>
+      </div>
 
-              <div>
-                <label class="block text-sm text-remix-text-secondary mb-2">
-                  Wine Prefixes Location
-                </label>
-                <div class="flex gap-3">
-                  <input 
-                    type="text"
-                    v-model="paths.prefixes"
-                    class="flex-1 bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent"
-                  />
-                  <button class="px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors">
-                    <FolderOpenIcon class="w-5 h-5" />
-                  </button>
-                </div>
+      <!-- Comptes Section -->
+      <div v-if="activeSection === 'comptes'" class="animate-fade-in">
+        <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Comptes</h1>
+        <p class="text-[#8e8e93] mb-8">Connectez vos stores pour synchroniser votre bibliothèque.</p>
+        
+        <div class="space-y-4">
+          <!-- Epic Games -->
+          <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-[14px] p-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-[#5e5ce6] rounded-lg flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(94,92,230,0.4)]">
+                Ep
               </div>
-
               <div>
-                <label class="block text-sm text-remix-text-secondary mb-2">
-                  Download Cache Location
-                </label>
-                <div class="flex gap-3">
-                  <input 
-                    type="text"
-                    v-model="paths.downloadCache"
-                    class="flex-1 bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent"
-                  />
-                  <button class="px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors">
-                    <FolderOpenIcon class="w-5 h-5" />
-                  </button>
-                </div>
+                <h3 class="font-bold">Epic Games</h3>
+                <p class="text-sm text-[#10B981] font-semibold">CONNECTÉ — PIXX_DEV</p>
               </div>
             </div>
-          </div>
-
-          <!-- Disk Usage -->
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h3 class="text-lg font-semibold mb-4">Disk Usage</h3>
-            <div class="space-y-4">
-              <div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="text-remix-text-secondary">Games</span>
-                  <span>145.2 GB</span>
-                </div>
-                <div class="h-2 bg-remix-bg-hover rounded-full overflow-hidden">
-                  <div class="h-full bg-remix-accent" style="width: 45%"></div>
-                </div>
-              </div>
-              <div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="text-remix-text-secondary">Wine Prefixes</span>
-                  <span>12.4 GB</span>
-                </div>
-                <div class="h-2 bg-remix-bg-hover rounded-full overflow-hidden">
-                  <div class="h-full bg-remix-success" style="width: 15%"></div>
-                </div>
-              </div>
-              <div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="text-remix-text-secondary">Download Cache</span>
-                  <span>3.1 GB</span>
-                </div>
-                <div class="h-2 bg-remix-bg-hover rounded-full overflow-hidden">
-                  <div class="h-full bg-remix-warning" style="width: 5%"></div>
-                </div>
-              </div>
-            </div>
-            <button class="mt-4 text-sm text-remix-accent hover:text-remix-accent-hover transition-colors">
-              Clear Download Cache
-            </button>
-          </div>
-        </div>
-
-        <!-- Runners Section -->
-        <div v-if="activeSection === 'runners'" class="space-y-6 animate-fade-in">
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-6">Wine & Proton Runners</h2>
-            
-            <div class="space-y-4">
-              <!-- Wine-GE -->
-              <div class="flex items-center justify-between py-4 border-b border-remix-border">
-                <div class="flex items-center gap-4">
-                  <div class="w-10 h-10 bg-remix-bg-hover rounded-lg flex items-center justify-center">
-                    <WineIcon class="w-5 h-5 text-remix-accent" />
-                  </div>
-                  <div>
-                    <h3 class="font-semibold">Wine-GE</h3>
-                    <p class="text-sm text-remix-text-secondary">
-                      {{ runners.wineGE.version || 'Not installed' }}
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span 
-                    v-if="runners.wineGE.installed"
-                    class="px-3 py-1 bg-remix-success/20 text-remix-success rounded-full text-sm"
-                  >
-                    Installed
-                  </span>
-                  <button
-                    v-if="!runners.wineGE.installed"
-                    class="px-4 py-2 bg-remix-accent hover:bg-remix-accent-hover text-white rounded-lg transition-colors"
-                  >
-                    Install
-                  </button>
-                  <button class="px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors">
-                    Configure
-                  </button>
-                </div>
-              </div>
-
-              <!-- Proton-GE -->
-              <div class="flex items-center justify-between py-4">
-                <div class="flex items-center gap-4">
-                  <div class="w-10 h-10 bg-remix-bg-hover rounded-lg flex items-center justify-center">
-                    <CpuIcon class="w-5 h-5 text-remix-accent" />
-                  </div>
-                  <div>
-                    <h3 class="font-semibold">Proton-GE</h3>
-                    <p class="text-sm text-remix-text-secondary">
-                      {{ runners.protonGE.version || 'Not installed' }}
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span 
-                    v-if="runners.protonGE.installed"
-                    class="px-3 py-1 bg-remix-success/20 text-remix-success rounded-full text-sm"
-                  >
-                    Installed
-                  </span>
-                  <button
-                    v-if="!runners.protonGE.installed"
-                    class="px-4 py-2 bg-remix-accent hover:bg-remix-accent-hover text-white rounded-lg transition-colors"
-                  >
-                    Install
-                  </button>
-                  <button class="px-4 py-2 bg-remix-bg-hover hover:bg-remix-border rounded-lg transition-colors">
-                    Configure
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button class="mt-6 flex items-center gap-2 text-remix-accent hover:text-remix-accent-hover transition-colors">
-              <PlusIcon class="w-4 h-4" />
-              Add Custom Runner
+            <button class="px-6 py-2 bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg font-bold text-sm hover:border-[#5e5ce6] transition-colors">
+              DÉCONNEXION
             </button>
           </div>
 
-          <!-- Default Runner -->
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h3 class="text-lg font-semibold mb-4">Default Runner</h3>
-            <select 
-              v-model="defaultRunner"
-              class="w-full bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent"
-            >
-              <option value="auto">Auto-detect</option>
-              <option value="wine-ge">Wine-GE</option>
-              <option value="proton-ge">Proton-GE</option>
-              <option value="native">Native Linux</option>
-            </select>
-            <p class="mt-2 text-sm text-remix-text-secondary">
-              Used when no specific runner is configured for a game.
-            </p>
-          </div>
-        </div>
-
-        <!-- Interface Section -->
-        <div v-if="activeSection === 'interface'" class="space-y-6 animate-fade-in">
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-6">Interface</h2>
-            
-            <div class="space-y-6">
-              <!-- Theme -->
-              <div>
-                <label class="block text-sm text-remix-text-secondary mb-3">Theme</label>
-                <div class="grid grid-cols-3 gap-3">
-                  <button
-                    v-for="theme in themes"
-                    :key="theme.id"
-                    @click="selectedTheme = theme.id"
-                    class="p-4 rounded-lg border-2 transition-all"
-                    :class="selectedTheme === theme.id 
-                      ? 'border-remix-accent bg-remix-accent/10' 
-                      : 'border-remix-border hover:border-remix-text-secondary'"
-                  >
-                    <div class="w-full h-12 rounded mb-2" :style="{ background: theme.preview }"></div>
-                    <span class="text-sm">{{ theme.name }}</span>
-                  </button>
-                </div>
+          <!-- GOG -->
+          <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-[14px] p-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-[#5e5ce6] rounded-lg flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(94,92,230,0.4)]">
+                GO
               </div>
-
-              <!-- Grid Size -->
               <div>
-                <label class="block text-sm text-remix-text-secondary mb-3">
-                  Grid Size: {{ gridSize }}
-                </label>
-                <input 
-                  type="range" 
-                  min="3" 
-                  max="8" 
-                  v-model="gridSize"
-                  class="w-full accent-remix-accent"
-                />
-              </div>
-
-              <!-- Language -->
-              <div>
-                <label class="block text-sm text-remix-text-secondary mb-2">Language</label>
-                <select 
-                  v-model="language"
-                  class="w-full bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent"
-                >
-                  <option value="en">English</option>
-                  <option value="fr">Français</option>
-                  <option value="de">Deutsch</option>
-                  <option value="es">Español</option>
-                </select>
-              </div>
-
-              <!-- Fullscreen toggle -->
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="font-medium">Start in Fullscreen</h3>
-                  <p class="text-sm text-remix-text-secondary">Launch app in fullscreen mode (Big Picture)</p>
-                </div>
-                <button 
-                  @click="startFullscreen = !startFullscreen"
-                  class="w-12 h-6 rounded-full transition-colors"
-                  :class="startFullscreen ? 'bg-remix-accent' : 'bg-remix-bg-hover'"
-                >
-                  <div 
-                    class="w-5 h-5 bg-white rounded-full transition-transform"
-                    :class="startFullscreen ? 'translate-x-6' : 'translate-x-0.5'"
-                  />
-                </button>
+                <h3 class="font-bold">GOG (GoodOldGames)</h3>
+                <p class="text-sm text-[#8e8e93] font-semibold">DÉCONNECTÉ</p>
               </div>
             </div>
+            <button class="px-6 py-2 bg-[#5e5ce6] rounded-lg font-bold text-sm hover:bg-[#7c7ae8] shadow-[0_0_15px_rgba(94,92,230,0.4)] transition-all">
+              CONNEXION
+            </button>
           </div>
-        </div>
 
-        <!-- Network Section -->
-        <div v-if="activeSection === 'network'" class="space-y-6 animate-fade-in">
-          <div class="bg-remix-bg-card rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-6">Network</h2>
-            
-            <div class="space-y-6">
-              <!-- Bandwidth Limit -->
+          <!-- Amazon Games -->
+          <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-[14px] p-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-[#5e5ce6] rounded-lg flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(94,92,230,0.4)]">
+                Am
+              </div>
               <div>
-                <label class="block text-sm text-remix-text-secondary mb-2">
-                  Download Speed Limit
-                </label>
-                <div class="flex items-center gap-3">
-                  <input 
-                    type="number"
-                    v-model="bandwidthLimit"
-                    :disabled="!limitBandwidth"
-                    class="w-32 bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent disabled:opacity-50"
-                  />
-                  <span class="text-remix-text-secondary">MB/s</span>
-                  <label class="flex items-center gap-2 ml-4">
-                    <input type="checkbox" v-model="limitBandwidth" class="accent-remix-accent" />
-                    <span class="text-sm">Enable limit</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Concurrent Downloads -->
-              <div>
-                <label class="block text-sm text-remix-text-secondary mb-2">
-                  Concurrent Downloads
-                </label>
-                <select 
-                  v-model="concurrentDownloads"
-                  class="w-32 bg-remix-bg-hover border border-remix-border rounded-lg px-4 py-2 text-remix-text-primary focus:outline-none focus:ring-2 focus:ring-remix-accent"
-                >
-                  <option :value="1">1</option>
-                  <option :value="2">2</option>
-                  <option :value="3">3</option>
-                  <option :value="4">4</option>
-                </select>
-              </div>
-
-              <!-- Offline Mode -->
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="font-medium">Offline Mode</h3>
-                  <p class="text-sm text-remix-text-secondary">Use cached data only, no network requests</p>
-                </div>
-                <button 
-                  @click="offlineMode = !offlineMode"
-                  class="w-12 h-6 rounded-full transition-colors"
-                  :class="offlineMode ? 'bg-remix-accent' : 'bg-remix-bg-hover'"
-                >
-                  <div 
-                    class="w-5 h-5 bg-white rounded-full transition-transform"
-                    :class="offlineMode ? 'translate-x-6' : 'translate-x-0.5'"
-                  />
-                </button>
+                <h3 class="font-bold">Amazon Games</h3>
+                <p class="text-sm text-[#10B981] font-semibold">CONNECTÉ — PRIME_PRIME</p>
               </div>
             </div>
+            <button class="px-6 py-2 bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg font-bold text-sm hover:border-[#5e5ce6] transition-colors">
+              DÉCONNEXION
+            </button>
           </div>
-        </div>
-
-        <!-- About Section -->
-        <div v-if="activeSection === 'about'" class="space-y-6 animate-fade-in">
-          <div class="bg-remix-bg-card rounded-xl p-6 text-center">
-            <div class="w-20 h-20 bg-gradient-to-br from-remix-accent to-remix-accent-hover rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <GamepadIcon class="w-10 h-10 text-white" />
-            </div>
-            <h2 class="text-2xl font-display font-bold mb-2">PixiDen</h2>
-            <p class="text-remix-text-secondary mb-4">Version 0.1.0</p>
-            <p class="text-sm text-remix-text-secondary max-w-md mx-auto">
-              A cozy game library launcher for Linux with multi-store support and session mode capabilities.
-            </p>
-            <div class="flex justify-center gap-4 mt-6">
-              <a href="#" class="text-remix-accent hover:text-remix-accent-hover transition-colors">
-                GitHub
-              </a>
-              <a href="#" class="text-remix-accent hover:text-remix-accent-hover transition-colors">
-                Documentation
-              </a>
-              <a href="#" class="text-remix-accent hover:text-remix-accent-hover transition-colors">
-                Report Bug
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Save Button -->
-        <div class="mt-8 flex justify-end">
-          <button 
-            @click="saveSettings"
-            class="flex items-center gap-2 px-6 py-3 bg-remix-accent hover:bg-remix-accent-hover text-white rounded-lg font-semibold transition-colors"
-          >
-            <SaveIcon class="w-5 h-5" />
-            Save Changes
-          </button>
         </div>
       </div>
-    </div>
+
+      <!-- Avancé Section -->
+      <div v-if="activeSection === 'avance'" class="animate-fade-in">
+        <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Avancé</h1>
+        <p class="text-[#8e8e93] mb-8">Configuration experte de la couche de compatibilité.</p>
+        
+        <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-[14px] p-8 space-y-6">
+          <!-- Proton Version -->
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold mb-1">Version Proton Global</h3>
+              <p class="text-sm text-[#8e8e93]">Compatibilité par défaut pour les titres Windows.</p>
+            </div>
+            <div class="relative">
+              <select 
+                v-model="protonVersion"
+                class="appearance-none bg-[#000000] border border-[#1f1f1f] rounded-lg px-6 py-3 pr-12 font-semibold text-sm focus:outline-none focus:border-[#5e5ce6] focus:shadow-[0_0_15px_rgba(94,92,230,0.3)] transition-all cursor-pointer"
+              >
+                <option value="ge-proton-8-32">GE-Proton 8-32</option>
+                <option value="ge-proton-8-31">GE-Proton 8-31</option>
+                <option value="ge-proton-8-30">GE-Proton 8-30</option>
+                <option value="proton-experimental">Proton Experimental</option>
+              </select>
+              <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg class="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- MangoHud Overlay -->
+          <div class="flex items-center justify-between pt-6 border-t border-[#1f1f1f]">
+            <div>
+              <h3 class="font-bold mb-1">Overlay MangoHud</h3>
+              <p class="text-sm text-[#8e8e93]">Monitorage des FPS et ressources système.</p>
+            </div>
+            <button 
+              @click="mangoHudEnabled = !mangoHudEnabled"
+              class="remix-switch relative w-14 h-7 rounded-full transition-all duration-300"
+              :class="mangoHudEnabled ? 'bg-[#5e5ce6] shadow-[0_0_20px_rgba(94,92,230,0.6)]' : 'bg-[#1f1f1f]'"
+            >
+              <div 
+                class="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform duration-300"
+                :class="mangoHudEnabled ? 'translate-x-7' : 'translate-x-0'"
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, markRaw } from 'vue'
-import { 
-  StoreIcon, 
-  FolderOpenIcon, 
-  WineIcon, 
-  PaletteIcon, 
-  WifiIcon, 
-  InfoIcon,
-  RefreshCwIcon,
-  SaveIcon,
-  CpuIcon,
-  PlusIcon,
-  GamepadIcon
-} from 'lucide-vue-next'
+import { ref } from 'vue'
 
 const sections = [
-  { id: 'stores', label: 'Store Accounts', icon: markRaw(StoreIcon) },
-  { id: 'paths', label: 'Paths & Storage', icon: markRaw(FolderOpenIcon) },
-  { id: 'runners', label: 'Runners', icon: markRaw(WineIcon) },
-  { id: 'interface', label: 'Interface', icon: markRaw(PaletteIcon) },
-  { id: 'network', label: 'Network', icon: markRaw(WifiIcon) },
-  { id: 'about', label: 'About', icon: markRaw(InfoIcon) },
+  { id: 'systeme', label: 'Système' },
+  { id: 'comptes', label: 'Comptes' },
+  { id: 'avance', label: 'Avancé' },
 ]
 
-const activeSection = ref('stores')
-
-// Store accounts state
-const stores = reactive({
-  legendary: { authenticated: false, syncing: false },
-  gogdl: { authenticated: false, syncing: false },
-  nile: { authenticated: false, syncing: false },
-})
-
-// Paths state
-const paths = reactive({
-  defaultInstall: '~/Games',
-  prefixes: '~/.local/share/pixiden/prefixes',
-  downloadCache: '~/.cache/pixiden/downloads',
-})
-
-// Runners state
-const runners = reactive({
-  wineGE: { installed: true, version: 'GE-Proton8-26' },
-  protonGE: { installed: false, version: '' },
-})
-const defaultRunner = ref('auto')
-
-// Interface state
-const themes = [
-  { id: 'remix-dark', name: 'ReMiX Dark', preview: 'linear-gradient(135deg, #0A0A0B, #1A1A1D)' },
-  { id: 'remix-darker', name: 'ReMiX Darker', preview: 'linear-gradient(135deg, #050506, #0A0A0B)' },
-  { id: 'remix-purple', name: 'ReMiX Purple', preview: 'linear-gradient(135deg, #1a0a1e, #2d1035)' },
-]
-const selectedTheme = ref('remix-dark')
-const gridSize = ref(5)
-const language = ref('en')
-const startFullscreen = ref(false)
-
-// Network state
-const bandwidthLimit = ref(0)
-const limitBandwidth = ref(false)
-const concurrentDownloads = ref(2)
-const offlineMode = ref(false)
-
-const toggleStore = async (store: 'legendary' | 'gogdl' | 'nile') => {
-  if (stores[store].authenticated) {
-    // Logout
-    stores[store].authenticated = false
-  } else {
-    // TODO: Call backend to initiate OAuth
-    // For now, simulate login
-    stores[store].authenticated = true
-  }
-}
-
-const syncStore = async (store: 'legendary' | 'gogdl' | 'nile') => {
-  stores[store].syncing = true
-  // TODO: Call backend to sync
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  stores[store].syncing = false
-}
-
-const saveSettings = () => {
-  // TODO: Save settings to backend/config file
-  console.log('Saving settings...', {
-    paths,
-    defaultRunner: defaultRunner.value,
-    selectedTheme: selectedTheme.value,
-    gridSize: gridSize.value,
-    language: language.value,
-    startFullscreen: startFullscreen.value,
-    bandwidthLimit: bandwidthLimit.value,
-    limitBandwidth: limitBandwidth.value,
-    concurrentDownloads: concurrentDownloads.value,
-    offlineMode: offlineMode.value,
-  })
-}
-
-onMounted(async () => {
-  // TODO: Load settings from backend
-  // TODO: Check store authentication status
-})
+const activeSection = ref('systeme')
+const protonVersion = ref('ge-proton-8-32')
+const mangoHudEnabled = ref(false)
 </script>
+
+<style scoped>
+.remix-nav-item {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.remix-nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #5e5ce6;
+  box-shadow: 0 0 12px #5e5ce6;
+  transition: width 0.3s ease;
+}
+
+.remix-nav-item.active::after {
+  width: 100%;
+}
+
+.remix-nav-item.active {
+  text-shadow: 0 0 12px rgba(94, 92, 230, 0.6);
+  color: white;
+}
+
+.remix-nav-item:hover:not(.active) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Switch glow effect */
+.remix-switch {
+  box-shadow: 0 0 0 rgba(94, 92, 230, 0);
+}
+
+.remix-switch:hover {
+  transform: scale(1.05);
+}
+</style>
