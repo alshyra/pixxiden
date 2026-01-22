@@ -26,7 +26,7 @@ get_yaml_value() {
     
     # Handle nested keys (e.g., "binaries.legendary.version")
     if [[ "$key" == *.*.* ]]; then
-        local parts=(${key//./ })
+        IFS='.' read -ra parts <<< "$key"
         local level1="${parts[0]}"
         local level2="${parts[1]}"
         local level3="${parts[2]}"
@@ -38,7 +38,7 @@ get_yaml_value() {
         sed 's/.*: *"\?\([^"]*\)"\?.*/\1/' | \
         head -n 1
     elif [[ "$key" == *.* ]]; then
-        local parts=(${key//./ })
+        IFS='.' read -ra parts <<< "$key"
         local level1="${parts[0]}"
         local level2="${parts[1]}"
         
@@ -166,16 +166,16 @@ create_python_wrapper() {
         echo "   Found Python package, creating wrapper script"
         
         # Create wrapper script that calls Python module
-        cat > "$target_file" <<'WRAPPER_EOF'
+        local safe_package="${package//-/_}"
+        cat > "$target_file" <<WRAPPER_EOF
 #!/usr/bin/env python3
 import sys
 import runpy
 
 # Run the module as __main__
-sys.exit(runpy.run_module('PACKAGE_NAME', run_name='__main__'))
+sys.exit(runpy.run_module('${safe_package}', run_name='__main__'))
 WRAPPER_EOF
         
-        sed -i "s/PACKAGE_NAME/${package//-/_}/g" "$target_file"
         chmod +x "$target_file"
         echo -e "${GREEN}✅ $name wrapper created${NC}"
         return 0

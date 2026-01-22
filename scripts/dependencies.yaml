@@ -9,13 +9,13 @@ binaries:
     version: "0.20.34"
     sources:
       linux-x86_64:
-        # Note: legendary n'a pas de releases binaires officielles
-        # URL alternative: utiliser notre propre build ou community build
-        url: ""
+        # Note: Legendary doesn't have official binary releases
+        # Use community builds or our own release
+        url: null
       linux-aarch64:
-        url: ""
+        url: null
       windows-x86_64:
-        url: ""
+        url: null
     fallback:
       type: "python-wrapper"
       package: "legendary-gl"
@@ -27,20 +27,20 @@ binaries:
       linux-x86_64:
         # Note: Check https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases for actual URLs
         # Format may vary by release
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
       linux-aarch64:
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
       windows-x86_64:
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
       darwin-x86_64:
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
       darwin-aarch64:
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
     fallback:
       type: "python-wrapper"
       package: "heroic-gogdl"
@@ -51,11 +51,11 @@ binaries:
     sources:
       linux-x86_64:
         # Note: Check https://github.com/imLinguin/nile/releases for actual binary URLs
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
       windows-x86_64:
-        url: ""
-        checksum: ""
+        url: null
+        checksum: null
     fallback:
       type: "python-wrapper"
       package: "nile"
