@@ -9,28 +9,27 @@ binaries:
     version: "0.20.34"
     sources:
       linux-x86_64:
-        # Note: Legendary doesn't have official binary releases
-        # Use community builds or our own release
-        url: null
+        url: "https://github.com/derrod/legendary/releases/download/0.20.34/legendary"
+        checksum: null
       linux-aarch64:
         url: null
+        checksum: null
       windows-x86_64:
         url: null
+        checksum: null
     fallback:
       type: "python-wrapper"
       package: "legendary-gl"
     
   gogdl:
     enabled: true
-    version: "1.1.2"
+    version: "1.2.0"
     sources:
       linux-x86_64:
-        # Note: Check https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases for actual URLs
-        # Format may vary by release
-        url: null
+        url: "https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases/download/v1.2.0/gogdl_linux_x86_64"
         checksum: null
       linux-aarch64:
-        url: null
+        url: "https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases/download/v1.2.0/gogdl_linux_arm64"
         checksum: null
       windows-x86_64:
         url: null
@@ -47,11 +46,13 @@ binaries:
   
   nile:
     enabled: true
-    version: "1.1.1"
+    version: "1.1.2"
     sources:
       linux-x86_64:
-        # Note: Check https://github.com/imLinguin/nile/releases for actual binary URLs
-        url: null
+        url: "https://github.com/imLinguin/nile/releases/download/v1.1.2/nile_linux_x86_64"
+        checksum: null
+      linux-aarch64:
+        url: "https://github.com/imLinguin/nile/releases/download/v1.1.2/nile_linux_arm64"
         checksum: null
       windows-x86_64:
         url: null
