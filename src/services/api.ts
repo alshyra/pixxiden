@@ -15,6 +15,32 @@ interface StoreStatus {
   cli_tool: string
 }
 
+interface SystemInfo {
+  osName: string
+  osVersion: string
+  kernelVersion: string
+  cpuBrand: string
+  totalMemory: number
+  hostname: string
+}
+
+interface DiskInfo {
+  name: string
+  mountPoint: string
+  totalSpace: number
+  availableSpace: number
+  usedSpace: number
+  fileSystem: string
+  isRemovable: boolean
+}
+
+interface SettingsConfig {
+  protonVersion: string
+  mangoHudEnabled: boolean
+  defaultInstallPath: string
+  winePrefixPath: string
+}
+
 // Games API - Direct IPC calls to Rust backend
 
 export async function getGames(): Promise<Game[]> {
@@ -111,3 +137,65 @@ export async function checkHealth(): Promise<{ status: string; version: string }
   // With Tauri, we're always "healthy" if this code runs
   return { status: 'ok', version: '0.1.0' }
 }
+
+// System API
+
+export async function getSystemInfo(): Promise<SystemInfo> {
+  try {
+    const info = await invoke<SystemInfo>('get_system_info')
+    return info
+  } catch (error) {
+    console.error('Failed to get system info:', error)
+    throw error
+  }
+}
+
+export async function getDiskInfo(): Promise<DiskInfo[]> {
+  try {
+    const disks = await invoke<DiskInfo[]>('get_disk_info')
+    return disks
+  } catch (error) {
+    console.error('Failed to get disk info:', error)
+    throw error
+  }
+}
+
+export async function checkForUpdates(): Promise<boolean> {
+  try {
+    const hasUpdate = await invoke<boolean>('check_for_updates')
+    return hasUpdate
+  } catch (error) {
+    console.error('Failed to check for updates:', error)
+    throw error
+  }
+}
+
+export async function shutdownSystem(): Promise<void> {
+  try {
+    await invoke('shutdown_system')
+  } catch (error) {
+    console.error('Failed to shutdown system:', error)
+    throw error
+  }
+}
+
+export async function getSettings(): Promise<SettingsConfig> {
+  try {
+    const settings = await invoke<SettingsConfig>('get_settings')
+    return settings
+  } catch (error) {
+    console.error('Failed to get settings:', error)
+    throw error
+  }
+}
+
+export async function saveSettings(config: SettingsConfig): Promise<void> {
+  try {
+    await invoke('save_settings', { config })
+  } catch (error) {
+    console.error('Failed to save settings:', error)
+    throw error
+  }
+}
+
+export type { SystemInfo, DiskInfo, SettingsConfig, StoreStatus, SyncResult }

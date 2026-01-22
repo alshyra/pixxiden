@@ -1,5 +1,6 @@
 use crate::database::{Database, Game};
 use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileAdapter, StoreAdapter};
+use crate::system::{self, SystemInfo, DiskInfo, SettingsConfig};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
@@ -367,4 +368,36 @@ pub async fn close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
     }
     
     Ok(())
+}
+
+// ===================== SYSTEM COMMANDS =====================
+
+#[tauri::command]
+pub fn get_system_info() -> Result<SystemInfo, String> {
+    system::get_system_info()
+}
+
+#[tauri::command]
+pub fn get_disk_info() -> Result<Vec<DiskInfo>, String> {
+    system::get_disk_info()
+}
+
+#[tauri::command]
+pub async fn check_for_updates() -> Result<bool, String> {
+    system::check_for_updates().await
+}
+
+#[tauri::command]
+pub async fn shutdown_system() -> Result<(), String> {
+    system::shutdown_system().await
+}
+
+#[tauri::command]
+pub fn get_settings() -> Result<SettingsConfig, String> {
+    system::get_settings()
+}
+
+#[tauri::command]
+pub fn save_settings(config: SettingsConfig) -> Result<(), String> {
+    system::save_settings(config)
 }
