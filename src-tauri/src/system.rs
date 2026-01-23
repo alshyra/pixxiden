@@ -75,7 +75,7 @@ pub fn get_disk_info() -> Result<Vec<DiskInfo>, String> {
             total_space,
             available_space,
             used_space,
-            file_system: String::from_utf8_lossy(disk.file_system()).to_string(),
+            file_system: disk.file_system().to_string_lossy().to_string(),
             is_removable: disk.is_removable(),
         });
     }

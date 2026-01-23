@@ -358,13 +358,13 @@ pub async fn close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
     // Get the splash screen window
     if let Some(splash_window) = app.get_webview_window("splashscreen") {
         // Close the splash screen
-        splash_window.close().map_err(|e| e.to_string())?;
+        splash_window.close().map_err(|e: tauri::Error| e.to_string())?;
     }
     
     // Get the main window and show it
     if let Some(main_window) = app.get_webview_window("main") {
-        main_window.show().map_err(|e| e.to_string())?;
-        main_window.set_focus().map_err(|e| e.to_string())?;
+        main_window.show().map_err(|e: tauri::Error| e.to_string())?;
+        main_window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
     }
     
     Ok(())

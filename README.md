@@ -3,7 +3,6 @@
 > A cozy, modern game library launcher for Linux with multi-store support and session mode
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://go.dev/)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24C8DB?logo=tauri)](https://tauri.app/)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?logo=vue.js)](https://vuejs.org/)
 
@@ -39,26 +38,45 @@ Pixxiden uses a modern, modular architecture:
 - **Rust** (for Tauri)
 - **Wine-GE** or **Proton-GE** (optional, can be bundled)
 
-### Frontend Setup
+### Setup
+
+Install dependencies:
 
 ```bash
-cd frontend
-npm install
+# On Debian/Ubuntu-based systems
+sudo apt update
+sudo apt install -y \
+  libwebkit2gtk-4.1-dev \
+  build-essential \
+  curl \
+  wget \
+  file \
+  libssl-dev \
+  libgtk-3-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  libudev-dev
+```
+```bash
+sudo pacman -S \
+  webkit2gtk-4.1 \
+  gtk3 \
+  glib2 \
+  libsoup3 \
+  librsvg \
+  libayatana-appindicator \
+  openssl \
+  base-devel
+```
+
+```bash
+npm i
 npm run tauri dev
 ```
 
 ## 🎮 Usage
 
-Launch Pixxiden from your application menu or:
 
-```bash
-Pixxiden
-```
-
-For session mode:
-```bash
-Pixxiden-session  # Launches with Gamescope
-```
 
 ## 📄 License
 
