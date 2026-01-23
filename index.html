@@ -123,15 +123,15 @@
       transition: opacity 300ms ease-out;
     }
     
+    /* Quand tmp-splash existe, cacher #app en dessous */
+    body:has(.tmp-splash:not(.fade-out)) #app {
+      opacity: 0;
+    }
+    
     #app {
       width: 100%;
       height: 100%;
-      opacity: 0;
       transition: opacity 300ms ease-in;
-    }
-    
-    #app.visible {
-      opacity: 1;
     }
   </style>
   
@@ -169,13 +169,6 @@
     </div>
     
     <h1>PIXXIDEN</h1>
-    
-    <div class="spinner">
-      <div class="spinner-ring"></div>
-      <div class="spinner-active"></div>
-    </div>
-    
-    <p class="status">INITIALISATION...</p>
   </div>
 
   <!-- App Vue -->

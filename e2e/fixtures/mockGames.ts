@@ -1,7 +1,13 @@
 import type { Game } from '@/types'
 
-// Demo games for development/testing when backend is not available
-export const demoGames: Game[] = [
+/**
+ * Mock games data for E2E testing
+ * 
+ * This fixture provides consistent game data for testing without
+ * relying on actual store connections or backend availability.
+ */
+
+export const mockGames: Game[] = [
   {
     id: '1',
     title: 'DREDGE',
@@ -196,9 +202,56 @@ export const demoGames: Game[] = [
   }
 ]
 
-export function useDemoGames() {
-  return {
-    games: demoGames,
-    getGame: (id: string) => demoGames.find(g => g.id === id)
-  }
+/**
+ * Get games filtered by store
+ */
+export function getGamesByStore(store: string): Game[] {
+  return mockGames.filter(g => g.store === store)
+}
+
+/**
+ * Get installed games
+ */
+export function getInstalledGames(): Game[] {
+  return mockGames.filter(g => g.installed)
+}
+
+/**
+ * Get not installed games
+ */
+export function getNotInstalledGames(): Game[] {
+  return mockGames.filter(g => !g.installed)
+}
+
+/**
+ * Get a specific game by ID
+ */
+export function getGameById(id: string): Game | undefined {
+  return mockGames.find(g => g.id === id)
+}
+
+/**
+ * Get recently played games (last 30 days)
+ */
+export function getRecentlyPlayedGames(): Game[] {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  
+  return mockGames.filter(g => {
+    if (!g.lastPlayed) return false
+    return new Date(g.lastPlayed) >= thirtyDaysAgo
+  })
+}
+
+/**
+ * Store statistics
+ */
+export const storeStats = {
+  epic: getGamesByStore('epic').length,
+  gog: getGamesByStore('gog').length,
+  amazon: getGamesByStore('amazon').length,
+  steam: getGamesByStore('steam').length,
+  total: mockGames.length,
+  installed: getInstalledGames().length,
+  notInstalled: getNotInstalledGames().length
 }

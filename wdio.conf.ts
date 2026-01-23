@@ -71,6 +71,21 @@ export const config: Options.Testrunner = {
   // Hooks
   // =====
   onPrepare: async function () {
+    const { execSync } = await import('child_process')
+    
+    // Kill any existing tauri-driver processes and free up ports
+    console.log('🧹 Cleaning up any existing tauri-driver processes...')
+    try {
+      execSync('pkill -9 tauri-driver || true', { stdio: 'ignore' })
+      execSync('pkill -9 Pixxiden || true', { stdio: 'ignore' })
+      execSync('pkill -9 pixxiden || true', { stdio: 'ignore' })
+      execSync('lsof -ti:4444 -ti:4445 | xargs -r kill -9 || true', { stdio: 'ignore' })
+      // Wait a bit for processes to fully terminate
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    } catch (e) {
+      // Ignore errors from pkill
+    }
+    
     const tauriDriverPath = process.env.HOME + '/.cargo/bin/tauri-driver'
     console.log('🚀 Starting tauri-driver...')
     tauriDriver = spawn(tauriDriverPath, [], {
@@ -95,10 +110,25 @@ export const config: Options.Testrunner = {
   onComplete: async function () {
     console.log('🛑 Stopping tauri-driver...')
     if (tauriDriver) {
-      tauriDriver.kill()
+      tauriDriver.kill('SIGKILL')
       tauriDriver = null
     }
+    // Also cleanup any zombie processes
+    try {
+      const { execSync } = await import('child_process')
+      execSync('pkill -9 tauri-driver || true', { stdio: 'ignore' })
+      execSync('pkill -9 Pixxiden || true', { stdio: 'ignore' })
+    } catch (e) {
+      // Ignore
+    }
     console.log('✅ tauri-driver stopped')
+  },
+
+  before: async function () {
+    // Note: We don't enable PIXXIDEN_MOCK_MODE because it uses dynamic imports
+    // that don't work in release builds. Instead, we mock __TAURI__.invoke directly
+    // in individual test files using setupMockTauriCommands()
+    console.log('🎭 WebDriverIO before hook - mock will be set up per-test via setupMockTauriCommands()')
   },
 
   afterTest: async function (test, context, { error, result, duration, passed, retries }) {

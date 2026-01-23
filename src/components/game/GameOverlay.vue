@@ -47,7 +47,7 @@
           <!-- Actions Grid -->
           <div class="grid grid-cols-2 gap-4 mb-6">
             <!-- Resume Game -->
-            <Button 
+            <Button
               ref="resumeButton"
               variant="primary"
               size="lg"
@@ -64,7 +64,7 @@
             </Button>
             
             <!-- Achievements (placeholder) -->
-            <button 
+            <button
               @click="showAchievements"
               class="p-6 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors flex flex-col items-center gap-3 focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-gray-900"
             >
@@ -134,6 +134,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import type { Game } from '@/types'
+import { Button } from '../ui'
 
 const isVisible = ref(false)
 const currentGame = ref<Game | null>(null)

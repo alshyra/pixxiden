@@ -1,101 +1,25 @@
 <template>
-  <div class="library-view" :class="{ 'view-back': isSettingsOpen }">
-    <!-- Library Header -->
-    <header class="library-header">
-      <div class="title-section">
-        <h2 class="subtitle">Ma Collection</h2>
-        <h1 class="main-title">Bibliothèque</h1>
-      </div>
-      
-      <div class="header-actions">
-        <!-- Filter pills -->
-        <div class="filter-pills">
-          <button 
-            v-for="filter in filters" 
-            :key="filter.value"
-            @click="currentFilter = filter.value"
-            class="filter-pill"
-            :class="{ 'active': currentFilter === filter.value }"
-          >
-            {{ filter.label }}
-          </button>
-        </div>
-        
-        <!-- Settings button -->
-        <Button 
-          variant="outline"
-          size="md"
-          class="settings-trigger"
-          @click="openSettings"
-          aria-label="Ouvrir les paramètres"
-        >
-          <template #icon>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </template>
-          Paramètres
-        </Button>
-      </div>
-    </header>
-    
+  <div class="fullscreen-view relative min-h-screen bg-black overflow-hidden">
+    <BottomFilters
+      :filters="filters"
+      v-model="currentFilter"
+    />
+
+    <HeroBanner 
+      :game="selectedGame"
+      :metadata="selectedMetadataGame"
+      @open-details="openGameDetails(selectedGame)"
+    />
     <!-- Games Grid -->
-    <div class="games-container">
-      <div 
-        v-if="!loading && filteredGames.length > 0" 
-        class="games-grid"
-        :style="{ '--grid-columns': gridColumns }"
-      >
-        <GameCard 
-          v-for="(game, index) in filteredGames" 
-          :key="game.id"
-          :game="game"
-          :focused="index === focusedIndex"
-          :playing="playingGameId === game.id"
-          class="focusable-game"
-          @click="selectGame(game, index)"
-          @open="openGameDetails(game)"
-        />
-      </div>
-      
-      <!-- Empty state -->
-      <div v-else-if="!loading && filteredGames.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <PixxidenLogo :size="96" :glow="true" />
-        </div>
-        <h3 class="empty-title">Aucun jeu trouvé</h3>
-        <p class="empty-subtitle">
-          {{ currentFilter === 'all' 
-            ? 'Synchronisez votre bibliothèque pour voir vos jeux' 
-            : 'Aucun jeu ne correspond à ce filtre' 
-          }}
-        </p>
-        <Button 
-          v-if="currentFilter === 'all'" 
-          variant="primary"
-          size="md"
-          @click="syncLibrary"
+    <div class="absolute bottom-14 left-0 right-0">
+      <GameCarousel
+        :games="filteredGames"
+        :selected-id="selectedGame?.id"
+        :playing-id="playingGame?.id"
+        @select="selectGame"
+        @open="openGameDetails"
         >
-          <template #icon>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </template>
-          Synchroniser
-        </Button>
-      </div>
-      
-      <!-- Loading state -->
-      <div v-if="loading" class="loading-state">
-        <div class="loader"></div>
-        <p class="loading-text">Chargement de votre bibliothèque...</p>
-      </div>
-    </div>
-    
-    <!-- Game count -->
-    <div v-if="!loading && filteredGames.length > 0" class="game-count">
-      {{ filteredGames.length }} jeu{{ filteredGames.length > 1 ? 'x' : '' }}
+      </GameCarousel>
     </div>
   </div>
 </template>
@@ -105,9 +29,11 @@ import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { useFocusNavigation } from '@/composables/useFocusNavigation'
-import { GameCard } from '@/components/game'
-import { PixxidenLogo } from '@/components/ui'
 import type { Game } from '@/types'
+import Button from '@/components/ui/Button.vue'
+import GameCarousel from '@/components/game/GameCarousel.vue'
+import { HeroBanner } from '@/components/game'
+import { BottomFilters } from '@/components/layout'
 
 const router = useRouter()
 const libraryStore = useLibraryStore()
@@ -118,8 +44,10 @@ const isSettingsOpen = inject('isSettingsOpen', ref(false))
 // Local state
 const loading = ref(true)
 const currentFilter = ref('all')
-const playingGameId = ref<string | null>(null)
 const gridColumns = ref(5)
+const selectedGame = ref<Game | null>(null)
+const playingGame = ref<Game | null>(null)
+const selectedMetadataGame = ref(null)
 
 // Filters
 const filters = [
@@ -161,7 +89,6 @@ const {
   focusedIndex, 
   updateFocusables, 
   setGridColumns,
-  select 
 } = useFocusNavigation('.focusable-game', {
   gridColumns: gridColumns.value,
   autoScroll: true
@@ -182,31 +109,21 @@ function updateGridColumns() {
   setGridColumns(gridColumns.value)
 }
 
-// Select a game (single click)
-function selectGame(game: Game, index: number) {
-  focusedIndex.value = index
+// Select a game on hover (on with gamepad focus)
+function selectGame(game: Game) {
+  selectedGame.value = game
 }
 
-// Open game details (double click or enter)
-function openGameDetails(game: Game) {
-  router.push(`/game/${game.id}`)
+// Open game details on click
+function openGameDetails(game: Game | null) {
+  const gameToOpen = game || selectedGame.value
+  if (!gameToOpen) return
+  router.push(`/game/${gameToOpen.id}`)
 }
 
 // Open settings
 function openSettings() {
   router.push('/settings')
-}
-
-// Sync library
-async function syncLibrary() {
-  loading.value = true
-  try {
-    await libraryStore.syncLibrary()
-  } catch (error) {
-    console.error('Failed to sync library:', error)
-  } finally {
-    loading.value = false
-  }
 }
 
 // Load games

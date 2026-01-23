@@ -55,11 +55,13 @@ import { computed, type CSSProperties } from 'vue'
 interface Props {
   size?: number | string
   glow?: boolean
+  isLoading?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 100,
-  glow: true
+  glow: true,
+  isLoading: false,
 })
 
 // Type the computed style as CSSProperties so literal values like 'relative' match the expected unions

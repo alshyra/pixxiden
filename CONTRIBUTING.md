@@ -6,7 +6,6 @@ Thank you for your interest in contributing to Pixxiden! 🎮
 
 ### Prerequisites
 
-- Go 1.21+
 - Node.js 18+
 - Rust (for Tauri)
 - Git

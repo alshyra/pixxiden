@@ -3,8 +3,8 @@
     <!-- Background -->
     <div class="absolute inset-0 overflow-hidden">
       <img 
-        v-if="game?.backgroundUrl || game?.backgroundUrl"
-        :src="game?.backgroundUrl || game?.backgroundUrl"
+        v-if="game?.backgroundUrl"
+        :src="game?.backgroundUrl"
         class="w-full h-full object-cover opacity-50 scale-110"
       />
       <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />

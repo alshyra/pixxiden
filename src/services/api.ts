@@ -1,6 +1,63 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { Game } from '@/types'
 
+// Mock mode - can be enabled via localStorage, URL param, or E2E test injection
+const isMockMode = (): boolean => {
+  if (typeof window !== 'undefined') {
+    // Check if E2E tests injected mock games
+    if ((window as any).__MOCK_GAMES__) return true
+    
+    // Check URL parameter
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.has('mock')) return true
+    
+    // Check localStorage
+    try {
+      return localStorage.getItem('PIXXIDEN_MOCK_MODE') === 'true'
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
+// Enable mock mode programmatically
+export const enableMockMode = () => {
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.setItem('PIXXIDEN_MOCK_MODE', 'true')
+  }
+}
+
+export const disableMockMode = () => {
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem('PIXXIDEN_MOCK_MODE')
+  }
+}
+
+// Import mock games (will be tree-shaken in production if not used)
+let mockGamesData: Game[] | null = null
+
+// Lazy load mock games
+const getMockGames = async (): Promise<Game[]> => {
+  // Check for mock games injected by E2E tests first
+  if (typeof window !== 'undefined' && (window as any).__MOCK_GAMES__) {
+    console.log('🎮 [MOCK] Using window.__MOCK_GAMES__')
+    return (window as any).__MOCK_GAMES__
+  }
+  
+  if (mockGamesData !== null) {
+    return mockGamesData
+  }
+  
+  if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
+    const module = await import('../../e2e/fixtures/mockGames')
+    mockGamesData = module.mockGames
+    return mockGamesData
+  }
+  
+  return []
+}
+
 // Types for Tauri responses
 interface SyncResult {
   total_synced: number
@@ -44,6 +101,12 @@ interface SettingsConfig {
 // Games API - Direct IPC calls to Rust backend
 
 export async function getGames(): Promise<Game[]> {
+  if (isMockMode()) {
+    const mockData = await getMockGames()
+    console.log('🎮 [MOCK MODE] Returning mock games:', mockData.length)
+    return Promise.resolve([...mockData])
+  }
+  
   try {
     const games = await invoke<Game[]>('get_games')
     return games
@@ -64,6 +127,15 @@ export async function getGame(gameId: string): Promise<Game | null> {
 }
 
 export async function syncGames(): Promise<SyncResult> {
+  if (isMockMode()) {
+    const mockData = await getMockGames()
+    console.log('🎮 [MOCK MODE] Syncing mock games')
+    return Promise.resolve({
+      total_synced: mockData.length,
+      errors: []
+    })
+  }
+  
   try {
     const result = await invoke<SyncResult>('sync_games')
     return result

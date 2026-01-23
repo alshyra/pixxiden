@@ -1,5 +1,5 @@
 <template>
-  <nav class="absolute bottom-0 left-0 right-0 z-50 px-6 py-4 bg-gradient-to-t from-black to-transparent">
+  <nav class="absolute top-0 left-0 right-0 z-50 px-6 py-4 bg-gradient-to-t from-black to-transparent">
     <div class="flex items-center justify-center gap-8">
       <FilterButton 
         v-for="filter in filters"

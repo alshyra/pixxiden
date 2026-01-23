@@ -7,8 +7,6 @@
     }"
     :style="cardStyle"
     :data-id="game.id"
-    @click="$emit('click')"
-    @dblclick="$emit('open')"
   >
     <!-- Placeholder background when no image -->
     <div v-if="!game.backgroundUrl && !game.backgroundUrl" class="placeholder-bg">
@@ -61,11 +59,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-defineEmits<{
-  click: []
-  open: []
-}>()
 
 // Use backgroundUrl or coverUrl for the card background
 const cardStyle = computed(() => {
