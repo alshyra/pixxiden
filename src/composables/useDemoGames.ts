@@ -12,7 +12,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/dredge/dredge.exe',
     playTime: 2229, // 37h 9m
     lastPlayed: '2025-06-14',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5vmg.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5vmg.webp'
   },
   {
     id: '2',
@@ -23,7 +23,7 @@ export const demoGames: Game[] = [
     installPath: '',
     executablePath: '',
     playTime: 0,
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wkb.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wkb.webp'
   },
   {
     id: '3',
@@ -35,7 +35,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/fortnite/fortnite.exe',
     playTime: 4800,
     lastPlayed: '2025-01-15',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co3wk8.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co3wk8.webp'
   },
   {
     id: '4',
@@ -47,7 +47,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/seaofthieves/sot.exe',
     playTime: 1200,
     lastPlayed: '2025-01-10',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7d.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7d.webp'
   },
   {
     id: '5',
@@ -57,7 +57,7 @@ export const demoGames: Game[] = [
     installed: false,
     installPath: '',
     executablePath: '',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7t7d.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7t7d.webp'
   },
   {
     id: '6',
@@ -69,7 +69,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/oblivion/oblivion.exe',
     playTime: 2229,
     lastPlayed: '2025-06-14',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8eup.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8eup.webp'
   },
   {
     id: '7',
@@ -81,7 +81,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/rdr2/rdr2.exe',
     playTime: 8400,
     lastPlayed: '2024-12-20',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.webp'
   },
   {
     id: '8',
@@ -93,7 +93,7 @@ export const demoGames: Game[] = [
     executablePath: '',
     playTime: 9753,
     lastPlayed: '2019-11-17',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1xbu.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1xbu.webp'
   },
   {
     id: '9',
@@ -105,7 +105,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/wukong/wukong.exe',
     playTime: 3600,
     lastPlayed: '2025-01-18',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5zih.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5zih.webp'
   },
   {
     id: '10',
@@ -117,7 +117,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/helldivers2/helldivers2.exe',
     playTime: 2100,
     lastPlayed: '2025-01-16',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6t6s.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6t6s.webp'
   },
   {
     id: '11',
@@ -129,7 +129,7 @@ export const demoGames: Game[] = [
     executablePath: '',
     playTime: 4200,
     lastPlayed: '2024-06-10',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5vmk.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5vmk.webp'
   },
   {
     id: '12',
@@ -141,7 +141,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/ksp/ksp.exe',
     playTime: 12000,
     lastPlayed: '2025-01-05',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1m2x.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1m2x.webp'
   },
   {
     id: '13',
@@ -153,7 +153,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/littlekitty/kitty.exe',
     playTime: 480,
     lastPlayed: '2025-01-12',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6n2t.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6n2t.webp'
   },
   {
     id: '14',
@@ -165,7 +165,7 @@ export const demoGames: Game[] = [
     executablePath: '',
     playTime: 1800,
     lastPlayed: '2024-10-31',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1r8d.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1r8d.webp'
   },
   {
     id: '15',
@@ -177,7 +177,7 @@ export const demoGames: Game[] = [
     executablePath: '/games/portal2/portal2.exe',
     playTime: 960,
     lastPlayed: '2024-08-15',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1rs4.webp'
+    backgroundUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1rs4.webp'
   }
 ]
 

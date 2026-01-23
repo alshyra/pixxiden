@@ -53,15 +53,19 @@
       </div>
       
       <!-- Close Button -->
-      <button 
-        @click="closeSettings" 
-        class="flex items-center justify-center gap-2 px-3.5 py-3.5 rounded-xl text-sm font-semibold text-white/60 bg-white/5 border border-white/10 hover:text-white hover:bg-red-500/15 hover:border-red-500/30 transition-all"
+      <Button 
+        variant="ghost"
+        size="md"
+        class="w-full hover:text-white hover:bg-red-500/15 hover:border-red-500/30"
+        @click="closeSettings"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-        <span>Fermer</span>
-      </button>
+        <template #icon>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </template>
+        Fermer
+      </Button>
     </aside>
     
     <!-- Main Content -->
@@ -126,27 +130,33 @@
           
           <!-- Action Buttons -->
           <div class="grid grid-cols-2 gap-4">
-            <button 
-              @click="checkUpdates"
+            <Button 
+              variant="outline"
+              size="lg"
+              :loading="checkingUpdates"
               :disabled="checkingUpdates"
-              class="flex items-center justify-center gap-3 px-5 py-5 bg-[#0a0a0a]/80 border border-white/10 rounded-[14px] text-[0.8rem] font-bold tracking-wide text-white hover:border-[#5e5ce6]/50 hover:shadow-[0_0_20px_rgba(94,92,230,0.3)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              @click="checkUpdates"
             >
-              <svg v-if="!checkingUpdates" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <div v-else class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <template #icon>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </template>
               {{ checkingUpdates ? 'VÉRIFICATION...' : 'VÉRIFIER LES MISES À JOUR' }}
-            </button>
+            </Button>
             
-            <button 
-              @click="shutdown" 
-              class="flex items-center justify-center gap-3 px-5 py-5 bg-[#0a0a0a]/80 border border-red-500/30 rounded-[14px] text-[0.8rem] font-bold tracking-wide text-red-500 hover:border-red-500/60 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all"
+            <Button 
+              variant="danger"
+              size="lg"
+              @click="shutdown"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-              </svg>
+              <template #icon>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </template>
               ÉTEINDRE LA MACHINE
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -193,15 +203,13 @@
                 </p>
               </div>
             </div>
-            <button 
+            <Button 
+              :variant="store.authenticated ? 'outline' : 'primary'"
+              size="sm"
               @click="toggleStoreConnection(store)"
-              class="px-5 py-2.5 rounded-[10px] text-xs font-bold transition-all"
-              :class="store.authenticated 
-                ? 'bg-[#0a0a0a]/80 border border-white/10 text-white hover:border-red-500/50 hover:text-red-500' 
-                : 'bg-[#5e5ce6] text-white shadow-[0_0_15px_rgba(94,92,230,0.4)] hover:bg-[#7c7ae8] border-0'"
             >
               {{ store.authenticated ? 'DÉCONNEXION' : 'CONNEXION' }}
-            </button>
+            </Button>
           </div>
           
           <!-- Info message -->

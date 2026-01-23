@@ -23,8 +23,8 @@
       >
         <div class="w-8 h-8 rounded-lg overflow-hidden bg-gray-700">
           <img 
-            v-if="nowPlaying.coverUrl" 
-            :src="nowPlaying.coverUrl" 
+            v-if="nowPlaying.backgroundUrl" 
+            :src="nowPlaying.backgroundUrl" 
             class="w-full h-full object-cover"
           />
         </div>

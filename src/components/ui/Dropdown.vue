@@ -113,9 +113,4 @@ const props = withDefaults(
     hasDividers: false,
   }
 )
-
-// Check if any items have the danger flag for styling purposes
-const hasDangerItems = computed(() => 
-  props.items.some(item => item.danger)
-)
 </script>

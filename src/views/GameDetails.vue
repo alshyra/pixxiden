@@ -3,8 +3,8 @@
     <!-- Background -->
     <div class="absolute inset-0 overflow-hidden">
       <img 
-        v-if="game?.backgroundUrl || game?.coverUrl"
-        :src="game?.backgroundUrl || game?.coverUrl"
+        v-if="game?.backgroundUrl || game?.backgroundUrl"
+        :src="game?.backgroundUrl || game?.backgroundUrl"
         class="w-full h-full object-cover opacity-50 scale-110"
       />
       <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />
@@ -16,23 +16,27 @@
       <!-- Left Panel: Game Info -->
       <div class="flex-1 p-12 flex flex-col justify-center max-w-3xl">
         <!-- Back Button -->
-        <button 
-          class="mb-8 flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+        <Button 
+          variant="ghost"
+          size="sm"
+          class="mb-8 self-start"
           @click="$router.back()"
         >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
-          </svg>
+          <template #icon>
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+            </svg>
+          </template>
           Back
-        </button>
+        </Button>
         
         <!-- Title -->
         <h1 class="text-5xl font-bold mb-4">{{ game?.title }}</h1>
         
         <!-- Meta -->
         <div class="flex items-center gap-3 mb-6 text-sm">
-          <Badge variant="outline">PC (Windows)</Badge>
-          <Badge v-if="metadata?.releaseDate" variant="outline">
+          <Badge variant="default">PC (Windows)</Badge>
+          <Badge v-if="metadata?.releaseDate" variant="default">
             {{ new Date(metadata.releaseDate).getFullYear() }}
           </Badge>
           <Badge v-if="metacriticScore" variant="success">{{ metacriticScore }}</Badge>
@@ -62,8 +66,9 @@
         <div class="flex items-center gap-4 mb-8">
           <Button 
             v-if="game?.installed"
-            variant="success" 
+            variant="primary" 
             size="lg"
+            class="bg-green-600 hover:bg-green-500"
             @click="playGame"
           >
             <template #icon>
@@ -89,7 +94,7 @@
             Install
           </Button>
           
-          <Button variant="secondary" @click="showSettings = true">
+          <Button variant="ghost" @click="showSettings = true">
             •••
           </Button>
           
@@ -112,8 +117,8 @@
       <div class="flex-shrink-0 w-80 p-12 flex flex-col items-end justify-end">
         <div class="w-48 aspect-[3/4] rounded-xl overflow-hidden shadow-2xl">
           <img 
-            v-if="game?.coverUrl"
-            :src="game.coverUrl"
+            v-if="game?.backgroundUrl"
+            :src="game.backgroundUrl"
             :alt="game.title"
             class="w-full h-full object-cover"
           />
@@ -184,9 +189,9 @@ const game = computed(() => {
     console.log('🎮 Game data:', {
       id: g.id,
       title: g.title,
-      hasCover: !!g.coverUrl,
+      hasCover: !!g.backgroundUrl,
       hasBackground: !!g.backgroundUrl,
-      coverUrl: g.coverUrl?.substring(0, 50),
+      coverUrl: g.backgroundUrl?.substring(0, 50),
       backgroundUrl: g.backgroundUrl?.substring(0, 50)
     })
   }

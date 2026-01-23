@@ -13,8 +13,8 @@
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-4">
               <img 
-                v-if="currentGame?.coverUrl"
-                :src="currentGame.coverUrl" 
+                v-if="currentGame?.backgroundUrl"
+                :src="currentGame.backgroundUrl" 
                 class="w-16 h-16 rounded-lg object-cover"
               />
               <div v-else class="w-16 h-16 rounded-lg bg-gray-800 flex items-center justify-center">
@@ -30,30 +30,38 @@
               </div>
             </div>
             
-            <button 
+            <Button 
+              variant="ghost"
+              size="sm"
+              class="p-2"
               @click="hide"
-              class="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              <svg class="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              <template #icon>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </template>
+            </Button>
           </div>
           
           <!-- Actions Grid -->
           <div class="grid grid-cols-2 gap-4 mb-6">
             <!-- Resume Game -->
-            <button 
+            <Button 
               ref="resumeButton"
+              variant="primary"
+              size="lg"
+              class="p-6 bg-green-600 hover:bg-green-500 flex-col gap-3"
               @click="resumeGame"
-              class="p-6 bg-green-600 hover:bg-green-500 rounded-xl transition-colors flex flex-col items-center gap-3 focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-gray-900"
             >
-              <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
-              </svg>
+              <template #icon>
+                <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                </svg>
+              </template>
               <span class="font-semibold text-white">Resume Game</span>
               <span class="text-xs text-white/70">Press B or Guide</span>
-            </button>
+            </Button>
             
             <!-- Achievements (placeholder) -->
             <button 
@@ -80,15 +88,19 @@
             </button>
             
             <!-- Quit Game -->
-            <button 
+            <Button 
+              variant="danger"
+              size="lg"
+              class="p-6 flex-col gap-3"
               @click="quitGame"
-              class="p-6 bg-red-900/50 hover:bg-red-800/50 rounded-xl transition-colors flex flex-col items-center gap-3 border border-red-500/20 focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900"
             >
-              <svg class="w-8 h-8 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-              </svg>
-              <span class="font-semibold text-red-400">Quit Game</span>
-            </button>
+              <template #icon>
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+              </template>
+              <span class="font-semibold">Quit Game</span>
+            </Button>
           </div>
           
           <!-- Stats -->

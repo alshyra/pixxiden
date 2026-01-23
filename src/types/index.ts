@@ -7,7 +7,6 @@ export interface Game {
   installed: boolean
   installPath?: string
   executablePath?: string
-  coverUrl?: string
   backgroundUrl?: string
   developer?: string
   publisher?: string

@@ -52,8 +52,8 @@
             <div class="flex items-center gap-4">
               <!-- Game thumbnail -->
               <img 
-                v-if="download.coverUrl"
-                :src="download.coverUrl" 
+                v-if="download.backgroundUrl"
+                :src="download.backgroundUrl" 
                 :alt="download.title"
                 class="w-16 h-16 rounded-lg object-cover"
               />
@@ -119,8 +119,8 @@
           >
             <div class="flex items-center gap-4">
               <img 
-                v-if="download.coverUrl"
-                :src="download.coverUrl" 
+                v-if="download.backgroundUrl"
+                :src="download.backgroundUrl" 
                 :alt="download.title"
                 class="w-16 h-16 rounded-lg object-cover"
               />
@@ -177,8 +177,8 @@
                 {{ index + 1 }}
               </div>
               <img 
-                v-if="download.coverUrl"
-                :src="download.coverUrl" 
+                v-if="download.backgroundUrl"
+                :src="download.backgroundUrl" 
                 :alt="download.title"
                 class="w-12 h-12 rounded-lg object-cover"
               />

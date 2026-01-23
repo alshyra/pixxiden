@@ -8,8 +8,8 @@
     
     <!-- Cover Image -->
     <img 
-      v-if="game.coverUrl"
-      :src="game.coverUrl" 
+      v-if="game.backgroundUrl"
+      :src="game.backgroundUrl" 
       :alt="game.title"
       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
     />

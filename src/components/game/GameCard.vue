@@ -11,7 +11,7 @@
     @dblclick="$emit('open')"
   >
     <!-- Placeholder background when no image -->
-    <div v-if="!game.backgroundUrl && !game.coverUrl" class="placeholder-bg">
+    <div v-if="!game.backgroundUrl && !game.backgroundUrl" class="placeholder-bg">
       <PixxidenLogo :size="80" :glow="false" />
       <div class="glow-effect"></div>
     </div>
@@ -69,7 +69,7 @@ defineEmits<{
 
 // Use backgroundUrl or coverUrl for the card background
 const cardStyle = computed(() => {
-  const imageUrl = props.game.backgroundUrl || props.game.coverUrl
+  const imageUrl = props.game.backgroundUrl || props.game.backgroundUrl
   if (imageUrl) {
     return {
       backgroundImage: `url(${imageUrl})`
