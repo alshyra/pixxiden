@@ -170,13 +170,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { useLibraryStore } from '@/stores/library'
 import { Button, Badge } from '@/components/ui'
 import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
 import DownloadOverlay from '@/components/game/DownloadOverlay.vue'
 import type { Metadata } from '@/types'
+
+// Define UnlistenFn type locally to avoid import issues in E2E
+type UnlistenFn = () => void
+
+// Safe listen wrapper for E2E compatibility
+const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
+  try {
+    const { listen } = await import('@tauri-apps/api/event')
+    return listen(event, handler)
+  } catch (e) {
+    console.warn(`[GameDetails] Failed to setup listener for '${event}' (expected in E2E):`, e)
+    return () => {} // Return no-op unlisten function
+  }
+}
 
 const route = useRoute()
 const libraryStore = useLibraryStore()
@@ -318,74 +331,80 @@ function exitGame() {
 }
 
 onMounted(async () => {
-  // Listen to Tauri events - Launch
-  unlistenLaunching = await listen('game-launching', (event: any) => {
-    console.log('🚀 Game launching:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      isLaunching.value = true
-      launchError.value = null
-    }
-  })
-  
-  unlistenLaunched = await listen('game-launched', (event: any) => {
-    console.log('✅ Game launched:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      // Small delay before hiding overlay for smoother UX
-      setTimeout(() => {
-        isLaunching.value = false
-        isPlaying.value = true
-      }, 500)
-    }
-  })
-  
-  unlistenFailed = await listen('game-launch-failed', (event: any) => {
-    console.log('❌ Game launch failed:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      launchError.value = event.payload?.error || 'Unknown error'
-    }
-  })
-  
-  // Listen to Tauri events - Install/Download
-  unlistenInstalling = await listen('game-installing', (event: any) => {
-    console.log('📥 Game installing:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      isDownloading.value = true
-      downloadError.value = null
-      downloadProgress.value = 0
-    }
-  })
-  
-  unlistenInstallProgress = await listen('game-install-progress', (event: any) => {
-    console.log('📊 Download progress:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      downloadProgress.value = event.payload.progress || 0
-      downloadedSize.value = event.payload.downloaded || '0 MB'
-      totalSize.value = event.payload.total || '0 MB'
-      downloadSpeed.value = event.payload.speed || 'N/A'
-      downloadEta.value = event.payload.eta || 'Calculating...'
-    }
-  })
-  
-  unlistenInstalled = await listen('game-installed', (event: any) => {
-    console.log('✅ Game installed:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      downloadProgress.value = 100
-      // Refresh game data after install
-      setTimeout(async () => {
-        isDownloading.value = false
+  // Setup Tauri event listeners with try/catch for E2E test compatibility
+  try {
+    // Listen to Tauri events - Launch
+    unlistenLaunching = await safeListen('game-launching', (event: any) => {
+      console.log('🚀 Game launching:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        isLaunching.value = true
+        launchError.value = null
+      }
+    })
+    
+    unlistenLaunched = await safeListen('game-launched', (event: any) => {
+      console.log('✅ Game launched:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        // Small delay before hiding overlay for smoother UX
+        setTimeout(() => {
+          isLaunching.value = false
+          isPlaying.value = true
+        }, 500)
+      }
+    })
+    
+    unlistenFailed = await safeListen('game-launch-failed', (event: any) => {
+      console.log('❌ Game launch failed:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        launchError.value = event.payload?.error || 'Unknown error'
+      }
+    })
+    
+    // Listen to Tauri events - Install/Download
+    unlistenInstalling = await safeListen('game-installing', (event: any) => {
+      console.log('📥 Game installing:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        isDownloading.value = true
+        downloadError.value = null
+        downloadProgress.value = 0
+      }
+    })
+    
+    unlistenInstallProgress = await safeListen('game-install-progress', (event: any) => {
+      console.log('📊 Download progress:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        downloadProgress.value = event.payload.progress || 0
+        downloadedSize.value = event.payload.downloaded || '0 MB'
+        totalSize.value = event.payload.total || '0 MB'
+        downloadSpeed.value = event.payload.speed || 'N/A'
+        downloadEta.value = event.payload.eta || 'Calculating...'
+      }
+    })
+    
+    unlistenInstalled = await safeListen('game-installed', (event: any) => {
+      console.log('✅ Game installed:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        downloadProgress.value = 100
+        // Refresh game data after install
+        setTimeout(async () => {
+          isDownloading.value = false
+          installing.value = false
+          await libraryStore.fetchGames()
+        }, 1500)
+      }
+    })
+    
+    unlistenInstallFailed = await safeListen('game-install-failed', (event: any) => {
+      console.log('❌ Game install failed:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        downloadError.value = event.payload?.error || 'Download failed'
         installing.value = false
-        await libraryStore.fetchGames()
-      }, 1500)
-    }
-  })
-  
-  unlistenInstallFailed = await listen('game-install-failed', (event: any) => {
-    console.log('❌ Game install failed:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      downloadError.value = event.payload?.error || 'Download failed'
-      installing.value = false
-    }
-  })
+      }
+    })
+  } catch (e) {
+    // In E2E tests, Tauri event listeners may fail - this is expected
+    console.warn('[GameDetails] Failed to setup Tauri event listeners (expected in E2E tests):', e)
+  }
 })
 
 onUnmounted(() => {

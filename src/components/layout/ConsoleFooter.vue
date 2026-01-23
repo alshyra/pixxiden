@@ -1,20 +1,6 @@
 <template>
   <footer class="console-footer">
     <div class="footer-content">
-      <!-- Control hints -->
-      <div class="control-hints">
-        <div 
-          v-for="btn in buttons" 
-          :key="btn.key" 
-          class="control-hint"
-        >
-          <span :class="getButtonClass(btn.key)" class="btn-icon">
-            {{ getButtonIcon(btn.key) }}
-          </span>
-          <span class="control-label">{{ btn.label }}</span>
-        </div>
-      </div>
-      
       <!-- Status indicator -->
       <div class="status-section">
         <div class="status-indicator">
@@ -26,6 +12,19 @@
         <div class="controller-badge" v-if="controllerType !== 'keyboard'">
           <span class="badge-icon">🎮</span>
           <span class="badge-text">{{ controllerLabel }}</span>
+        </div>
+      </div>
+      <!-- Control hints -->
+      <div class="control-hints">
+        <div 
+          v-for="btn in buttons" 
+          :key="btn.key" 
+          class="control-hint"
+        >
+          <span :class="getButtonClass(btn.key)" class="btn-icon">
+            {{ getButtonIcon(btn.key) }}
+          </span>
+          <span class="control-label">{{ btn.label }}</span>
         </div>
       </div>
     </div>

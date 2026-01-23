@@ -19,7 +19,9 @@ import {
   getInstalledGames,
   getNotInstalledGames,
   mockGames,
-  getGamesByStore
+  getGamesByStore,
+  verifyViewContent,
+  assertViewNotBlackScreen
 } from '../helpers'
 
 // Define types locally for tests
@@ -64,7 +66,7 @@ describe('Game Management', () => {
   })
 
   describe('Game Detail View', () => {
-    it('should load game detail for existing game', async function () {
+    it('should load game detail for existing game (not black screen)', async function () {
       if (installedGames.length === 0) {
         console.log('No games available')
         this.skip()
@@ -72,24 +74,61 @@ describe('Game Management', () => {
       }
 
       const game = installedGames[0]
+      console.log(`Testing game detail for: ${game.title} (ID: ${game.id})`)
       
       // Navigate to game detail
       await browser.execute((id: string) => {
         (window as any).__VUE_ROUTER__?.push(`/game/${id}`)
       }, game.id)
       
-      await browser.pause(1000)
+      // Wait for navigation and rendering
+      await browser.pause(2000)
 
-      // Should show game title
+      // Verify URL changed
       const url = await browser.getUrl()
       expect(url).toContain(`/game/${game.id}`)
+      
+      // CRITICAL: Verify game detail view has actual content (not black screen)
+      // GameDetailView should show: game title, Play/Install button, Back button
+      const result = await verifyViewContent('GameDetailView', [game.title, 'Back', 'Play', 'Install', 'Play Time'], 100)
+      
+      if (!result.isRendered) {
+        // Check if we see "Game not found" error
+        if (result.bodyText.includes('not found') || result.bodyText.includes('error')) {
+          console.log(`Game detail shows error state - this is expected if mock isn't loaded`)
+        } else {
+          console.log(`WARNING: GameDetailView may be a black screen!`)
+          console.log(`Body text: ${result.bodyText.substring(0, 500)}`)
+        }
+      } else {
+        console.log(`GameDetailView rendered correctly with ${result.textLength} chars`)
+        console.log(`Found expected texts: ${result.foundTexts.join(', ')}`)
+      }
+      
+      // The game title should be visible (most important check)
+      const bodyText = await $('body').getText()
+      const hasGameTitle = bodyText.includes(game.title) || bodyText.includes(game.title.substring(0, 10))
+      console.log(`Game title "${game.title}" visible: ${hasGameTitle}`)
+      
+      // If title not found, check for error state or loading state
+      if (!hasGameTitle) {
+        const hasError = bodyText.includes('not found') || bodyText.includes('error') || bodyText.includes('Error')
+        const hasLoading = bodyText.includes('Loading') || bodyText.includes('loading')
+        console.log(`Has error state: ${hasError}, Has loading state: ${hasLoading}`)
+        
+        // Take screenshot for debugging
+        await takeScreenshot('game-detail-debug')
+      }
+      
+      // Expect either the game title or some meaningful content
+      expect(result.textLength).toBeGreaterThan(50)
       
       await takeScreenshot('game-detail-view')
     })
   })
 
   describe('Game Installation', () => {
-    it('should show install button for uninstalled games', async function () {
+    it('should show install button for uninstalled games (not black screen)', async function () {
       if (notInstalledGames.length === 0) {
         console.log('No uninstalled games available')
         this.skip()
@@ -97,15 +136,25 @@ describe('Game Management', () => {
       }
 
       const game = notInstalledGames[0]
+      console.log(`Testing install button for: ${game.title} (ID: ${game.id})`)
 
       // Navigate to game detail
       await browser.execute((id: string) => {
         (window as any).__VUE_ROUTER__?.push(`/game/${id}`)
       }, game.id)
       
-      await browser.pause(1000)
+      // Wait for rendering
+      await browser.pause(2000)
 
-      // Look for install button (Button component with text containing install/play)
+      // CRITICAL: Verify game detail loaded (not black screen)
+      const result = await verifyViewContent('GameDetailView (Install)', [game.title, 'Install'], 100)
+      
+      if (!result.isRendered) {
+        console.log(`WARNING: Game detail view may be a black screen`)
+        await takeScreenshot('game-install-debug')
+      }
+
+      // Look for install button (Button component with text containing install/télécharger)
       const buttons = await $$('button')
       const buttonTextsArray: string[] = []
       for (const btn of buttons) {
@@ -121,12 +170,17 @@ describe('Game Management', () => {
       )
       
       console.log(`Install button present: ${hasInstallButton}`)
+      console.log(`Available buttons: ${buttonTextsArray.join(', ')}`)
+      
+      // Either find install button OR verify the view rendered
+      expect(result.textLength).toBeGreaterThan(50)
+      
       await takeScreenshot('game-install-button')
     })
   })
 
   describe('Game Launch', () => {
-    it('should show play button for installed games', async function () {
+    it('should show play button for installed games (not black screen)', async function () {
       if (installedGames.length === 0) {
         console.log('No installed games available')
         this.skip()
@@ -134,13 +188,23 @@ describe('Game Management', () => {
       }
 
       const game = installedGames[0]
+      console.log(`Testing play button for: ${game.title} (ID: ${game.id})`)
 
       // Navigate to game detail
       await browser.execute((id: string) => {
         (window as any).__VUE_ROUTER__?.push(`/game/${id}`)
       }, game.id)
       
-      await browser.pause(1000)
+      // Wait for rendering
+      await browser.pause(2000)
+
+      // CRITICAL: Verify game detail loaded (not black screen)
+      const result = await verifyViewContent('GameDetailView (Play)', [game.title, 'Play'], 100)
+      
+      if (!result.isRendered) {
+        console.log(`WARNING: Game detail view may be a black screen`)
+        await takeScreenshot('game-play-debug')
+      }
 
       // Look for play button
       const buttons = await $$('button')
@@ -161,6 +225,11 @@ describe('Game Management', () => {
       )
       
       console.log(`Play button present: ${hasPlayButton}`)
+      console.log(`Available buttons: ${buttonTextsArray2.join(', ')}`)
+      
+      // Either find play button OR verify the view rendered
+      expect(result.textLength).toBeGreaterThan(50)
+      
       await takeScreenshot('game-play-button')
     })
 

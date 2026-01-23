@@ -141,34 +141,78 @@ export async function setupMockTauriCommands() {
 
 /**
  * Trigger library refresh after mocks are set up
- * This clicks the Sync button to reload games from the mocked backend
+ * This forces the Vue app to re-fetch games using mocked invoke
+ * 
+ * NOTE: We can't use browser.refresh() with Tauri WebDriver as it breaks the session.
+ * Instead, we set up mocks and force the store to re-fetch.
  */
 export async function refreshLibrary() {
-  // First wait for the button to appear
-  await browser.waitUntil(
-    async () => {
-      const syncBtn = await $('button*=Synchroniser')
-      return await syncBtn.isExisting()
-    },
-    { timeout: 5000, timeoutMsg: 'Synchroniser button did not appear' }
-  )
+  const serializedMockGames = JSON.parse(JSON.stringify(mockGames))
   
-  // Click the Synchroniser button to reload games
-  const syncButton = await $('button*=Synchroniser')
-  console.log('[Mock] Clicking Synchroniser button to load games')
-  await syncButton.click()
+  console.log(`[Mock] refreshLibrary: Starting with ${serializedMockGames.length} mock games`)
   
-  // Wait for sync to complete - check for spinner globally, not inside button
-  await browser.waitUntil(
-    async () => {
-      const spinners = await $$('.animate-spin')
-      return spinners.length === 0
-    },
-    { timeout: 10000, timeoutMsg: 'Sync took too long' }
-  )
+  // First, set up mocks (this ensures __MOCK_GAMES__ and __TAURI_INTERNALS__ are set)
+  await setupMockTauriCommands()
   
-  // Additional wait for UI to update
-  await browser.pause(1000)
+  // Also store in localStorage for persistence
+  await browser.execute((games: any[]) => {
+    (window as any).__MOCK_GAMES__ = games
+    localStorage.setItem('PIXXIDEN_MOCK_GAMES', JSON.stringify(games))
+    localStorage.setItem('PIXXIDEN_MOCK_MODE', 'true')
+    console.log('[Mock] Mock games stored:', games.length, 'games')
+  }, serializedMockGames)
+  
+  // Force the library store to re-fetch by calling fetchGames directly
+  console.log('[Mock] refreshLibrary: Calling store.fetchGames() directly...')
+  const fetchResult = await browser.execute(async () => {
+    const pinia = (window as any).__PINIA__
+    if (!pinia?._s?.has('library')) {
+      console.error('[Mock] Library store not found in Pinia')
+      return { success: false, error: 'No library store' }
+    }
+    
+    const store = pinia._s.get('library')
+    try {
+      console.log('[Mock] Calling fetchGames...')
+      await store.fetchGames()
+      console.log('[Mock] fetchGames complete, games:', store.games?.length)
+      return { success: true, gamesCount: store.games?.length || 0 }
+    } catch (e: any) {
+      console.error('[Mock] fetchGames error:', e)
+      return { success: false, error: e.message }
+    }
+  })
+  
+  console.log(`[Mock] refreshLibrary: fetchGames result:`, fetchResult)
+  
+  // Wait a bit for Vue reactivity
+  await browser.pause(500)
+  
+  // Verify state
+  const result = await browser.execute(() => {
+    const mockGames = localStorage.getItem('PIXXIDEN_MOCK_GAMES')
+    const mockMode = localStorage.getItem('PIXXIDEN_MOCK_MODE')
+    const pinia = (window as any).__PINIA__
+    let storeGames = 0
+    let storeLoading = false
+    let storeError = null
+    if (pinia?._s?.has('library')) {
+      const store = pinia._s.get('library')
+      storeGames = store?.games?.length || 0
+      storeLoading = store?.loading || false
+      storeError = store?.error || null
+    }
+    return { 
+      mockGamesInStorage: mockGames ? JSON.parse(mockGames).length : 0, 
+      mockModeEnabled: mockMode === 'true',
+      storeGamesCount: storeGames,
+      storeLoading,
+      storeError,
+      hasPinia: !!pinia
+    }
+  })
+  
+  console.log(`[Mock] refreshLibrary: Complete. Storage=${result.mockGamesInStorage}, MockMode=${result.mockModeEnabled}, StoreGames=${result.storeGamesCount}, Loading=${result.storeLoading}, Error=${result.storeError}, Pinia=${result.hasPinia}`)
 }
 
 /**
@@ -206,7 +250,7 @@ export async function waitForMockData() {
       return hasData
     },
     {
-      timeout: 5000,
+      timeout: 2000,
       timeoutMsg: 'Mock data was not loaded'
     }
   )

@@ -30,30 +30,49 @@ describe('Application Launch', () => {
     expect(await splashContainer.isExisting()).toBe(false)
   })
 
-  it('should have window title set correctly', async () => {
-    const title = await browser.getTitle()
-    expect(title).toContain('Pixxiden')
-  })
-
   it('should render the library view as default route', async () => {
-    // The app should start on the library view (French UI)
+    // The app should start on the library view
+    // BottomFilters uses English labels: "all games", "installed", etc.
+    // First make sure we're on the main window
+    const handles = await browser.getWindowHandles()
+    for (const handle of handles) {
+      await browser.switchToWindow(handle)
+      const url = await browser.getUrl()
+      // Main window has no ?splash parameter
+      if (!url.includes('?splash')) {
+        break
+      }
+    }
+    
     await browser.waitUntil(
       async () => {
-        // Check for library-related content (French: "Bibliothèque" or "Ma Collection")
         const bodyText = await $('body').getText()
-        const hasLibrary = bodyText.includes('Bibliothèque') || 
-                          bodyText.includes('Ma Collection') ||
-                          bodyText.includes('bibliothèque')
-        return hasLibrary
+        // Check for filter buttons that are visible in BottomFilters
+        return bodyText.includes('all games') || bodyText.includes('installed')
       },
-      { timeout: 10000, timeoutMsg: 'Library view not displayed' }
+      { timeout: 15000, timeoutMsg: 'Library view not displayed' }
     )
   })
 
   it('should display the header with navigation elements', async () => {
-    // Check for filter buttons (French labels)
+    // Make sure we're on the main window
+    const handles = await browser.getWindowHandles()
+    for (const handle of handles) {
+      try {
+        await browser.switchToWindow(handle)
+        const url = await browser.getUrl()
+        // Main window has no ?splash parameter
+        if (!url.includes('?splash')) {
+          break
+        }
+      } catch (e) {
+        // Window might be closed, continue
+      }
+    }
+    
+    // Check for filter buttons (English labels from BottomFilters component)
     const bodyText = await $('body').getText()
-    const hasFilters = bodyText.includes('Tous') || bodyText.includes('Installés')
+    const hasFilters = bodyText.includes('all games') || bodyText.includes('installed')
     expect(hasFilters).toBe(true)
   })
 

@@ -38,7 +38,7 @@ describe('Splash Screen', () => {
         return false
       },
       { 
-        timeout: 30000, 
+        timeout: 3000, 
         timeoutMsg: 'Main window did not appear after splash screen' 
       }
     )
@@ -56,13 +56,14 @@ describe('Splash Screen', () => {
   })
 
   it('should have rendered the main app content', async () => {
-    // Wait for main content to be visible
+    // Wait for main content to be visible - LibraryFullscreen uses BottomFilters
     await browser.waitUntil(
       async () => {
-        const h2 = await $('h2')
-        return h2.isExisting()
+        const bodyText = await $('body').getText()
+        // BottomFilters component shows "all games" filter
+        return bodyText.includes('all games')
       },
-      { timeout: 10000 }
+      { timeout: 1000, timeoutMsg: 'Main app content not rendered' }
     )
 
     // Verify we're in the main app, not splash screen

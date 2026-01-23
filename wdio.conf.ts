@@ -63,7 +63,7 @@ export const config: Options.Testrunner = {
   reporters: ['spec'],
   mochaOpts: {
     ui: 'bdd',
-    timeout: 120000,
+    timeout: 60000,
   },
 
   //

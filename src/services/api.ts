@@ -1,5 +1,33 @@
-import { invoke } from '@tauri-apps/api/core'
 import type { Game } from '@/types'
+
+// Import Tauri invoke - we'll wrap calls in try/catch for E2E compatibility
+// The invoke function is lazy-loaded to avoid import errors in E2E tests
+let _invoke: ((cmd: string, args?: any) => Promise<any>) | null = null
+
+const getInvoke = async () => {
+  if (_invoke) return _invoke
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    _invoke = invoke
+    return invoke
+  } catch (e) {
+    console.warn('[API] Failed to import Tauri invoke (expected in E2E):', e)
+    // Return a mock invoke that uses our mocked __TAURI_INTERNALS__
+    _invoke = async (cmd: string, args?: any) => {
+      if ((window as any).__TAURI_INTERNALS__?.invoke) {
+        return (window as any).__TAURI_INTERNALS__.invoke(cmd, args)
+      }
+      throw new Error(`Tauri command '${cmd}' not available`)
+    }
+    return _invoke
+  }
+}
+
+// Wrapper to safely call invoke
+const invoke = async <T>(cmd: string, args?: any): Promise<T> => {
+  const fn = await getInvoke()
+  return fn(cmd, args)
+}
 
 // Mock mode - can be enabled via localStorage, URL param, or E2E test injection
 const isMockMode = (): boolean => {
@@ -39,10 +67,24 @@ let mockGamesData: Game[] | null = null
 
 // Lazy load mock games
 const getMockGames = async (): Promise<Game[]> => {
-  // Check for mock games injected by E2E tests first
+  // Check for mock games injected by E2E tests first (in window)
   if (typeof window !== 'undefined' && (window as any).__MOCK_GAMES__) {
     console.log('🎮 [MOCK] Using window.__MOCK_GAMES__')
     return (window as any).__MOCK_GAMES__
+  }
+  
+  // Check for mock games stored in localStorage (survives page reload)
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('PIXXIDEN_MOCK_GAMES')
+      if (stored) {
+        const games = JSON.parse(stored)
+        console.log('🎮 [MOCK] Using localStorage PIXXIDEN_MOCK_GAMES:', games.length, 'games')
+        return games
+      }
+    } catch (e) {
+      console.error('🎮 [MOCK] Failed to parse localStorage mock games:', e)
+    }
   }
   
   if (mockGamesData !== null) {
@@ -117,6 +159,13 @@ export async function getGames(): Promise<Game[]> {
 }
 
 export async function getGame(gameId: string): Promise<Game | null> {
+  if (isMockMode()) {
+    const mockData = await getMockGames()
+    const game = mockData.find(g => g.id === gameId || g.appId === gameId) || null
+    console.log(`🎮 [MOCK MODE] getGame(${gameId}):`, game?.title || 'not found')
+    return game
+  }
+  
   try {
     const game = await invoke<Game | null>('get_game', { id: gameId })
     return game
@@ -185,6 +234,16 @@ export async function uninstallGame(gameId: string): Promise<void> {
 // Store API
 
 export async function getStoreStatus(): Promise<StoreStatus[]> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Returning mock store status')
+    return [
+      { id: 'epic', name: 'Epic Games', available: true, authenticated: false, cli_tool: 'legendary' },
+      { id: 'gog', name: 'GOG Galaxy', available: true, authenticated: false, cli_tool: 'gogdl' },
+      { id: 'amazon', name: 'Amazon Games', available: true, authenticated: false, cli_tool: 'nile' },
+      { id: 'steam', name: 'Steam', available: true, authenticated: false, cli_tool: 'steam' },
+    ]
+  }
+  
   try {
     const stores = await invoke<StoreStatus[]>('get_store_status')
     return stores
@@ -213,6 +272,18 @@ export async function checkHealth(): Promise<{ status: string; version: string }
 // System API
 
 export async function getSystemInfo(): Promise<SystemInfo> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Returning mock system info')
+    return {
+      osName: 'Linux',
+      osVersion: 'Fedora 39',
+      kernelVersion: '6.6.0-test',
+      cpuBrand: 'Intel Core i7-9700K @ 3.60GHz',
+      totalMemory: 17179869184, // 16GB
+      hostname: 'pixxiden-test'
+    }
+  }
+  
   try {
     const info = await invoke<SystemInfo>('get_system_info')
     return info
@@ -223,6 +294,30 @@ export async function getSystemInfo(): Promise<SystemInfo> {
 }
 
 export async function getDiskInfo(): Promise<DiskInfo[]> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Returning mock disk info')
+    return [
+      {
+        name: 'nvme0n1p3',
+        mountPoint: '/',
+        totalSpace: 500000000000, // 500GB
+        availableSpace: 250000000000, // 250GB
+        usedSpace: 250000000000, // 250GB
+        fileSystem: 'ext4',
+        isRemovable: false
+      },
+      {
+        name: 'sda1',
+        mountPoint: '/home',
+        totalSpace: 1000000000000, // 1TB
+        availableSpace: 600000000000, // 600GB
+        usedSpace: 400000000000, // 400GB
+        fileSystem: 'ext4',
+        isRemovable: false
+      }
+    ]
+  }
+  
   try {
     const disks = await invoke<DiskInfo[]>('get_disk_info')
     return disks
@@ -233,6 +328,11 @@ export async function getDiskInfo(): Promise<DiskInfo[]> {
 }
 
 export async function checkForUpdates(): Promise<boolean> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Returning mock update check (no updates)')
+    return false
+  }
+  
   try {
     const hasUpdate = await invoke<boolean>('check_for_updates')
     return hasUpdate
@@ -243,6 +343,11 @@ export async function checkForUpdates(): Promise<boolean> {
 }
 
 export async function shutdownSystem(): Promise<void> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Mock shutdown (no-op)')
+    return
+  }
+  
   try {
     await invoke('shutdown_system')
   } catch (error) {
@@ -252,6 +357,16 @@ export async function shutdownSystem(): Promise<void> {
 }
 
 export async function getSettings(): Promise<SettingsConfig> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Returning mock settings')
+    return {
+      protonVersion: 'ge-proton-8-32',
+      mangoHudEnabled: false,
+      defaultInstallPath: '~/Games',
+      winePrefixPath: '~/.local/share/pixxiden/prefixes'
+    }
+  }
+  
   try {
     const settings = await invoke<SettingsConfig>('get_settings')
     return settings
@@ -262,6 +377,11 @@ export async function getSettings(): Promise<SettingsConfig> {
 }
 
 export async function saveSettings(config: SettingsConfig): Promise<void> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Mock save settings:', config)
+    return
+  }
+  
   try {
     await invoke('save_settings', { config })
   } catch (error) {

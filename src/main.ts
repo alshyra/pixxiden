@@ -24,11 +24,13 @@ if (isSplashScreen) {
   removeTmpSplash()
 } else {
   const app = createApp(App)
-  app.use(createPinia())
+  const pinia = createPinia()
+  app.use(pinia)
   app.use(router)
   
-  // Expose router for E2E testing
+  // Expose router and pinia for E2E testing
   ;(window as any).__VUE_ROUTER__ = router
+  ;(window as any).__PINIA__ = pinia
   
   app.mount('#app')
   removeTmpSplash()

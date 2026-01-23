@@ -1,19 +1,13 @@
 <template>
   <div id="app" class="min-h-screen bg-black text-white">
-    <!-- Main router view with transitions -->
+    <!-- Main router view - no transitions for E2E compatibility -->
     <router-view v-slot="{ Component, route }">
-      <transition
-        :name="getTransitionName(route)"
-        mode="out-in"
-        @enter="onEnter"
-        @leave="onLeave"
-      >
-        <component 
-          :is="Component" 
-          :key="route.path" 
-          :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }"
-        />
-      </transition>
+      <component 
+        v-if="Component"
+        :is="Component" 
+        :key="route.path" 
+        :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }"
+      />
     </router-view>
     
     <!-- Console Footer (persistent) -->
