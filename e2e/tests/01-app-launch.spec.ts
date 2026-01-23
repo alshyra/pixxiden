@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Application Launch
+ * Pixxiden E2E Tests - Application Launch
  * 
  * Tests that the application launches correctly and basic UI is functional.
  * Note: The splash screen may or may not be visible when tests start, depending on timing.
@@ -32,7 +32,7 @@ describe('Application Launch', () => {
 
   it('should have window title set correctly', async () => {
     const title = await browser.getTitle()
-    expect(title).toContain('PixiDen')
+    expect(title).toContain('Pixxiden')
   })
 
   it('should render the library view as default route', async () => {

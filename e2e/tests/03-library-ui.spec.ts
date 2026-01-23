@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Library UI
+ * Pixxiden E2E Tests - Library UI
  * 
  * Tests for the library view UI interactions:
  * - Game grid display

@@ -1,4 +1,4 @@
-# PixiDen 🎮
+# Pixxiden 🎮
 
 > A cozy, modern game library launcher for Linux with multi-store support and session mode
 
@@ -20,7 +20,7 @@
 
 ## 🏗️ Architecture
 
-PixiDen uses a modern, modular architecture:
+Pixxiden uses a modern, modular architecture:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -28,17 +28,6 @@ PixiDen uses a modern, modular architecture:
 │  - ReMiX Theme UI                       │
 │  - Controller Support                   │
 │  - IPC Communication                    │
-└─────────────────┬───────────────────────┘
-                  │ gRPC/IPC
-┌─────────────────▼───────────────────────┐
-│  Backend (Go Daemon)                    │
-│  - Store Adapters (CLI wrappers)        │
-│    • Legendary (Epic)                   │
-│    • GOGdl (GOG)                        │
-│    • Nile (Amazon)                      │
-│  - Runner Management                    │
-│  - Download Queue                       │
-│  - SQLite Database                      │
 └─────────────────────────────────────────┘
 ```
 
@@ -46,18 +35,9 @@ PixiDen uses a modern, modular architecture:
 
 ### Prerequisites
 
-- **Go** 1.21 or higher
 - **Node.js** 18 or higher
 - **Rust** (for Tauri)
 - **Wine-GE** or **Proton-GE** (optional, can be bundled)
-
-### Backend Setup
-
-```bash
-cd backend
-go mod download
-go run cmd/pixiden-daemon/main.go
-```
 
 ### Frontend Setup
 
@@ -69,15 +49,15 @@ npm run tauri dev
 
 ## 🎮 Usage
 
-Launch PixiDen from your application menu or:
+Launch Pixxiden from your application menu or:
 
 ```bash
-pixiden
+Pixxiden
 ```
 
 For session mode:
 ```bash
-pixiden-session  # Launches with Gamescope
+Pixxiden-session  # Launches with Gamescope
 ```
 
 ## 📄 License

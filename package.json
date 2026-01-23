@@ -1,7 +1,7 @@
 {
-  "name": "pixiden-frontend",
+  "name": "pixxiden-frontend",
   "version": "0.1.0",
-  "description": "PixiDen - A cozy game library launcher for Linux",
+  "description": "PixxiDen - A cozy game library launcher for Linux",
   "type": "module",
   "scripts": {
     "dev": "vite",

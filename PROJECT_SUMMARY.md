@@ -1,15 +1,15 @@
-# PixiDen - Projet Généré
+# Pixxiden - Projet Généré
 
 ## 📦 Contenu de l'Archive
 
-L'archive `pixiden.tar.gz` contient un premier jet complet et fonctionnel du projet PixiDen.
+L'archive `Pixxiden.tar.gz` contient un premier jet complet et fonctionnel du projet Pixxiden.
 
 ## 🗂️ Structure du Projet
 
 ```
-pixiden/
+Pixxiden/
 ├── backend/                          # Backend Go
-│   ├── cmd/pixiden-daemon/
+│   ├── cmd/Pixxiden-daemon/
 │   │   └── main.go                  # ✅ Point d'entrée du daemon
 │   ├── internal/
 │   │   ├── api/
@@ -43,7 +43,7 @@ pixiden/
 │   └── tailwind.config.js          # ✅ Config Tailwind (ReMiX colors)
 │
 ├── scripts/
-│   └── pixiden-session             # ✅ Script session Wayland/Gamescope
+│   └── Pixxiden-session             # ✅ Script session Wayland/Gamescope
 │
 ├── docs/                            # (vide pour l'instant)
 │
@@ -52,7 +52,7 @@ pixiden/
 ├── CONTRIBUTING.md                  # ✅ Guide de contribution
 ├── LICENSE                          # ✅ MIT License
 ├── .gitignore                       # ✅ Gitignore complet
-└── pixiden-session.desktop          # ✅ Fichier de session Wayland
+└── Pixxiden-session.desktop          # ✅ Fichier de session Wayland
 ```
 
 ## ✅ Fonctionnalités Implémentées
@@ -60,7 +60,7 @@ pixiden/
 ### Backend (Go)
 
 1. **Configuration**
-   - Chargement depuis `~/.config/pixiden/config.yaml`
+   - Chargement depuis `~/.config/Pixxiden/config.yaml`
    - Création automatique avec valeurs par défaut
    - Support multi-stores et runners
 
@@ -127,7 +127,7 @@ pixiden/
 
 ### Mode Session
 
-- Script `pixiden-session` avec Gamescope
+- Script `Pixxiden-session` avec Gamescope
 - Fichier `.desktop` pour sélection au login
 - Support fullscreen et controller
 
@@ -136,8 +136,8 @@ pixiden/
 ### 1. Extraire l'archive
 
 ```bash
-tar -xzf pixiden.tar.gz
-cd pixiden
+tar -xzf Pixxiden.tar.gz
+cd Pixxiden
 ```
 
 ### 2. Installer les CLI tools
@@ -162,7 +162,7 @@ cd ~/.local/share/wine-ge
 ```bash
 cd backend
 go mod download
-go run cmd/pixiden-daemon/main.go
+go run cmd/Pixxiden-daemon/main.go
 ```
 
 Backend démarre sur `http://localhost:9090`
@@ -182,7 +182,7 @@ npm run tauri:dev
    legendary auth
    ```
 
-2. Dans PixiDen, cliquer sur "Sync" pour importer les jeux
+2. Dans Pixxiden, cliquer sur "Sync" pour importer les jeux
 
 3. Cliquer sur un jeu installé et appuyer sur Play !
 
@@ -270,12 +270,12 @@ Le thème ReMiX est complètement intégré :
 Pour pusher sur votre repo GitHub :
 
 ```bash
-cd pixiden
+cd Pixxiden
 git init
 git add .
-git commit -m "feat: initial commit - PixiDen MVP"
+git commit -m "feat: initial commit - Pixxiden MVP"
 git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/pixiden.git
+git remote add origin https://github.com/YOUR-USERNAME/Pixxiden.git
 git push -u origin main
 ```
 

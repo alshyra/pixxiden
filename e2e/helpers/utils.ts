@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Test Utilities
+ * Pixxiden E2E Test Utilities
  * 
  * Helper functions for interacting with the Tauri app via WebDriver.
  * Uses real store binaries (legendary, gogdl, nile) for integration testing.

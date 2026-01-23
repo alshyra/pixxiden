@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# PixiDen Session Launcher with Gamescope
+# Pixxiden Session Launcher with Gamescope
 
 # Résolution (peut être overridé)
-RESOLUTION="${PIXIDEN_RESOLUTION:-1920x1080}"
+RESOLUTION="${Pixxiden_RESOLUTION:-1920x1080}"
 WIDTH=$(echo $RESOLUTION | cut -d'x' -f1)
 HEIGHT=$(echo $RESOLUTION | cut -d'x' -f2)
 
@@ -13,13 +13,13 @@ if ! command -v gamescope &> /dev/null; then
     exit 1
 fi
 
-# Vérifier que PixiDen est installé
-if ! command -v pixiden &> /dev/null; then
-    echo "Error: PixiDen is not installed"
+# Vérifier que Pixxiden est installé
+if ! command -v Pixxiden &> /dev/null; then
+    echo "Error: Pixxiden is not installed"
     exit 1
 fi
 
-# Lancer PixiDen avec Gamescope
+# Lancer Pixxiden avec Gamescope
 exec gamescope \
     -W $WIDTH \
     -H $HEIGHT \
@@ -29,4 +29,4 @@ exec gamescope \
     -e \
     --force-grab-cursor \
     --adaptive-sync \
-    -- pixiden --fullscreen --session-mode
+    -- Pixxiden --fullscreen --session-mode

@@ -33,7 +33,7 @@ export const config: Options.Testrunner = {
   capabilities: [
     {
       'tauri:options': {
-        application: path.resolve('./src-tauri/target/release/pixiden'),
+        application: path.resolve('./src-tauri/target/release/Pixxiden'),
       },
     } as any,
   ],

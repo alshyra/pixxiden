@@ -1,16 +1,16 @@
-# PixiDen - Archive Release
+# Pixxiden - Archive Release
 
 ## 📦 Contents
 
-Cette archive contient le code source complet de **PixiDen**, votre launcher de jeux multi-magasins pour Linux.
+Cette archive contient le code source complet de **Pixxiden**, votre launcher de jeux multi-magasins pour Linux.
 
 ## 🚀 Pour Commencer
 
 ### 1. Extraire l'archive
 
 ```bash
-tar -xzf pixiden.tar.gz
-cd pixiden
+tar -xzf Pixxiden.tar.gz
+cd Pixxiden
 ```
 
 ### 2. Lire la documentation
@@ -40,7 +40,7 @@ make dev-frontend
 ## 📁 Structure du Projet
 
 ```
-pixiden/
+Pixxiden/
 ├── backend/                 # Backend Go
 │   ├── cmd/daemon/         # Point d'entrée principal
 │   ├── internal/           # Code interne
@@ -146,13 +146,13 @@ pip install legendary-gl
 
 ### Configuration
 
-Fichier de config : `~/.config/pixiden/config.yaml`
+Fichier de config : `~/.config/Pixxiden/config.yaml`
 
 Voir `config.example.yaml` pour un exemple.
 
 ### Base de Données
 
-SQLite database : `~/.config/pixiden/pixiden.db`
+SQLite database : `~/.config/Pixxiden/Pixxiden.db`
 
 Créée automatiquement au premier lancement.
 

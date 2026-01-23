@@ -1,4 +1,4 @@
-# PixiDen - Quick Start Guide
+# Pixxiden - Quick Start Guide
 
 ## Installation des Dépendances
 
@@ -40,16 +40,6 @@ tar -xf wine-lutris-GE-Proton8-26-x86_64.tar.xz
 rm wine-lutris-GE-Proton8-26-x86_64.tar.xz
 ```
 
-## Lancement du Backend
-
-```bash
-cd backend
-go mod download
-go run cmd/pixiden-daemon/main.go
-```
-
-Le backend démarre sur le port 9090.
-
 ## Lancement du Frontend
 
 ```bash
@@ -66,13 +56,13 @@ npm run tauri:dev
 # Via le CLI Legendary (ouvre le navigateur)
 legendary auth
 
-# Ou via l'interface PixiDen
+# Ou via l'interface Pixxiden
 # Settings > Stores > Epic Games > Login
 ```
 
 ### 2. Synchroniser la bibliothèque
 
-Dans PixiDen :
+Dans Pixxiden :
 - Cliquer sur le bouton "Sync" dans la vue Library
 - Vos jeux Epic Games seront importés automatiquement
 
@@ -101,7 +91,7 @@ legendary status
 
 Vérifier le chemin dans la config :
 ```bash
-cat ~/.config/pixiden/config.yaml
+cat ~/.config/Pixxiden/config.yaml
 ```
 
 Ou éditer manuellement :
@@ -118,18 +108,18 @@ Les logs du backend sont affichés dans le terminal.
 
 Pour plus de détails :
 ```bash
-PIXIDEN_LOG_LEVEL=debug go run cmd/pixiden-daemon/main.go
+Pixxiden_LOG_LEVEL=debug go run cmd/Pixxiden-daemon/main.go
 ```
 
 ## Mode Session (Wayland)
 
-Pour utiliser PixiDen comme session de jeu (comme SteamOS) :
+Pour utiliser Pixxiden comme session de jeu (comme SteamOS) :
 
 ```bash
 # Copier le fichier de session
-sudo cp pixiden-session.desktop /usr/share/wayland-sessions/
+sudo cp Pixxiden-session.desktop /usr/share/wayland-sessions/
 
-# Se déconnecter et sélectionner "PixiDen Session"
+# Se déconnecter et sélectionner "Pixxiden Session"
 ```
 
 Nécessite Gamescope :

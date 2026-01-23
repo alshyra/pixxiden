@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Navigation
+ * Pixxiden E2E Tests - Navigation
  * 
  * Tests for navigating between different views:
  * - Library view

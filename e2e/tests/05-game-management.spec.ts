@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Game Management
+ * Pixxiden E2E Tests - Game Management
  * 
  * Tests for game management actions:
  * - Install game

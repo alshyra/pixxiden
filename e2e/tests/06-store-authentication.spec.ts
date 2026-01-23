@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Store Authentication
+ * Pixxiden E2E Tests - Store Authentication
  * 
  * Tests for store authentication flows:
  * - Check authentication status

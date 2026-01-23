@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Test Selectors
+ * Pixxiden E2E Test Selectors
  * 
  * Centralized selectors for all UI elements tested.
  * Use data-testid attributes for reliable test selection.

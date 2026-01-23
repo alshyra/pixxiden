@@ -20,7 +20,7 @@
           </div>
         </div>
       </div>
-      <h1 class="app-title">PixiDen</h1>
+      <h1 class="app-title">Pixxiden</h1>
       <p class="loading-text">{{ loadingMessage }}</p>
     </div>
   </div>

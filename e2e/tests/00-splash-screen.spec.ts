@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Splash Screen
+ * Pixxiden E2E Tests - Splash Screen
  * 
  * Tests that the splash screen appears on startup and transitions correctly to the main window.
  */
@@ -17,7 +17,7 @@ describe('Splash Screen', () => {
     
     // If splash is still visible, verify it
     if (await splashTitle.isExisting()) {
-      expect(await splashTitle.getText()).toBe('PixiDen')
+      expect(await splashTitle.getText()).toBe('Pixxiden')
       await takeScreenshot('splash-screen-visible')
     }
   })
@@ -52,7 +52,7 @@ describe('Splash Screen', () => {
 
   it('should have loaded the main window with proper title', async () => {
     const title = await browser.getTitle()
-    expect(title).toContain('PixiDen')
+    expect(title).toContain('Pixxiden')
   })
 
   it('should have rendered the main app content', async () => {

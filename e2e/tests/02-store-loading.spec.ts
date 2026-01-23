@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Store Loading
+ * Pixxiden E2E Tests - Store Loading
  * 
  * Tests loading games from real store binaries:
  * - Legendary (Epic Games Store)

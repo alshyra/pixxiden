@@ -23,7 +23,7 @@ describe('SplashScreen Component', () => {
 
     expect(wrapper.find('.splash-container').exists()).toBe(true)
     expect(wrapper.find('.loader').exists()).toBe(true)
-    expect(wrapper.find('.app-title').text()).toBe('PixiDen')
+    expect(wrapper.find('.app-title').text()).toBe('Pixxiden')
   })
 
   it('should show initial loading message', () => {
@@ -53,7 +53,7 @@ describe('SplashScreen Component', () => {
 
     const title = wrapper.find('.app-title')
     expect(title.exists()).toBe(true)
-    expect(title.text()).toBe('PixiDen')
+    expect(title.text()).toBe('Pixxiden')
     expect(title.element.tagName).toBe('H1')
   })
 

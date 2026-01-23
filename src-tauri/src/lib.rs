@@ -58,7 +58,7 @@ pub fn run() {
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
             app.manage(gamepad_monitor);
 
-            log::info!("PixiDen initialized successfully!");
+            log::info!("Pixxiden initialized successfully!");
             Ok(())
         })
         .plugin(tauri_plugin_shell::init())

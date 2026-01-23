@@ -1,8 +1,8 @@
-# PixiDen - Development Context & Prompt for AI Assistants
+# Pixxiden - Development Context & Prompt for AI Assistants
 
 ## 🎯 Project Overview
 
-**PixiDen** is a modern, cozy game library launcher for Linux with multi-store support and session mode capabilities (similar to SteamOS). The name evokes comfort and gaming in a living room setting.
+**Pixxiden** is a modern, cozy game library launcher for Linux with multi-store support and session mode capabilities (similar to SteamOS). The name evokes comfort and gaming in a living room setting.
 
 ---
 
@@ -144,7 +144,7 @@ Sections:
 
 3. **Session Mode via Gamescope**
    - Create `.desktop` file in `/usr/share/wayland-sessions/`
-   - Launch app with `gamescope -f -e -- pixiden --fullscreen`
+   - Launch app with `gamescope -f -e -- Pixxiden --fullscreen`
    - No complex compositor work needed
 
 4. **Testing Strategy**
@@ -157,9 +157,9 @@ Sections:
 ## 📂 Project Structure (Current State)
 
 ```
-pixiden/
+Pixxiden/
 ├── backend/
-│   ├── cmd/pixiden-daemon/main.go          ✅ Entry point
+│   ├── cmd/Pixxiden-daemon/main.go          ✅ Entry point
 │   ├── internal/
 │   │   ├── api/server.go                   ✅ HTTP REST API
 │   │   ├── config/config.go                ✅ YAML configuration
@@ -183,9 +183,9 @@ pixiden/
 │   ├── package.json                        ✅
 │   └── tailwind.config.js                  ✅ ReMiX theme
 │
-├── scripts/pixiden-session                 ✅ Gamescope launcher
+├── scripts/Pixxiden-session                 ✅ Gamescope launcher
 ├── README.md, QUICKSTART.md, etc.          ✅
-└── pixiden-session.desktop                 ✅
+└── Pixxiden-session.desktop                 ✅
 ```
 
 ---
@@ -212,7 +212,7 @@ The `frontend/src-tauri/` directory needs to be properly initialized with:
 ### Required Tauri Configuration
 
 **Key settings needed:**
-- App identifier: `com.pixiden.app`
+- App identifier: `com.Pixxiden.app`
 - Window config: titlebar, resizable, fullscreen support
 - IPC allowlist: commands for backend communication
 - Build targets: Linux (AppImage, deb)
@@ -351,7 +351,7 @@ func TestListGames_WithMock(t *testing.T) {
 ```bash
 # Terminal 1 - Backend
 cd backend
-go run cmd/pixiden-daemon/main.go
+go run cmd/Pixxiden-daemon/main.go
 
 # Terminal 2 - Frontend
 cd frontend
@@ -363,7 +363,7 @@ npm run tauri:dev
 ```bash
 # Backend
 cd backend
-go build -o pixiden-daemon cmd/pixiden-daemon/main.go
+go build -o Pixxiden-daemon cmd/Pixxiden-daemon/main.go
 
 # Frontend
 cd frontend
@@ -416,7 +416,7 @@ npm run tauri:build
 
 ## 🔧 Configuration Files
 
-### Backend (`~/.config/pixiden/config.yaml`)
+### Backend (`~/.config/Pixxiden/config.yaml`)
 
 ```yaml
 api:
@@ -442,9 +442,9 @@ runners:
     path: ~/.local/share/proton-ge/Proton-GE-9.15
 
 paths:
-  library: ~/.local/share/pixiden/games
+  library: ~/.local/share/Pixxiden/games
   downloads: ~/Games
-  prefixes: ~/.local/share/pixiden/prefixes
+  prefixes: ~/.local/share/Pixxiden/prefixes
 ```
 
 ---
@@ -523,7 +523,7 @@ Create the following files in `frontend/src-tauri/`:
 
 ### 1. `tauri.conf.json`
 Basic Tauri 2.x configuration with:
-- App identifier: `com.pixiden.app`
+- App identifier: `com.Pixxiden.app`
 - Window settings (min size, decorations)
 - Security CSP allowing localhost:9090
 - Build configuration for Linux
@@ -567,5 +567,5 @@ Just fix the Tauri setup and start building features one by one. The codebase is
 ---
 
 *Context prepared for: GitHub Copilot, Claude Opus, or any AI assistant*
-*Project: PixiDen v0.1.0*
+*Project: Pixxiden v0.1.0*
 *Date: January 21, 2026*
