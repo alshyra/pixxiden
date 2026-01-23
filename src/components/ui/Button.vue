@@ -1,15 +1,31 @@
 <template>
   <button
     :class="[
-      'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200',
-      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black',
+      'inline-flex items-center justify-center gap-2 font-bold tracking-wide rounded-[14px] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-remix-accent/50 focus:ring-offset-2 focus:ring-offset-remix-black disabled:opacity-60 disabled:cursor-not-allowed',
       sizeClasses,
-      variantClasses,
-      { 'opacity-50 cursor-not-allowed': disabled }
+      variantClasses.base,
+      !disabled && !loading && variantClasses.hover,
+      loading && 'pointer-events-none'
     ]"
-    :disabled="disabled"
+    :disabled="disabled || loading"
+    v-bind="$attrs"
   >
-    <slot name="icon" />
+    <!-- Loading Spinner -->
+    <svg 
+      v-if="loading" 
+      class="animate-spin"
+      :class="sizeIconClasses"
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    
+    <!-- Icon Slot -->
+    <slot v-else name="icon" />
+    
+    <!-- Content -->
     <slot />
   </button>
 </template>
@@ -17,26 +33,61 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{
-  size?: 'sm' | 'md' | 'lg'
-  variant?: 'primary' | 'secondary' | 'ghost' | 'success'
-  disabled?: boolean
-}>(), {
-  size: 'md',
-  variant: 'primary',
-  disabled: false
-})
+/**
+ * Button component with multiple variants and sizes
+ * 
+ * @example
+ * <Button variant="primary" size="lg" :loading="saving" @click="save">
+ *   <template #icon><CheckIcon /></template>
+ *   SAUVEGARDER
+ * </Button>
+ */
 
-const sizeClasses = computed(() => ({
-  sm: 'px-3 py-1.5 text-sm rounded-lg',
-  md: 'px-4 py-2 text-base rounded-lg',
-  lg: 'px-6 py-3 text-lg rounded-xl'
-}[props.size]))
+const props = withDefaults(
+  defineProps<{
+    /** Button style variant */
+    variant?: 'primary' | 'danger' | 'ghost' | 'outline'
+    /** Button size */
+    size?: 'sm' | 'md' | 'lg'
+    /** Show loading spinner */
+    loading?: boolean
+    /** Disable the button */
+    disabled?: boolean
+  }>(),
+  {
+    variant: 'primary',
+    size: 'md',
+    loading: false,
+    disabled: false,
+  }
+)
 
-const variantClasses = computed(() => ({
-  primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
-  secondary: 'bg-white/10 hover:bg-white/20 text-white focus:ring-white/30',
-  ghost: 'bg-transparent hover:bg-white/10 text-white focus:ring-white/20',
-  success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
-}[props.variant]))
+const variantStyles = {
+  primary: {
+    base: 'bg-remix-accent text-white shadow-glow',
+    hover: 'hover:bg-remix-accent-hover hover:shadow-glow-strong hover:-translate-y-0.5',
+  },
+  danger: {
+    base: 'bg-remix-bg-card border border-remix-error/30 text-remix-error',
+    hover: 'hover:border-remix-error/60 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]',
+  },
+  ghost: {
+    base: 'bg-transparent text-white/70',
+    hover: 'hover:bg-white/5 hover:text-white',
+  },
+  outline: {
+    base: 'bg-transparent border border-white/10 text-white',
+    hover: 'hover:border-remix-accent/50 hover:shadow-glow-subtle',
+  },
+}
+
+const sizeStyles = {
+  sm: { classes: 'px-3 py-2 text-xs', icon: 'w-3.5 h-3.5' },
+  md: { classes: 'px-5 py-3 text-sm', icon: 'w-4 h-4' },
+  lg: { classes: 'px-6 py-4 text-base', icon: 'w-5 h-5' },
+}
+
+const sizeClasses = computed(() => sizeStyles[props.size].classes)
+const sizeIconClasses = computed(() => sizeStyles[props.size].icon)
+const variantClasses = computed(() => variantStyles[props.variant])
 </script>

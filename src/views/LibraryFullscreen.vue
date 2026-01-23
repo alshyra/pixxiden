@@ -58,24 +58,7 @@
       <!-- Empty state -->
       <div v-else-if="!loading && filteredGames.length === 0" class="empty-state">
         <div class="empty-icon">
-          <svg class="w-24 h-24" viewBox="0 0 100 100">
-            <defs>
-              <linearGradient id="empty-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#5e5ce6" />
-                <stop offset="100%" stop-color="#8b5cf6" />
-              </linearGradient>
-            </defs>
-            <path 
-              d="M50 10 L85 30 L85 70 L50 90 L15 70 L15 30 Z" 
-              fill="none" 
-              stroke="url(#empty-grad)" 
-              stroke-width="2"
-              opacity="0.5"
-            />
-            <text x="50" y="58" text-anchor="middle" font-size="20" font-weight="700" fill="rgba(255,255,255,0.3)">
-              PX
-            </text>
-          </svg>
+          <PixxidenLogo :size="96" :glow="true" />
         </div>
         <h3 class="empty-title">Aucun jeu trouvé</h3>
         <p class="empty-subtitle">
@@ -112,6 +95,7 @@ import { useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { useFocusNavigation } from '@/composables/useFocusNavigation'
 import { GameCard } from '@/components/game'
+import { PixxidenLogo } from '@/components/ui'
 import type { Game } from '@/types'
 
 const router = useRouter()

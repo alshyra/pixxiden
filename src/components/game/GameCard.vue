@@ -12,23 +12,7 @@
   >
     <!-- Placeholder background when no image -->
     <div v-if="!game.backgroundUrl && !game.coverUrl" class="placeholder-bg">
-      <svg class="placeholder-logo" width="80" height="80" viewBox="0 0 100 100">
-        <defs>
-          <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#5e5ce6" />
-            <stop offset="100%" stop-color="#8b5cf6" />
-          </linearGradient>
-        </defs>
-        <path 
-          d="M50 5 L90 25 L90 75 L50 95 L10 75 L10 25 Z" 
-          fill="none" 
-          stroke="url(#glow-grad)" 
-          stroke-width="3"
-        />
-        <text x="50" y="62" text-anchor="middle" font-size="24" font-weight="900" fill="white">
-          PX
-        </text>
-      </svg>
+      <PixxidenLogo :size="80" :glow="false" />
       <div class="glow-effect"></div>
     </div>
     
@@ -67,6 +51,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Game } from '@/types'
+import { PixxidenLogo } from '@/components/ui'
 
 interface Props {
   game: Game
@@ -146,17 +131,12 @@ const storeBadgeText = computed(() => {
 
 .glow-effect {
   position: absolute;
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   background: #5e5ce6;
-  filter: blur(60px);
-  opacity: 0.25;
+  filter: blur(70px);
+  opacity: 0.2;
   z-index: 0;
-}
-
-.placeholder-logo {
-  position: relative;
-  z-index: 1;
 }
 
 /* Gradient overlay */
