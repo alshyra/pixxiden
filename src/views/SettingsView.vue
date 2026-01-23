@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 flex gap-6 p-6 pb-20 z-50 bg-black/85 backdrop-blur-lg">
     <!-- Sidebar -->
-    <aside class="w-[280px] flex-shrink-0 bg-[#0f0f12]/98 backdrop-blur-[40px] border border-white/10 rounded-[20px] p-6 flex flex-col">
+    <aside class="w-[280px] flex-shrink-0 bg-[#0f0f12]/98 backdrop-blur-[40px] p-6 flex flex-col">
       <!-- Logo -->
       <div class="flex items-center gap-3 mb-8 px-2">
         <div class="w-10 h-10 flex items-center justify-center flex-shrink-0">
@@ -11,7 +11,7 @@
       </div>
       
       <!-- Navigation -->
-      <nav class="flex-1 flex flex-col gap-2">
+      <nav class="flex-1 flex flex-col gap-8">
         <div class="text-[0.7rem] font-bold text-white/40 tracking-[0.15em] mb-3 px-2">
           CONFIGURATION
         </div>
@@ -20,25 +20,20 @@
           v-for="section in sections" 
           :key="section.id"
           @click="activeSection = section.id"
-          class="group relative flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all"
+          class="flex items-center gap-3 px-2 text-left text-sm font-bold transition-all duration-300"
           :class="[
             activeSection === section.id 
-              ? 'text-white bg-white/8' 
-              : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+              ? 'text-white' 
+              : 'text-gray-500 hover:text-gray-300'
           ]"
         >
-          <!-- Indicator -->
-          <span 
-            class="absolute left-0 rounded-r transition-all"
-            :class="[
-              activeSection === section.id 
-                ? 'w-1 h-5 bg-[#5e5ce6] shadow-[0_0_15px_#5e5ce6]' 
-                : 'w-0 h-0'
-            ]"
-          ></span>
-          
           <span class="text-base">{{ section.icon }}</span>
-          <span>{{ section.label }}</span>
+          <span 
+            class="remix-nav-item relative"
+            :class="{ 'active': activeSection === section.id }"
+          >
+            {{ section.label }}
+          </span>
         </button>
       </nav>
       
@@ -51,45 +46,28 @@
           v0.1.0-alpha
         </div>
       </div>
-      
-      <!-- Close Button -->
-      <Button 
-        variant="ghost"
-        size="md"
-        class="w-full hover:text-white hover:bg-red-500/15 hover:border-red-500/30"
-        @click="closeSettings"
-      >
-        <template #icon>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </template>
-        Fermer
-      </Button>
     </aside>
     
     <!-- Main Content -->
-    <main class="flex-1 bg-[#141419]/95 border border-white/10 rounded-[20px] p-8 overflow-y-auto">
+    <main class="flex-1 bg-[#141419]/95 border border-white/10 rounded-[10px] p-8 overflow-y-auto">
       <!-- Système Section -->
       <div v-if="activeSection === 'systeme'" class="animate-fade-in">
-        <header class="mb-8">
-          <div class="relative inline-block">
-            <h1 class="relative z-10 text-[3.5rem] font-black italic tracking-tight text-white">
-              Système
-            </h1>
-            <div class="absolute top-[60%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-[#5e5ce6] blur-[50px] opacity-30 -z-10"></div>
-          </div>
-          <p class="text-white/50 mt-2">Informations machine et gestion des mises à jour.</p>
+        <header class="mb-14">
+          <h2 class="text-6xl font-black text-white italic tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+            Système
+          </h2>
+          <p class="text-gray-500 text-lg italic font-medium">Configuration des paramètres du noyau Pixxiden.</p>
         </header>
         
-        <div v-if="loadingSystem" class="flex items-center justify-center gap-4 p-12 bg-[#0a0a0a]/80 border border-white/8 rounded-2xl">
+        <div v-if="loadingSystem" class="flex items-center justify-center gap-4 p-12 bg-[#0a0a0a] border border-[#1f1f1f] rounded-[10px]">
           <div class="w-6 h-6 border-2 border-white/10 border-t-[#5e5ce6] rounded-full animate-spin"></div>
           <span class="text-white/50">Chargement des informations système...</span>
         </div>
         
-        <div v-else class="flex flex-col gap-6">
+        <div v-else class="space-y-8">
           <!-- System Info Card -->
-          <div class="bg-[#0a0a0a]/80 border border-white/8 rounded-2xl p-6">
+          <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-[10px] p-8">
+            <h3 class="text-[10px] uppercase tracking-[0.4em] text-[#5e5ce6] font-black mb-6">Noyau Système</h3>
             <div class="flex justify-between items-center py-4 border-b border-white/8">
               <span class="text-sm text-white/50">Système d'exploitation</span>
               <span class="text-sm font-semibold text-white">{{ systemInfo?.osName || 'Inconnu' }}</span>
@@ -163,14 +141,11 @@
       
       <!-- Comptes Section -->
       <div v-if="activeSection === 'comptes'" class="animate-fade-in">
-        <header class="mb-8">
-          <div class="relative inline-block">
-            <h1 class="relative z-10 text-[3.5rem] font-black italic tracking-tight text-white">
-              Comptes
-            </h1>
-            <div class="absolute top-[60%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-[#5e5ce6] blur-[50px] opacity-30 -z-10"></div>
-          </div>
-          <p class="text-white/50 mt-2">Connectez vos stores pour synchroniser votre bibliothèque.</p>
+        <header class="mb-14">
+          <h2 class="text-6xl font-black text-white italic tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+            Comptes
+          </h2>
+          <p class="text-gray-500 text-lg italic font-medium">Connectez vos stores pour synchroniser votre bibliothèque.</p>
         </header>
         
         <div class="flex flex-col gap-6">
@@ -224,14 +199,11 @@
       
       <!-- Avancé Section -->
       <div v-if="activeSection === 'avance'" class="animate-fade-in">
-        <header class="mb-8">
-          <div class="relative inline-block">
-            <h1 class="relative z-10 text-[3.5rem] font-black italic tracking-tight text-white">
-              Avancé
-            </h1>
-            <div class="absolute top-[60%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-[#5e5ce6] blur-[50px] opacity-30 -z-10"></div>
-          </div>
-          <p class="text-white/50 mt-2">Configuration experte de la couche de compatibilité.</p>
+        <header class="mb-14">
+          <h2 class="text-6xl font-black text-white italic tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+            Avancé
+          </h2>
+          <p class="text-gray-500 text-lg italic font-medium">Configuration experte de la couche de compatibilité.</p>
         </header>
         
         <div class="flex flex-col gap-6">
@@ -301,9 +273,9 @@ import { PixxidenLogo, Select, Toggle, Button, type SelectOption } from '@/compo
 const router = useRouter()
 
 const sections = [
-  { id: 'systeme', label: 'Système', icon: '⚙️' },
-  { id: 'comptes', label: 'Comptes', icon: '👤' },
-  { id: 'avance', label: 'Avancé', icon: '🔧' },
+  { id: 'systeme', label: 'Système' },
+  { id: 'comptes', label: 'Comptes' },
+  { id: 'avance', label: 'Avancé' },
 ]
 
 const activeSection = ref('systeme')
@@ -497,6 +469,27 @@ main::-webkit-scrollbar-thumb {
 
 main::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* ReMiX Nav Item - Underline animé */
+.remix-nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #5e5ce6;
+  box-shadow: 0 0 15px #5e5ce6, 0 0 5px #5e5ce6;
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.remix-nav-item.active::after {
+  width: 100%;
+}
+
+.remix-nav-item.active {
+  text-shadow: 0 0 15px rgba(94, 92, 230, 0.5);
 }
 
 /* Responsive */

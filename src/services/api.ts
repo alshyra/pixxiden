@@ -390,4 +390,58 @@ export async function saveSettings(config: SettingsConfig): Promise<void> {
   }
 }
 
+export interface GameConfig {
+  id: string
+  title: string
+  store: string
+  storeId: string
+  installPath: string | null
+  winePrefix: string | null
+  wineVersion: string | null
+  installed: boolean
+  downloadSize?: number  // Size in bytes
+  version?: string       // Game version
+}
+
+export async function getGameConfig(id: string): Promise<GameConfig> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Returning mock game config for:', id)
+    const games = await getMockGames()
+    const game = games.find(g => g.id === id)
+    
+    if (!game) {
+      throw new Error(`Game ${id} not found`)
+    }
+    
+    // Mock download sizes (in bytes)
+    const mockSizes: Record<string, number> = {
+      '1': 75 * 1024 * 1024 * 1024,    // Cyberpunk: 75 GB
+      '2': 150 * 1024 * 1024 * 1024,   // Hogwarts: 150 GB
+      '3': 50 * 1024 * 1024 * 1024,    // Hades: 50 GB
+      '11': 150 * 1024 * 1024 * 1024,  // Hogwarts Legacy: 150 GB
+    }
+    
+    return {
+      id: game.id,
+      title: game.title,
+      store: game.store,
+      storeId: game.storeId || game.id,
+      installPath: game.installed ? `/home/user/Games/${game.title}` : null,
+      winePrefix: game.store === 'epic' ? `/home/user/.local/share/pixxiden/prefixes/${game.id}` : null,
+      wineVersion: game.store === 'epic' ? 'ge-proton-8-32' : null,
+      installed: game.installed || false,
+      downloadSize: mockSizes[game.id] || 30 * 1024 * 1024 * 1024, // Default 30 GB
+      version: '1.0.0'
+    }
+  }
+  
+  try {
+    const config = await invoke<GameConfig>('get_game_config', { id })
+    return config
+  } catch (error) {
+    console.error('Failed to get game config:', error)
+    throw error
+  }
+}
+
 export type { SystemInfo, DiskInfo, SettingsConfig, StoreStatus, SyncResult }

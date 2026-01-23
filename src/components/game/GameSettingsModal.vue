@@ -81,8 +81,17 @@
           </div>
           
           <!-- Loading State -->
-          <div v-else class="flex items-center justify-center py-12">
+          <div v-else-if="loading" class="flex items-center justify-center py-12">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+          
+          <!-- Error State -->
+          <div v-else-if="error" class="py-12 text-center">
+            <svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-white/80 mb-2">Failed to load game configuration</p>
+            <p class="text-white/50 text-sm">{{ error }}</p>
           </div>
           
           <!-- Actions -->
@@ -102,22 +111,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { getGameConfig, type GameConfig } from '@/services/api'
 
 interface Props {
   show: boolean
   gameId: string
-}
-
-interface GameConfig {
-  id: string
-  title: string
-  store: string
-  storeId: string
-  installPath: string | null
-  winePrefix: string | null
-  wineVersion: string | null
-  installed: boolean
 }
 
 const props = defineProps<Props>()
@@ -126,14 +124,22 @@ defineEmits<{
 }>()
 
 const config = ref<GameConfig | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
 
 watch(() => props.show, async (show) => {
   if (show && props.gameId) {
     config.value = null
+    error.value = null
+    loading.value = true
+    
     try {
-      config.value = await invoke<GameConfig>('get_game_config', { id: props.gameId })
-    } catch (error) {
-      console.error('Failed to load game config:', error)
+      config.value = await getGameConfig(props.gameId)
+    } catch (err: any) {
+      console.error('Failed to load game config:', err)
+      error.value = err?.message || err?.toString() || 'Unknown error'
+    } finally {
+      loading.value = false
     }
   }
 })

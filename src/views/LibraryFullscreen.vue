@@ -1,16 +1,14 @@
 <template>
-  <div class="fullscreen-view relative min-h-screen bg-black overflow-hidden">
-    <BottomFilters
-      :filters="filters"
-      v-model="currentFilter"
-    />
-
+  <div class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600">
+    <!-- Hero Banner -->
     <HeroBanner 
       :game="selectedGame"
       :metadata="selectedMetadataGame"
       @open-details="openGameDetails(selectedGame)"
+      class="transition-all duration-600"
     />
-    <!-- Games Grid -->
+    
+    <!-- Games Carousel -->
     <div class="absolute bottom-14 left-0 right-0">
       <GameCarousel
         :games="filteredGames"
@@ -18,19 +16,108 @@
         :playing-id="playingGame?.id"
         @select="selectGame"
         @open="openGameDetails"
-        >
-      </GameCarousel>
+      />
     </div>
+    
+    <!-- Bottom Filters -->
+    <BottomFilters
+      :filters="filters"
+      v-model="currentFilter"
+    />
+    
+    <!-- Loading Overlay -->
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-300"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div 
+        v-if="loading" 
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm"
+      >
+        <div class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4" />
+        <p class="text-white/60 text-sm font-medium">Chargement de votre bibliothèque...</p>
+      </div>
+    </Transition>
+    
+    <!-- Empty State -->
+    <Transition
+      enter-active-class="transition-all duration-500"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition-all duration-300"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div 
+        v-if="!loading && filteredGames.length === 0" 
+        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
+      >
+        <div class="mb-6 opacity-50">
+          <svg class="w-24 h-24 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        </div>
+        
+        <h2 class="text-2xl font-bold text-white mb-2">
+          {{ currentFilter === 'all' ? 'Aucun jeu trouvé' : 'Aucun jeu dans ce filtre' }}
+        </h2>
+        
+        <p class="text-sm text-white/50 mb-8 max-w-sm">
+          {{ currentFilter === 'all' 
+            ? 'Synchronisez vos bibliothèques pour commencer à jouer' 
+            : 'Changez de filtre pour voir vos autres jeux'
+          }}
+        </p>
+        
+        <button 
+          v-if="currentFilter === 'all'"
+          @click="syncLibrary"
+          :disabled="syncing"
+          class="flex items-center gap-2 px-6 py-3 bg-remix-accent text-white font-semibold text-sm rounded-xl shadow-glow hover:bg-remix-accent-hover hover:-translate-y-0.5 hover:shadow-glow-strong transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          <svg 
+            class="w-5 h-5" 
+            :class="{ 'animate-spin': syncing }"
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>{{ syncing ? 'Synchronisation...' : 'Synchroniser les bibliothèques' }}</span>
+        </button>
+      </div>
+    </Transition>
+    
+    <!-- Game Count Badge -->
+    <Transition
+      enter-active-class="transition-all duration-300"
+      enter-from-class="opacity-0 translate-y-4"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-200"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-4"
+    >
+      <div 
+        v-if="!loading && filteredGames.length > 0"
+        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md"
+      >
+        {{ filteredGames.length }} {{ filteredGames.length === 1 ? 'jeu' : 'jeux' }}
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { useFocusNavigation } from '@/composables/useFocusNavigation'
 import type { Game } from '@/types'
-import Button from '@/components/ui/Button.vue'
 import GameCarousel from '@/components/game/GameCarousel.vue'
 import { HeroBanner } from '@/components/game'
 import { BottomFilters } from '@/components/layout'
@@ -38,11 +125,9 @@ import { BottomFilters } from '@/components/layout'
 const router = useRouter()
 const libraryStore = useLibraryStore()
 
-// Injected state from App.vue
-const isSettingsOpen = inject('isSettingsOpen', ref(false))
-
 // Local state
 const loading = ref(true)
+const syncing = ref(false)
 const currentFilter = ref('all')
 const gridColumns = ref(5)
 const selectedGame = ref<Game | null>(null)
@@ -51,10 +136,10 @@ const selectedMetadataGame = ref(null)
 
 // Filters
 const filters = [
-  { label: 'Tous', value: 'all' },
-  { label: 'Installés', value: 'installed' },
-  { label: 'Les + joués', value: 'most-played' },
-  { label: 'Récents', value: 'recent' }
+  { label: 'Tous', value: 'all', icon: '🎮' },
+  { label: 'Installés', value: 'installed', icon: '💾' },
+  { label: 'Les + joués', value: 'most-played', icon: '⭐' },
+  { label: 'Récents', value: 'recent', icon: '🕐' }
 ]
 
 // Filter games based on current filter
@@ -109,12 +194,12 @@ function updateGridColumns() {
   setGridColumns(gridColumns.value)
 }
 
-// Select a game on hover (on with gamepad focus)
+// Select a game
 function selectGame(game: Game) {
   selectedGame.value = game
 }
 
-// Open game details on click
+// Open game details
 function openGameDetails(game: Game | null) {
   const gameToOpen = game || selectedGame.value
   if (!gameToOpen) return
@@ -126,11 +211,28 @@ function openSettings() {
   router.push('/settings')
 }
 
+// Sync library
+async function syncLibrary() {
+  syncing.value = true
+  try {
+    await libraryStore.syncLibrary()
+  } catch (error) {
+    console.error('Failed to sync library:', error)
+  } finally {
+    syncing.value = false
+  }
+}
+
 // Load games
 async function loadGames() {
   loading.value = true
   try {
     await libraryStore.fetchGames()
+    
+    // Auto-select first game
+    if (filteredGames.value.length > 0) {
+      selectedGame.value = filteredGames.value[0]
+    }
   } catch (error) {
     console.error('Failed to load games:', error)
   } finally {
@@ -140,15 +242,13 @@ async function loadGames() {
 
 // Handle keyboard shortcuts
 function handleKeyDown(e: KeyboardEvent) {
+  // Don't trigger if typing in an input
+  if (document.activeElement?.tagName === 'INPUT') return
+  
   // S key to open settings
-  if (e.key === 's' || e.key === 'S') {
-    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-      // Don't trigger if typing in an input
-      if (document.activeElement?.tagName !== 'INPUT') {
-        e.preventDefault()
-        openSettings()
-      }
-    }
+  if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault()
+    openSettings()
   }
   
   // Enter to open game details
@@ -161,10 +261,26 @@ function handleKeyDown(e: KeyboardEvent) {
   }
 }
 
-// Watch for filter changes to update focusables
+// Watch for filter changes
 watch(filteredGames, () => {
   setTimeout(updateFocusables, 100)
+  
+  // Reset focus to first game
   focusedIndex.value = 0
+  
+  // Update selected game
+  if (filteredGames.value.length > 0) {
+    selectedGame.value = filteredGames.value[0]
+  } else {
+    selectedGame.value = null
+  }
+}, { immediate: true })
+
+// Watch for focused game changes (from gamepad/keyboard navigation)
+watch(focusedIndex, (newIndex) => {
+  if (filteredGames.value[newIndex]) {
+    selectedGame.value = filteredGames.value[newIndex]
+  }
 })
 
 onMounted(() => {
@@ -182,255 +298,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.library-view {
-  min-height: 100vh;
-  background: #050505;
-  padding-bottom: 80px; /* Space for footer */
-  transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+/* Custom transition duration */
+.duration-600 {
+  transition-duration: 600ms;
 }
 
-.library-view.view-back {
+/* Blur effect when settings open (applied from parent) */
+.view-back {
   opacity: 0.3;
   transform: scale(0.92) translateZ(0);
   filter: grayscale(0.8) blur(8px);
   pointer-events: none;
-}
-
-/* Header */
-.library-header {
-  padding: 3rem 5rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-}
-
-.title-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.subtitle {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-}
-
-.main-title {
-  font-size: 3rem;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: -0.05em;
-  color: white;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-/* Filter pills */
-.filter-pills {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.filter-pill {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.filter-pill:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.filter-pill.active {
-  color: white;
-  background: rgba(94, 92, 230, 0.2);
-  border-color: rgba(94, 92, 230, 0.5);
-  box-shadow: 0 0 15px rgba(94, 92, 230, 0.3);
-}
-
-/* Settings trigger */
-.settings-trigger {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.settings-trigger:hover {
-  color: white;
-  border-color: rgba(94, 92, 230, 0.5);
-  background: rgba(94, 92, 230, 0.15);
-  box-shadow: 0 0 20px rgba(94, 92, 230, 0.3);
-}
-
-/* Games grid */
-.games-container {
-  padding: 0 5rem 2rem;
-}
-
-.games-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--grid-columns, 5), 1fr);
-  gap: 1.5rem;
-}
-
-/* Empty state */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-}
-
-.empty-icon {
-  margin-bottom: 1.5rem;
-  opacity: 0.5;
-}
-
-.empty-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 0.5rem;
-}
-
-.empty-subtitle {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 1.5rem;
-  max-width: 300px;
-}
-
-.sync-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #5e5ce6;
-  color: white;
-  font-weight: 600;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(94, 92, 230, 0.4);
-}
-
-.sync-button:hover {
-  background: #7c7ae8;
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(94, 92, 230, 0.5);
-}
-
-/* Loading state */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-}
-
-.loader {
-  width: 48px;
-  height: 48px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #5e5ce6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-text {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Game count */
-.game-count {
-  position: fixed;
-  bottom: 80px;
-  right: 2rem;
-  padding: 0.5rem 1rem;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .library-header {
-    padding: 2rem 2rem 1.5rem;
-  }
-  
-  .main-title {
-    font-size: 2.5rem;
-  }
-  
-  .games-container {
-    padding: 0 2rem 2rem;
-  }
-  
-  .filter-pills {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .library-header {
-    padding: 1.5rem 1rem 1rem;
-  }
-  
-  .main-title {
-    font-size: 2rem;
-  }
-  
-  .games-container {
-    padding: 0 1rem 2rem;
-  }
-  
-  .games-grid {
-    gap: 1rem;
-  }
-  
-  .settings-trigger span {
-    display: none;
-  }
 }
 </style>

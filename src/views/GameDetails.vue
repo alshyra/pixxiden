@@ -83,8 +83,7 @@
             v-else
             variant="primary" 
             size="lg"
-            :disabled="installing"
-            @click="installGame"
+            @click="showInstallModal = true"
           >
             <template #icon>
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -141,6 +140,14 @@
       @close="showSettings = false"
     />
     
+    <!-- Install Modal -->
+    <InstallModal
+      v-if="game"
+      v-model="showInstallModal"
+      :game="game"
+      @install-started="handleInstallStarted"
+    />
+    
     <!-- Launch Overlay -->
     <LaunchOverlay
       :is-visible="isLaunching"
@@ -173,6 +180,8 @@ import { useRoute } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { Button, Badge } from '@/components/ui'
 import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
+import InstallModal from '@/components/game/InstallModal.vue'
+import type { InstallConfig } from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
 import DownloadOverlay from '@/components/game/DownloadOverlay.vue'
 import type { Metadata } from '@/types'
@@ -194,6 +203,7 @@ const safeListen = async (event: string, handler: (event: any) => void): Promise
 const route = useRoute()
 const libraryStore = useLibraryStore()
 
+const showInstallModal = ref(false)
 const gameId = computed(() => route.params.id as string)
 const showSettings = ref(false)
 const game = computed(() => {
@@ -290,22 +300,15 @@ function closeLaunchOverlay() {
   launchError.value = null
 }
 
-async function installGame() {
-  if (!game.value) return
+function handleInstallStarted(config: InstallConfig) {
+  console.log('Installation started with config:', config)
   installing.value = true
   isDownloading.value = true
   downloadProgress.value = 0
   downloadError.value = null
   
-  try {
-    await libraryStore.installGame(game.value.id)
-    // Success will be handled by event listener
-  } catch (error: any) {
-    downloadError.value = error?.message || error?.toString() || 'Download failed'
-    console.error('Failed to install game:', error)
-  } finally {
-    installing.value = false
-  }
+  // The actual installation is triggered by the InstallModal
+  // Events will be handled by the existing event listeners
 }
 
 function closeDownloadOverlay() {
