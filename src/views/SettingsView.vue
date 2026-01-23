@@ -1,207 +1,234 @@
 <template>
-  <div class="flex h-screen bg-black text-white font-sans">
+  <div class="settings-overlay">
     <!-- Sidebar -->
-    <aside class="w-72 border-r border-remix-border p-10 flex flex-col">
+    <aside class="settings-sidebar">
       <!-- Logo -->
-      <div class="flex items-center gap-3 mb-16 px-2">
-        <div class="w-7 h-7 rounded-lg bg-remix-accent shadow-[0_0_20px_rgba(94,92,230,0.5)]"></div>
-        <span class="text-xl font-bold italic">Pixxiden</span>
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5e5ce6" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+              </linearGradient>
+            </defs>
+            <path 
+              d="M50 5 L90 25 L90 75 L50 95 L10 75 L10 25 Z" 
+              fill="none" 
+              stroke="url(#logo-grad)" 
+              stroke-width="4"
+            />
+            <text x="50" y="62" text-anchor="middle" font-size="28" font-weight="900" fill="white">
+              PX
+            </text>
+          </svg>
+        </div>
+        <span class="logo-text">Pixxiden</span>
       </div>
       
       <!-- Navigation -->
-      <nav class="space-y-8 flex-1" role="tablist" aria-label="Configuration sections">
-        <div class="text-xs font-bold text-remix-text-secondary tracking-wider mb-4 px-2">CONFIGURATION</div>
-        <button
-          v-for="section in sections"
+      <nav class="settings-nav">
+        <div class="nav-label">CONFIGURATION</div>
+        
+        <button 
+          v-for="section in sections" 
           :key="section.id"
           @click="activeSection = section.id"
-          role="tab"
-          :aria-selected="activeSection === section.id"
-          :aria-controls="`panel-${section.id}`"
-          class="remix-nav-item block text-sm font-bold text-left w-full px-2"
-          :class="activeSection === section.id ? 'active' : 'text-gray-400'"
+          class="nav-item"
+          :class="{ 'active': activeSection === section.id }"
         >
-          {{ section.label }}
+          <span class="nav-indicator"></span>
+          <span class="nav-icon">{{ section.icon }}</span>
+          <span class="nav-text">{{ section.label }}</span>
         </button>
       </nav>
-
+      
       <!-- Version Badge -->
-      <div class="mt-auto px-2 py-4 border border-remix-border rounded-lg text-center">
-        <div class="text-xs font-bold text-remix-text-secondary mb-1">VERSION</div>
-        <div class="text-sm font-bold text-remix-accent">v0.1.0-alpha</div>
+      <div class="version-badge">
+        <div class="version-label">VERSION</div>
+        <div class="version-number">v0.1.0-alpha</div>
       </div>
+      
+      <!-- Close Button -->
+      <button @click="closeSettings" class="close-button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        <span>Fermer</span>
+      </button>
     </aside>
-
+    
     <!-- Main Content -->
-    <main class="flex-1 p-24 bg-gradient-to-b from-remix-accent/5 to-transparent overflow-y-auto">
+    <main class="settings-content">
       <!-- Système Section -->
-      <div v-if="activeSection === 'systeme'" id="panel-systeme" role="tabpanel" aria-labelledby="tab-systeme" class="animate-fade-in">
-        <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Système</h1>
-        <p class="text-remix-text-secondary mb-8">Informations machine et gestion des mises à jour.</p>
+      <div v-if="activeSection === 'systeme'" class="section-panel">
+        <header class="section-header">
+          <h1 class="glow-title">Système</h1>
+          <p class="section-subtitle">Informations machine et gestion des mises à jour.</p>
+        </header>
         
-        <div v-if="loadingSystem" class="bg-remix-bg-card border border-remix-border rounded-[14px] p-8 mb-6 text-center">
-          <span class="text-remix-text-secondary">Chargement...</span>
+        <div v-if="loadingSystem" class="loading-card">
+          <div class="loader-small"></div>
+          <span>Chargement des informations système...</span>
         </div>
-
-        <div v-else class="space-y-6">
+        
+        <div v-else class="section-content">
           <!-- System Info Card -->
-          <div class="bg-remix-bg-card border border-remix-border rounded-[14px] p-8">
-            <!-- OS -->
-            <div class="flex items-center justify-between py-4 border-b border-remix-border">
-              <span class="text-remix-text-secondary">OS</span>
-              <span class="font-semibold">{{ systemInfo?.osName || 'Unknown' }}</span>
+          <div class="info-card">
+            <div class="info-row">
+              <span class="info-label">Système d'exploitation</span>
+              <span class="info-value">{{ systemInfo?.osName || 'Inconnu' }}</span>
             </div>
-
-            <!-- Kernel -->
-            <div class="flex items-center justify-between py-4 border-b border-remix-border">
-              <span class="text-remix-text-secondary">Kernel</span>
-              <span class="font-semibold text-remix-accent">{{ systemInfo?.kernelVersion || 'Unknown' }}</span>
+            <div class="info-row">
+              <span class="info-label">Kernel</span>
+              <span class="info-value accent">{{ systemInfo?.kernelVersion || 'Inconnu' }}</span>
             </div>
-
-            <!-- CPU -->
-            <div class="flex items-center justify-between py-4 border-b border-remix-border">
-              <span class="text-remix-text-secondary">CPU</span>
-              <span class="font-semibold">{{ systemInfo?.cpuBrand || 'Unknown' }}</span>
+            <div class="info-row">
+              <span class="info-label">Processeur</span>
+              <span class="info-value">{{ systemInfo?.cpuBrand || 'Inconnu' }}</span>
             </div>
-
-            <!-- Memory -->
-            <div class="flex items-center justify-between py-4">
-              <span class="text-remix-text-secondary">Mémoire</span>
-              <span class="font-semibold">{{ formatMemory(systemInfo?.totalMemory || 0) }}</span>
+            <div class="info-row no-border">
+              <span class="info-label">Mémoire</span>
+              <span class="info-value">{{ formatMemory(systemInfo?.totalMemory || 0) }}</span>
             </div>
           </div>
-
+          
           <!-- Disk Info Card -->
-          <div v-if="diskInfo.length > 0" class="bg-remix-bg-card border border-remix-border rounded-[14px] p-8">
-            <h3 class="text-lg font-bold mb-4">Stockage</h3>
-            <div v-for="(disk, index) in diskInfo" :key="index" class="mb-4 last:mb-0">
-              <div class="flex justify-between text-sm mb-2">
-                <span class="text-remix-text-secondary">{{ disk.mountPoint }}</span>
-                <span>{{ formatBytes(disk.usedSpace) }} / {{ formatBytes(disk.totalSpace) }}</span>
+          <div v-if="diskInfo.length > 0" class="info-card">
+            <h3 class="card-title">Stockage</h3>
+            <div v-for="(disk, index) in diskInfo" :key="index" class="disk-item">
+              <div class="disk-header">
+                <span class="disk-path">{{ disk.mountPoint }}</span>
+                <span class="disk-space">
+                  {{ formatBytes(disk.usedSpace) }} / {{ formatBytes(disk.totalSpace) }}
+                </span>
               </div>
-              <div class="h-2 bg-remix-bg-hover rounded-full overflow-hidden">
+              <div class="disk-bar">
                 <div 
-                  class="h-full transition-all"
-                  :class="disk.usedSpace / disk.totalSpace > 0.9 ? 'bg-remix-error' : 'bg-remix-accent'"
+                  class="disk-progress"
+                  :class="{ 'danger': disk.usedSpace / disk.totalSpace > 0.9 }"
                   :style="{ width: `${(disk.usedSpace / disk.totalSpace) * 100}%` }"
                 ></div>
               </div>
             </div>
           </div>
-
-          <!-- Update & Shutdown Buttons -->
-          <div class="grid grid-cols-2 gap-4">
+          
+          <!-- Action Buttons -->
+          <div class="action-buttons">
             <button 
               @click="checkUpdates"
               :disabled="checkingUpdates"
-              class="bg-remix-bg-card border border-remix-border rounded-[14px] py-6 font-bold text-sm tracking-widest hover:border-remix-accent hover:shadow-[0_0_20px_rgba(94,92,230,0.3)] transition-all disabled:opacity-50"
+              class="action-btn primary"
             >
+              <svg v-if="!checkingUpdates" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <div v-else class="loader-tiny"></div>
               {{ checkingUpdates ? 'VÉRIFICATION...' : 'VÉRIFIER LES MISES À JOUR' }}
             </button>
-            <button 
-              @click="shutdown"
-              class="bg-remix-bg-card border border-remix-error rounded-[14px] py-6 font-bold text-sm tracking-widest text-remix-error hover:border-remix-error hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all"
-            >
+            <button @click="shutdown" class="action-btn danger">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
               ÉTEINDRE LA MACHINE
             </button>
           </div>
         </div>
       </div>
-
+      
       <!-- Comptes Section -->
-      <div v-if="activeSection === 'comptes'" id="panel-comptes" role="tabpanel" aria-labelledby="tab-comptes" class="animate-fade-in">
-        <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Comptes</h1>
-        <p class="text-remix-text-secondary mb-8">Connectez vos stores pour synchroniser votre bibliothèque.</p>
+      <div v-if="activeSection === 'comptes'" class="section-panel">
+        <header class="section-header">
+          <h1 class="glow-title">Comptes</h1>
+          <p class="section-subtitle">Connectez vos stores pour synchroniser votre bibliothèque.</p>
+        </header>
         
-        <div class="space-y-4">
-          <!-- Store cards -->
+        <div class="section-content">
           <div 
             v-for="store in stores" 
             :key="store.id"
-            class="bg-remix-bg-card border border-remix-border rounded-[14px] p-6 flex items-center justify-between"
+            class="store-card"
           >
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-remix-accent rounded-lg flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(94,92,230,0.4)]">
+            <div class="store-info">
+              <div class="store-icon" :class="`store-${store.id}`">
                 {{ store.name.substring(0, 2).toUpperCase() }}
               </div>
-              <div>
-                <h3 class="font-bold">{{ store.name }}</h3>
-                <p class="text-sm font-semibold" :class="store.authenticated ? 'text-remix-success' : 'text-remix-text-secondary'">
+              <div class="store-details">
+                <h3 class="store-name">{{ store.name }}</h3>
+                <p class="store-status" :class="{ 'connected': store.authenticated }">
                   {{ store.authenticated ? `CONNECTÉ — ${store.username}` : 'DÉCONNECTÉ' }}
                 </p>
               </div>
             </div>
             <button 
-              class="px-6 py-2 rounded-lg font-bold text-sm transition-all"
-              :class="store.authenticated 
-                ? 'bg-remix-bg-card border border-remix-border hover:border-remix-accent' 
-                : 'bg-remix-accent hover:bg-remix-accent-hover shadow-[0_0_15px_rgba(94,92,230,0.4)]'"
+              class="store-btn"
+              :class="{ 'connected': store.authenticated }"
+              @click="toggleStoreConnection(store)"
             >
               {{ store.authenticated ? 'DÉCONNEXION' : 'CONNEXION' }}
             </button>
           </div>
+          
+          <!-- Info message -->
+          <div class="info-message">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>La connexion aux stores utilise les outils Legendary, GOGdl et Nile.</span>
+          </div>
         </div>
       </div>
-
+      
       <!-- Avancé Section -->
-      <div v-if="activeSection === 'avance'" id="panel-avance" role="tabpanel" aria-labelledby="tab-avance" class="animate-fade-in">
-        <h1 class="text-5xl font-extrabold italic tracking-tighter mb-4">Avancé</h1>
-        <p class="text-remix-text-secondary mb-8">Configuration experte de la couche de compatibilité.</p>
+      <div v-if="activeSection === 'avance'" class="section-panel">
+        <header class="section-header">
+          <h1 class="glow-title">Avancé</h1>
+          <p class="section-subtitle">Configuration experte de la couche de compatibilité.</p>
+        </header>
         
-        <div class="space-y-6">
-          <div class="bg-remix-bg-card border border-remix-border rounded-[14px] p-8 space-y-6">
+        <div class="section-content">
+          <div class="info-card">
             <!-- Proton Version -->
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-bold mb-1">Version Proton Global</h3>
-                <p class="text-sm text-remix-text-secondary">Compatibilité par défaut pour les titres Windows.</p>
+            <div class="setting-row">
+              <div class="setting-info">
+                <h3 class="setting-title">Version Proton Global</h3>
+                <p class="setting-description">Compatibilité par défaut pour les titres Windows.</p>
               </div>
-              <div class="relative">
-                <select 
-                  v-model="protonVersion"
-                  aria-label="Select Proton version"
-                  class="appearance-none bg-[#000000] border border-remix-border rounded-lg px-6 py-3 pr-12 font-semibold text-sm focus:outline-none focus:border-remix-accent focus:shadow-[0_0_15px_rgba(94,92,230,0.3)] transition-all cursor-pointer"
-                >
+              <div class="setting-control">
+                <select v-model="protonVersion" class="custom-select">
                   <option value="ge-proton-8-32">GE-Proton 8-32</option>
                   <option value="ge-proton-8-31">GE-Proton 8-31</option>
                   <option value="ge-proton-8-30">GE-Proton 8-30</option>
                   <option value="proton-experimental">Proton Experimental</option>
                 </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg class="w-4 h-4 text-remix-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </div>
               </div>
             </div>
-
+            
             <!-- MangoHud Overlay -->
-            <div class="flex items-center justify-between pt-6 border-t border-remix-border">
-              <div>
-                <h3 class="font-bold mb-1">Overlay MangoHud</h3>
-                <p class="text-sm text-remix-text-secondary">Monitorage des FPS et ressources système.</p>
+            <div class="setting-row no-border">
+              <div class="setting-info">
+                <h3 class="setting-title">Overlay MangoHud</h3>
+                <p class="setting-description">Monitorage des FPS et ressources système.</p>
               </div>
-              <button 
-                @click="mangoHudEnabled = !mangoHudEnabled"
-                role="switch"
-                :aria-checked="mangoHudEnabled"
-                aria-label="Toggle MangoHud overlay"
-                class="remix-switch relative w-14 h-7 rounded-full transition-all duration-300"
-                :class="mangoHudEnabled ? 'bg-remix-accent shadow-[0_0_20px_rgba(94,92,230,0.6)]' : 'bg-remix-border'"
-              >
-                <div 
-                  class="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform duration-300"
-                  :class="mangoHudEnabled ? 'translate-x-7' : 'translate-x-0'"
-                />
-              </button>
+              <div class="setting-control">
+                <button 
+                  @click="mangoHudEnabled = !mangoHudEnabled"
+                  class="toggle-switch"
+                  :class="{ 'active': mangoHudEnabled }"
+                  role="switch"
+                  :aria-checked="mangoHudEnabled"
+                >
+                  <span class="toggle-thumb"></span>
+                </button>
+              </div>
             </div>
           </div>
-
+          
           <!-- Save Button -->
-          <button 
-            @click="saveSettings"
-            class="w-full bg-remix-accent rounded-[14px] py-6 font-bold text-sm tracking-widest hover:bg-remix-accent-hover shadow-[0_0_20px_rgba(94,92,230,0.4)] transition-all"
-          >
+          <button @click="saveSettings" class="save-button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
             SAUVEGARDER LES PARAMÈTRES
           </button>
         </div>
@@ -212,13 +239,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import * as api from '@/services/api'
-import type { SystemInfo, DiskInfo, SettingsConfig } from '@/services/api'
+import type { SystemInfo, DiskInfo } from '@/services/api'
+
+const router = useRouter()
 
 const sections = [
-  { id: 'systeme', label: 'Système' },
-  { id: 'comptes', label: 'Comptes' },
-  { id: 'avance', label: 'Avancé' },
+  { id: 'systeme', label: 'Système', icon: '⚙️' },
+  { id: 'comptes', label: 'Comptes', icon: '👤' },
+  { id: 'avance', label: 'Avancé', icon: '🔧' },
 ]
 
 const activeSection = ref('systeme')
@@ -232,15 +262,20 @@ const hasUpdates = ref(false)
 
 // Store state
 const stores = ref([
-  { id: 'epic', name: 'Epic Games', available: false, authenticated: false, username: 'PIXX_DEV' },
-  { id: 'gog', name: 'GOG (GoodOldGames)', available: false, authenticated: false, username: '' },
-  { id: 'amazon', name: 'Amazon Games', available: false, authenticated: false, username: 'PRIME_PRIME' },
+  { id: 'epic', name: 'Epic Games', available: false, authenticated: false, username: '' },
+  { id: 'gog', name: 'GOG Galaxy', available: false, authenticated: false, username: '' },
+  { id: 'amazon', name: 'Amazon Games', available: false, authenticated: false, username: '' },
+  { id: 'steam', name: 'Steam', available: false, authenticated: false, username: '' },
 ])
 
 // Settings state
 const protonVersion = ref('ge-proton-8-32')
 const mangoHudEnabled = ref(false)
-const loadingSettings = ref(false)
+
+// Close settings (go back to library)
+function closeSettings() {
+  router.push('/')
+}
 
 // Load system info
 async function loadSystemInfo() {
@@ -273,16 +308,19 @@ async function loadStoreStatus() {
 
 // Load settings
 async function loadSettings() {
-  loadingSettings.value = true
   try {
     const settings = await api.getSettings()
     protonVersion.value = settings.protonVersion
     mangoHudEnabled.value = settings.mangoHudEnabled
   } catch (error) {
     console.error('Failed to load settings:', error)
-  } finally {
-    loadingSettings.value = false
   }
+}
+
+// Toggle store connection (placeholder)
+function toggleStoreConnection(store: typeof stores.value[0]) {
+  // TODO: Implement store authentication
+  console.log('Toggle connection for:', store.name)
 }
 
 // Check for updates
@@ -291,11 +329,11 @@ async function checkUpdates() {
   try {
     hasUpdates.value = await api.checkForUpdates()
     if (!hasUpdates.value) {
-      alert('Aucune mise à jour disponible')
+      // Could show a toast notification here
+      console.log('No updates available')
     }
   } catch (error) {
     console.error('Failed to check updates:', error)
-    alert('Erreur lors de la vérification des mises à jour')
   } finally {
     checkingUpdates.value = false
   }
@@ -308,7 +346,6 @@ async function shutdown() {
       await api.shutdownSystem()
     } catch (error) {
       console.error('Failed to shutdown:', error)
-      alert('Erreur lors de l\'extinction')
     }
   }
 }
@@ -322,10 +359,10 @@ async function saveSettings() {
       defaultInstallPath: '~/Games',
       winePrefixPath: '~/.local/share/pixxiden/prefixes',
     })
-    alert('Paramètres sauvegardés')
+    // Could show a success toast here
+    console.log('Settings saved')
   } catch (error) {
     console.error('Failed to save settings:', error)
-    alert('Erreur lors de la sauvegarde')
   }
 }
 
@@ -343,7 +380,17 @@ function formatMemory(bytes: number): string {
   return formatBytes(bytes)
 }
 
+// Handle keyboard
+function handleKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
+    e.preventDefault()
+    closeSettings()
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleKeyDown)
+  
   await Promise.all([
     loadSystemInfo(),
     loadStoreStatus(),
@@ -353,42 +400,669 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.remix-nav-item {
-  position: relative;
-  transition: all 0.3s ease;
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  padding-bottom: 80px; /* Space for footer */
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
 }
 
-.remix-nav-item::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background-color: #5e5ce6;
-  box-shadow: 0 0 12px #5e5ce6;
-  transition: width 0.3s ease;
+/* Sidebar */
+.settings-sidebar {
+  width: 280px;
+  background: rgba(15, 15, 18, 0.98);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
-.remix-nav-item.active::after {
-  width: 100%;
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding: 0.5rem;
 }
 
-.remix-nav-item.active {
-  text-shadow: 0 0 12px rgba(94, 92, 230, 0.6);
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-style: italic;
   color: white;
 }
 
-.remix-nav-item:hover:not(.active) {
+/* Navigation */
+.settings-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-item:hover {
   color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* Switch glow effect */
-.remix-switch {
-  box-shadow: 0 0 0 rgba(94, 92, 230, 0);
+.nav-item.active {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.remix-switch:hover {
-  transform: scale(1.05);
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 0;
+  background: #5e5ce6;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 15px #5e5ce6;
+  transition: height 0.2s ease;
+}
+
+.nav-item.active .nav-indicator {
+  height: 20px;
+}
+
+.nav-icon {
+  font-size: 1rem;
+}
+
+.nav-text {
+  flex: 1;
+}
+
+/* Version Badge */
+.version-badge {
+  margin-top: auto;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.version-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.25rem;
+}
+
+.version-number {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #5e5ce6;
+}
+
+/* Close Button */
+.close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  color: white;
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Main Content */
+.settings-content {
+  flex: 1;
+  background: rgba(20, 20, 25, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.section-panel {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Section Header */
+.section-header {
+  margin-bottom: 2rem;
+}
+
+.glow-title {
+  font-size: 3.5rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.03em;
+  color: white;
+  position: relative;
+  display: inline-block;
+}
+
+.glow-title::before {
+  content: '';
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  width: 140%;
+  height: 80%;
+  background: #5e5ce6;
+  filter: blur(50px);
+  opacity: 0.3;
+  z-index: -1;
+  transform: translate(-50%, -50%);
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.5rem;
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Info Card */
+.info-card {
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.info-row.no-border {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.info-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+}
+
+.info-value.accent {
+  color: #5e5ce6;
+}
+
+/* Disk progress */
+.disk-item {
+  margin-bottom: 1rem;
+}
+
+.disk-item:last-child {
+  margin-bottom: 0;
+}
+
+.disk-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.disk-path {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.disk-space {
+  color: white;
+  font-weight: 500;
+}
+
+.disk-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.disk-progress {
+  height: 100%;
+  background: #5e5ce6;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.disk-progress.danger {
+  background: #ef4444;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid;
+}
+
+.action-btn.primary {
+  background: rgba(10, 10, 10, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.action-btn.primary:hover:not(:disabled) {
+  border-color: rgba(94, 92, 230, 0.5);
+  box-shadow: 0 0 20px rgba(94, 92, 230, 0.3);
+}
+
+.action-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-btn.danger {
+  background: rgba(10, 10, 10, 0.8);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.action-btn.danger:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Store Cards */
+.store-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.store-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.store-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: #5e5ce6;
+  color: white;
+  box-shadow: 0 0 15px rgba(94, 92, 230, 0.4);
+}
+
+.store-icon.store-steam {
+  background: #1b2838;
+}
+
+.store-icon.store-epic {
+  background: #2a2a2a;
+}
+
+.store-icon.store-gog {
+  background: #722ed1;
+}
+
+.store-icon.store-amazon {
+  background: #ff9900;
+  color: #000;
+}
+
+.store-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.store-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+}
+
+.store-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.store-status.connected {
+  color: #10b981;
+}
+
+.store-btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #5e5ce6;
+  border: none;
+  color: white;
+  box-shadow: 0 0 15px rgba(94, 92, 230, 0.4);
+}
+
+.store-btn:hover {
+  background: #7c7ae8;
+}
+
+.store-btn.connected {
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.store-btn.connected:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+}
+
+/* Info Message */
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(94, 92, 230, 0.1);
+  border: 1px solid rgba(94, 92, 230, 0.2);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Settings rows */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.setting-row.no-border {
+  border-bottom: none;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.setting-description {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Custom Select */
+.custom-select {
+  appearance: none;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff50'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: rgba(94, 92, 230, 0.5);
+  box-shadow: 0 0 15px rgba(94, 92, 230, 0.2);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-switch.active {
+  background: #5e5ce6;
+  box-shadow: 0 0 20px rgba(94, 92, 230, 0.5);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 12px;
+  transition: transform 0.3s ease;
+}
+
+.toggle-switch.active .toggle-thumb {
+  transform: translateX(24px);
+}
+
+/* Save Button */
+.save-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1.25rem;
+  background: #5e5ce6;
+  border: none;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(94, 92, 230, 0.4);
+}
+
+.save-button:hover {
+  background: #7c7ae8;
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(94, 92, 230, 0.5);
+}
+
+/* Loading states */
+.loading-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.loader-small {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #5e5ce6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loader-tiny {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .settings-overlay {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .settings-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .sidebar-logo {
+    margin-bottom: 0;
+  }
+  
+  .settings-nav {
+    flex-direction: row;
+    flex: unset;
+    gap: 0.5rem;
+  }
+  
+  .nav-label {
+    display: none;
+  }
+  
+  .nav-item {
+    padding: 0.75rem 1rem;
+  }
+  
+  .nav-indicator {
+    display: none;
+  }
+  
+  .version-badge {
+    display: none;
+  }
+  
+  .close-button {
+    margin-left: auto;
+  }
+  
+  .glow-title {
+    font-size: 2.5rem;
+  }
+  
+  .action-buttons {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
