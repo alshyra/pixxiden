@@ -7,7 +7,8 @@ mod store;
 mod tests;
 
 use commands::{
-    get_game, get_games, get_store_status, get_game_config, install_game, launch_game, sync_games, uninstall_game,
+    get_game, get_games, get_store_status, get_game_config, install_game, launch_game,
+    scan_gog_installed, sync_games, uninstall_game,
     close_splashscreen, AppState,
 };
 use database::Database;
@@ -64,6 +65,7 @@ pub fn run() {
             get_game,
             get_game_config,
             sync_games,
+            scan_gog_installed,
             launch_game,
             install_game,
             uninstall_game,

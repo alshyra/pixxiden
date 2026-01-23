@@ -3,7 +3,7 @@ use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileA
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{State, Window, Emitter};
+use tauri::{State, Window, Emitter, Manager};
 use tokio::sync::Mutex;
 
 pub struct AppState {
@@ -177,7 +177,16 @@ pub async fn launch_game(id: String, window: Window, state: State<'_, AppState>)
     // Launch the game
     let result = match game.store.as_str() {
         "epic" => state.legendary.launch_game(&game.store_id).await,
-        "gog" => state.gogdl.launch_game(&game.store_id).await,
+        "gog" => {
+            // Check if this is a game from ~/GOG Games/ (has install_path set)
+            if game.install_path.is_some() && game.store_id.starts_with("baldurs_gate") {
+                // Use Wine-GE directly
+                state.gogdl.launch_game_with_wine(&game).await
+            } else {
+                // Use gogdl binary (Heroic managed games)
+                state.gogdl.launch_game(&game.store_id).await
+            }
+        },
         "amazon" => state.nile.launch_game(&game.store_id).await,
         _ => Err(anyhow::anyhow!("Unknown store: {}", game.store)),
     };
@@ -289,6 +298,25 @@ pub async fn get_store_status(state: State<'_, AppState>) -> Result<Vec<StoreSta
     });
     
     Ok(statuses)
+}
+
+#[tauri::command]
+pub async fn scan_gog_installed(state: State<'_, AppState>) -> Result<Vec<Game>, String> {
+    log::info!("Scanning GOG Games directory for installed games...");
+    
+    let games = state.gogdl.scan_installed_games().await
+        .map_err(|e| format!("Failed to scan GOG games: {}", e))?;
+    
+    // Save to database
+    let db = state.db.lock().await;
+    for game in &games {
+        if let Err(e) = db.upsert_game(game).await {
+            log::error!("Failed to save game {}: {}", game.title, e);
+        }
+    }
+    
+    log::info!("Found and saved {} GOG games", games.len());
+    Ok(games)
 }
 
 #[derive(Debug, Serialize)]

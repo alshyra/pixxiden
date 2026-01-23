@@ -92,6 +92,84 @@ impl GogdlAdapter {
             .unwrap_or_else(|| PathBuf::from("~/.config/gogdl"))
     }
     
+    /// Find Wine-GE installation
+    fn find_wine_ge(&self) -> anyhow::Result<PathBuf> {
+        // Check standard Wine-GE locations
+        let potential_paths = vec![
+            // Heroic's Wine-GE
+            dirs::home_dir()
+                .map(|h| h.join(".config/heroic/tools/wine/wine-ge-latest/bin/wine")),
+            // GE-Proton location
+            dirs::home_dir()
+                .map(|h| h.join(".local/share/lutris/runners/wine/wine-ge-latest/bin/wine")),
+            // System wine-ge
+            Some(PathBuf::from("/usr/bin/wine-ge")),
+            // Fallback to system wine
+            Some(PathBuf::from("/usr/bin/wine")),
+        ];
+        
+        for path in potential_paths.into_iter().flatten() {
+            if path.exists() {
+                log::info!("Found Wine at: {:?}", path);
+                return Ok(path);
+            }
+        }
+        
+        anyhow::bail!("Wine-GE or Wine not found. Please install wine-ge or wine")
+    }
+    
+    /// Launch a game directly with Wine-GE (for games installed in ~/GOG Games/)
+    pub async fn launch_game_with_wine(&self, game: &Game) -> anyhow::Result<()> {
+        let exe_path = game.install_path.as_ref()
+            .and_then(|install| {
+                // Try to find executable in install path
+                let install_path = PathBuf::from(install);
+                self.find_executable(&install_path)
+            })
+            .ok_or_else(|| anyhow::anyhow!("No executable found for game"))?;
+        
+        let wine = self.find_wine_ge()?;
+        
+        // Setup wine prefix
+        let prefix = game.wine_prefix.as_ref()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                dirs::home_dir()
+                    .map(|h| h.join(".local/share/pixiden/prefixes").join(&game.store_id))
+                    .unwrap_or_else(|| PathBuf::from("/tmp/pixiden-prefix"))
+            });
+        
+        // Create prefix directory if it doesn't exist
+        if !prefix.exists() {
+            log::info!("Creating Wine prefix at: {:?}", prefix);
+            std::fs::create_dir_all(&prefix)?;
+        }
+        
+        log::info!("Launching {} with Wine-GE", game.title);
+        log::info!("  Executable: {}", exe_path);
+        log::info!("  Wine: {:?}", wine);
+        log::info!("  Prefix: {:?}", prefix);
+        
+        // Get the game directory for working directory
+        let game_dir = game.install_path.as_ref()
+            .map(PathBuf::from)
+            .ok_or_else(|| anyhow::anyhow!("No install path"))?;
+        
+        let mut cmd = Command::new(wine);
+        cmd.arg(&exe_path)
+            .env("WINEPREFIX", prefix)
+            .env("WINEDEBUG", "-all") // Suppress wine debug output
+            .env("DXVK_HUD", "0")
+            .current_dir(&game_dir)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        
+        cmd.spawn()?;
+        log::info!("Game launched successfully");
+        
+        Ok(())
+    }
+    
     async fn run_command(&self, args: &[&str]) -> anyhow::Result<String> {
         let output = Command::new(&self.binary_path)
             .args(args)
@@ -150,6 +228,130 @@ impl GogdlAdapter {
                     if let (Some(prefix), Some(version)) = (wine_prefix, wine_version) {
                         return Some((prefix, version));
                     }
+                }
+            }
+        }
+        
+        None
+    }
+    
+    /// Scan ~/GOG Games/ directory to detect installed GOG games
+    /// This is an alternative method when Heroic isn't installed
+    pub async fn scan_installed_games(&self) -> anyhow::Result<Vec<Game>> {
+        let gog_games_dir = dirs::home_dir()
+            .ok_or_else(|| anyhow::anyhow!("Home directory not found"))?
+            .join("GOG Games");
+        
+        if !gog_games_dir.exists() {
+            log::info!("GOG Games directory not found at {:?}", gog_games_dir);
+            return Ok(vec![]);
+        }
+        
+        log::info!("Scanning GOG Games directory: {:?}", gog_games_dir);
+        
+        let mut games = Vec::new();
+        let now = Utc::now();
+        
+        let entries = std::fs::read_dir(&gog_games_dir)
+            .map_err(|e| anyhow::anyhow!("Failed to read GOG Games dir: {}", e))?;
+        
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            
+            let dir_name = entry.file_name().to_string_lossy().to_string();
+            let dir_name_lower = dir_name.to_lowercase();
+            
+            // Detect known games (can be extended)
+            let (title, app_id) = if dir_name_lower.contains("baldur") {
+                ("Baldur's Gate 3".to_string(), "baldurs_gate_3".to_string())
+            } else if dir_name_lower.contains("witcher") && dir_name_lower.contains("3") {
+                ("The Witcher 3: Wild Hunt".to_string(), "the_witcher_3".to_string())
+            } else if dir_name_lower.contains("cyberpunk") {
+                ("Cyberpunk 2077".to_string(), "cyberpunk_2077".to_string())
+            } else {
+                // Generic fallback
+                (dir_name.clone(), dir_name.to_lowercase().replace(" ", "_"))
+            };
+            
+            // Find executable
+            let executable_path = self.find_executable(&path);
+            
+            if executable_path.is_none() {
+                log::warn!("No executable found in {:?}, skipping", path);
+                continue;
+            }
+            
+            log::info!("Found GOG game: {} at {:?}", title, path);
+            
+            // Create default wine prefix
+            let wine_prefix = dirs::home_dir()
+                .map(|h| h.join(".local/share/pixiden/prefixes").join(&app_id))
+                .and_then(|p| p.to_str().map(|s| s.to_string()));
+            
+            let game = Game {
+                id: format!("gog_{}", app_id),
+                title,
+                store: "gog".to_string(),
+                store_id: app_id,
+                installed: true,
+                install_path: Some(path.to_string_lossy().to_string()),
+                wine_prefix,
+                wine_version: Some("wine-ge".to_string()),
+                cover_url: None,
+                background_url: None,
+                developer: None,
+                publisher: None,
+                description: None,
+                release_date: None,
+                last_played: None,
+                play_time_minutes: 0,
+                created_at: now,
+                updated_at: now,
+            };
+            
+            games.push(game);
+        }
+        
+        log::info!("Found {} games in GOG Games directory", games.len());
+        Ok(games)
+    }
+    
+    /// Find the main executable in a game directory
+    fn find_executable(&self, game_dir: &std::path::Path) -> Option<String> {
+        // Common executable names for popular games
+        let known_exes = [
+            "bg3_dx11.exe",
+            "bg3.exe",
+            "witcher3.exe",
+            "Cyberpunk2077.exe",
+            "start.exe",
+            "launch.exe",
+        ];
+        
+        // First, try known executables
+        for exe in &known_exes {
+            let exe_path = game_dir.join(exe);
+            if exe_path.exists() {
+                return Some(exe_path.to_string_lossy().to_string());
+            }
+            
+            // Try in bin/ subdirectory
+            let bin_exe_path = game_dir.join("bin").join(exe);
+            if bin_exe_path.exists() {
+                return Some(bin_exe_path.to_string_lossy().to_string());
+            }
+        }
+        
+        // Fallback: find any .exe file in the root
+        if let Ok(entries) = std::fs::read_dir(game_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) == Some("exe") {
+                    log::info!("Found executable: {:?}", path);
+                    return Some(path.to_string_lossy().to_string());
                 }
             }
         }
@@ -447,9 +649,18 @@ impl StoreAdapter for GogdlAdapter {
     async fn launch_game(&self, store_id: &str) -> anyhow::Result<()> {
         log::info!("Launching GOG game: {}", store_id);
         
+        // Try to launch via Wine-GE for games in ~/GOG Games/
+        // First check if we can find the game in our database via scan
+        // For now, just use gogdl if available, otherwise error
+        
         // Read wine config from Heroic
         let (wine_prefix, _wine_version) = self.read_heroic_game_config(store_id)
             .unwrap_or((String::new(), String::new()));
+        
+        // Check if gogdl binary is available
+        if !self.binary_path.exists() {
+            anyhow::bail!("GOGDL binary not found. Please install Heroic Launcher or use scan_gog_installed for ~/GOG Games/ detection")
+        }
         
         let mut cmd = Command::new(&self.binary_path);
         cmd.args(["launch", store_id])

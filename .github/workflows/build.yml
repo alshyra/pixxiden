@@ -1,0 +1,88 @@
+name: Build PixiDen
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libudev-dev \
+            libfuse2
+
+      - name: Cache sidecar binaries
+        id: cache-binaries
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/binaries
+          key: ${{ runner.os }}-binaries-${{ hashFiles('scripts/dependencies.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-binaries-
+
+      - name: Install CLI tools (fallback for binaries)
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          pip3 install legendary-gl --break-system-packages || true
+          pip3 install nile --break-system-packages || true
+          # GOGDL will be downloaded by download-sidecars.sh
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Download sidecars (explicit)
+        run: npm run setup:sidecars
+
+      - name: Verify sidecars downloaded
+        run: |
+          echo "=== Checking sidecars ==="
+          ls -lah src-tauri/binaries/
+          echo ""
+          echo "=== Required files ==="
+          [ -f src-tauri/binaries/legendary-x86_64-unknown-linux-gnu ] && echo "✅ legendary" || echo "❌ legendary MISSING"
+          [ -f src-tauri/binaries/gogdl-x86_64-unknown-linux-gnu ] && echo "✅ gogdl" || echo "❌ gogdl MISSING"
+          [ -f src-tauri/binaries/nile-x86_64-unknown-linux-gnu ] && echo "✅ nile" || echo "❌ nile MISSING"
+          echo ""
+          [ -f src-tauri/binaries/legendary-x86_64-unknown-linux-gnu ] || exit 1
+          [ -f src-tauri/binaries/gogdl-x86_64-unknown-linux-gnu ] || exit 1
+          [ -f src-tauri/binaries/nile-x86_64-unknown-linux-gnu ] || exit 1
+
+      - name: Build Tauri
+        run: npm run tauri:build
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixiden-appimage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
+
+      - name: Upload DEB package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixiden-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
