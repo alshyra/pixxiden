@@ -12,25 +12,8 @@
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:event:default",
-    
     "shell:allow-execute",
-    "shell:allow-open",
-    
-    "core:fs:allow-read-text-file",
-    "core:fs:allow-write-text-file",
-    "core:fs:allow-read-dir",
-    "core:fs:allow-create-dir",
-    "core:fs:allow-remove-file",
-    "core:fs:allow-exists",
-    
-    "core:path:allow-basename",
-    "core:path:allow-dirname",
-    "core:path:allow-extname",
-    "core:path:allow-join",
-    "core:path:allow-normalize",
-    "core:path:allow-resolve",
-    "core:path:allow-resolve-directory",
-    "core:dialog:allow-open"
+    "shell:allow-open"
   ],
   "scope": {
     "allow": [

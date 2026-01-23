@@ -3,7 +3,7 @@ use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileA
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{State, Window, Emitter};
+use tauri::{State, Window, Emitter, Manager};
 use tokio::sync::Mutex;
 
 pub struct AppState {
