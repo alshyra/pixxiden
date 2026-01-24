@@ -14,12 +14,12 @@
     <!-- Main Content -->
     <div class="relative z-10 h-screen flex flex-col">
       <!-- Top Section -->
-      <div class="flex-1 flex items-center justify-center">
-        <div class="w-full max-w-[1920px] px-12 flex items-center gap-8">
+      <div class="flex-1 flex items-center">
+        <div class="w-full max-w-[1920px] mx-auto px-8 flex items-center justify-between gap-6">
           <!-- Left Sidebar Panel -->
-          <div class="w-[400px] bg-black/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <div class="w-[340px] flex-shrink-0 bg-black/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
             <!-- Game Cover -->
-            <div class="mb-6">
+            <div class="mb-5">
               <img 
                 v-if="game?.backgroundUrl"
                 :src="game?.backgroundUrl"
@@ -29,12 +29,12 @@
             </div>
             
             <!-- Game Title & Meta -->
-            <div class="mb-4">
-              <h2 class="text-2xl font-black italic mb-2">{{ game?.title || 'HOLLOW KNIGHT' }}</h2>
-              <div class="text-sm text-white/60 mb-3">{{ game?.developer || 'TEAM CHERRY' }} • {{ getReleaseYear }}</div>
+            <div class="mb-3">
+              <h2 class="text-xl font-black italic mb-1">{{ game?.title || 'HOLLOW KNIGHT' }}</h2>
+              <div class="text-xs text-white/60 mb-2">{{ game?.developer || 'TEAM CHERRY' }} • {{ getReleaseYear }}</div>
               <div class="flex items-center gap-2">
-                <span class="px-2 py-1 bg-green-600 text-white text-xs font-bold rounded">{{ metacriticScore || '93' }}</span>
-                <span class="px-2 py-1 bg-white/10 text-white/80 text-xs rounded">INDÉ</span>
+                <span class="px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded">{{ metacriticScore || '93' }}</span>
+                <span class="px-2 py-0.5 bg-white/10 text-white/80 text-xs rounded">INDÉ</span>
               </div>
             </div>
             
@@ -42,9 +42,9 @@
             <button
               v-if="!game?.installed"
               @click="showInstallModal = true"
-              class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg mb-4 flex items-center justify-center gap-2 transition-colors"
+              class="w-full py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg mb-3 flex items-center justify-center gap-2 transition-colors text-sm"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               INSTALLER
@@ -53,16 +53,16 @@
             <button
               v-else-if="!isDownloading"
               @click="playGame"
-              class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg mb-4 flex items-center justify-center gap-2 transition-colors"
+              class="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg mb-3 flex items-center justify-center gap-2 transition-colors text-sm"
             >
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
               </svg>
               LANCER LE JEU
             </button>
             
             <!-- Download Progress (when downloading) -->
-            <div v-if="isDownloading" class="mb-4">
+            <div v-if="isDownloading" class="mb-3">
               <div class="flex justify-between text-xs mb-2 text-purple-400 font-bold">
                 <span>TÉLÉCHARGEMENT...</span>
                 <span>{{ downloadProgress.toFixed(0) }}%</span>
@@ -79,23 +79,23 @@
             </div>
             
             <!-- Stats Grid -->
-            <div class="grid grid-cols-3 gap-3 mb-4 text-center">
+            <div class="grid grid-cols-3 gap-2 mb-3 text-center">
               <div>
-                <div class="text-xs text-white/40 uppercase mb-1">Temps</div>
+                <div class="text-[10px] text-white/40 uppercase mb-1">Temps</div>
                 <div class="text-sm font-bold">{{ formattedPlayTime }}</div>
               </div>
               <div>
-                <div class="text-xs text-white/40 uppercase mb-1">Dernier</div>
+                <div class="text-[10px] text-white/40 uppercase mb-1">Dernier</div>
                 <div class="text-sm font-bold">{{ formattedLastPlayed }}</div>
               </div>
               <div>
-                <div class="text-xs text-white/40 uppercase mb-1">Statut</div>
+                <div class="text-[10px] text-white/40 uppercase mb-1">Statut</div>
                 <div class="text-sm font-bold text-orange-400">{{ completionStatus }}</div>
               </div>
             </div>
             
             <!-- Achievements Progress -->
-            <div class="mb-4">
+            <div>
               <div class="flex justify-between text-xs mb-2">
                 <span class="text-purple-400 font-bold uppercase">Succès</span>
                 <span class="text-white/80">{{ achievementEarned }}/{{ achievementTotal }}</span>
@@ -110,14 +110,14 @@
           </div>
           
           <!-- Center: Large Title -->
-          <div class="flex-1 flex flex-col items-center justify-center">
-            <h1 class="text-[120px] font-black italic text-white mb-0 leading-none text-center">
+          <div class="flex-1 flex items-center justify-center px-8">
+            <h1 class="text-[140px] font-black italic text-white leading-none text-center tracking-tight">
               {{ (game?.title || 'HOLLOW KNIGHT').toUpperCase() }}
             </h1>
           </div>
           
           <!-- Right: Gameplay Video/Image -->
-          <div class="w-[700px] aspect-video bg-black/50 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
+          <div class="w-[800px] flex-shrink-0 aspect-video bg-black/50 rounded-2xl overflow-hidden border border-white/10 relative flex items-center justify-center">
             <img 
               v-if="game?.backgroundUrl"
               :src="game?.backgroundUrl"
@@ -135,28 +135,28 @@
       
       <!-- Bottom Stats Bar -->
       <div class="bg-black/90 backdrop-blur-sm border-t border-white/10">
-        <div class="max-w-[1920px] mx-auto px-12 py-6">
+        <div class="max-w-[1920px] mx-auto px-8 py-5">
           <!-- Synopsis -->
-          <div class="mb-4">
-            <h3 class="text-xs text-purple-400 uppercase font-bold mb-2">Synopsis</h3>
-            <p class="text-sm text-white/70 leading-relaxed max-w-[600px]">
+          <div class="mb-3">
+            <h3 class="text-[10px] text-purple-400 uppercase font-bold mb-2 tracking-wider">Synopsis</h3>
+            <p class="text-xs text-white/70 leading-relaxed max-w-[500px]">
               {{ game?.description || metadata?.description || 'Forgez votre propre chemin dans Hollow Knight ! Un jeu d\'action en 2D mettant l\'accent sur l\'adresse et l\'exploration. Affrontez une multitude de créatures mortelles, évitez des pièges complexes et résolvez d\'anciens mystères...' }}
             </p>
           </div>
           
           <!-- Bottom Stats Grid -->
-          <div class="grid grid-cols-3 gap-6 max-w-[900px]">
+          <div class="flex gap-12 max-w-[800px]">
             <div>
-              <div class="text-xs text-purple-400 uppercase font-bold mb-1">Histoire</div>
-              <div class="text-3xl font-bold text-cyan-400">{{ historyTime }}</div>
+              <div class="text-[10px] text-purple-400 uppercase font-bold mb-1 tracking-wider">Histoire</div>
+              <div class="text-2xl font-bold text-cyan-400">{{ historyTime }}</div>
             </div>
             <div>
-              <div class="text-xs text-purple-400 uppercase font-bold mb-1">Taux</div>
-              <div class="text-3xl font-bold text-pink-400">{{ rateTime }}</div>
+              <div class="text-[10px] text-purple-400 uppercase font-bold mb-1 tracking-wider">Taux</div>
+              <div class="text-2xl font-bold text-pink-400">{{ rateTime }}</div>
             </div>
             <div>
-              <div class="text-xs text-purple-400 uppercase font-bold mb-1">Vitesse</div>
-              <div class="text-3xl font-bold text-green-400">{{ speedValue }}</div>
+              <div class="text-[10px] text-purple-400 uppercase font-bold mb-1 tracking-wider">Vitesse</div>
+              <div class="text-2xl font-bold text-green-400">{{ speedValue }}</div>
             </div>
           </div>
         </div>
