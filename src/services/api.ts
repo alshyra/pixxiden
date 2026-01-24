@@ -1,4 +1,4 @@
-import type { Game } from '@/types'
+import type { Game, EnrichedGame, CacheStats } from '@/types'
 
 // Import Tauri invoke - we'll wrap calls in try/catch for E2E compatibility
 // The invoke function is lazy-loaded to avoid import errors in E2E tests
@@ -171,6 +171,109 @@ export async function getGame(gameId: string): Promise<Game | null> {
     return game
   } catch (error) {
     console.error('Failed to get game:', error)
+    throw error
+  }
+}
+
+/**
+ * Get all games with enriched metadata (IGDB, HowLongToBeat, ProtonDB, assets)
+ * This is the main function to use for displaying game details with full metadata
+ */
+export async function getEnrichedGames(): Promise<EnrichedGame[]> {
+  if (isMockMode()) {
+    // In mock mode, convert mock games to enriched format
+    const mockData = await getMockGames()
+    console.log('🎮 [MOCK MODE] Returning mock games as enriched:', mockData.length)
+    return mockData.map(game => ({
+      id: game.id,
+      title: game.title,
+      store: game.store,
+      storeId: game.storeId,
+      installed: game.installed,
+      installPath: game.installPath,
+      description: game.description,
+      developer: game.developer,
+      publisher: game.publisher,
+      genres: [],
+      releaseDate: game.releaseDate,
+      playTimeMinutes: game.playTimeMinutes ?? 0,
+      lastPlayed: game.lastPlayed,
+      createdAt: game.createdAt ?? new Date().toISOString(),
+      updatedAt: game.updatedAt ?? new Date().toISOString(),
+      coverUrl: game.backgroundUrl,
+      backgroundUrl: game.backgroundUrl,
+      // Mock some enriched data
+      metacriticScore: Math.floor(Math.random() * 30) + 70,
+      hltbMain: Math.floor(Math.random() * 30) + 10,
+      hltbComplete: Math.floor(Math.random() * 50) + 30,
+      protonTier: ['platinum', 'gold', 'silver'][Math.floor(Math.random() * 3)] as 'platinum' | 'gold' | 'silver',
+      achievementsTotal: Math.floor(Math.random() * 50) + 10,
+      achievementsUnlocked: Math.floor(Math.random() * 30),
+    }))
+  }
+  
+  try {
+    const games = await invoke<EnrichedGame[]>('get_enriched_games')
+    return games
+  } catch (error) {
+    console.error('Failed to get enriched games:', error)
+    throw error
+  }
+}
+
+/**
+ * Clear cache for a specific game
+ */
+export async function clearGameCache(gameId: string): Promise<void> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] clearGameCache:', gameId)
+    return
+  }
+  
+  try {
+    await invoke('clear_game_cache', { gameId })
+  } catch (error) {
+    console.error('Failed to clear game cache:', error)
+    throw error
+  }
+}
+
+/**
+ * Clear all game cache (metadata + assets)
+ */
+export async function clearAllCache(): Promise<void> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] clearAllCache')
+    return
+  }
+  
+  try {
+    await invoke('clear_all_cache')
+  } catch (error) {
+    console.error('Failed to clear all cache:', error)
+    throw error
+  }
+}
+
+/**
+ * Get cache statistics
+ */
+export async function getCacheStats(): Promise<CacheStats> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] getCacheStats')
+    return {
+      gamesCount: 10,
+      totalAssetsCount: 40,
+      totalAssetsSizeMb: 125.5,
+      cacheDir: '~/.local/share/pixxiden'
+    }
+  }
+  
+  try {
+    const stats = await invoke<CacheStats>('get_cache_stats')
+    return stats
+  } catch (error) {
+    console.error('Failed to get cache stats:', error)
     throw error
   }
 }

@@ -1,7 +1,9 @@
 use crate::database::{Database, Game};
+use crate::models::EnrichedGame;
+use crate::services::GameEnricher;
 use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileAdapter, StoreAdapter};
 use crate::system::{self, SystemInfo, DiskInfo, SettingsConfig};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{State, Window, Emitter, Manager};
@@ -12,7 +14,9 @@ pub struct AppState {
     pub legendary: Arc<LegendaryAdapter>,
     pub gogdl: Arc<GogdlAdapter>,
     pub nile: Arc<NileAdapter>,
+    pub enricher: Arc<Mutex<GameEnricher>>,
 }
+
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -401,3 +405,79 @@ pub fn get_settings() -> Result<SettingsConfig, String> {
 pub fn save_settings(config: SettingsConfig) -> Result<(), String> {
     system::save_settings(config)
 }
+
+// ===================== ENRICHED GAMES COMMANDS =====================
+
+/// Get all games with enriched metadata (IGDB, HLTB, ProtonDB, assets)
+/// This is the main command for fetching games with all metadata
+#[tauri::command]
+pub async fn get_enriched_games(state: State<'_, AppState>) -> Result<Vec<EnrichedGame>, String> {
+    log::info!("Fetching enriched games...");
+    
+    // Get base games from database
+    let db = state.db.lock().await;
+    let games = db.get_all_games().await.map_err(|e| e.to_string())?;
+    drop(db);
+    
+    if games.is_empty() {
+        log::info!("No games in database");
+        return Ok(vec![]);
+    }
+    
+    log::info!("Enriching {} games...", games.len());
+    
+    // Enrich games with metadata
+    let enricher = state.enricher.lock().await;
+    let enriched = enricher.enrich_games(&games).await;
+    
+    log::info!("Successfully enriched {} games", enriched.len());
+    Ok(enriched)
+}
+
+/// Clear cache for a specific game
+#[tauri::command]
+pub async fn clear_game_cache(game_id: String, state: State<'_, AppState>) -> Result<(), String> {
+    log::info!("Clearing cache for game: {}", game_id);
+    
+    let enricher = state.enricher.lock().await;
+    enricher.clear_game_cache(&game_id).await.map_err(|e| e.to_string())?;
+    
+    log::info!("Cache cleared for game: {}", game_id);
+    Ok(())
+}
+
+/// Clear all game cache
+#[tauri::command]
+pub async fn clear_all_cache(state: State<'_, AppState>) -> Result<(), String> {
+    log::info!("Clearing all cache...");
+    
+    let enricher = state.enricher.lock().await;
+    enricher.clear_all_cache().await.map_err(|e| e.to_string())?;
+    
+    log::info!("All cache cleared");
+    Ok(())
+}
+
+/// Get cache statistics
+#[tauri::command]
+pub async fn get_cache_stats(state: State<'_, AppState>) -> Result<CacheStatsResponse, String> {
+    let enricher = state.enricher.lock().await;
+    let stats = enricher.get_cache_stats().await.map_err(|e| e.to_string())?;
+    
+    Ok(CacheStatsResponse {
+        games_count: stats.games_count,
+        total_assets_count: stats.total_assets_count,
+        total_assets_size_mb: stats.total_assets_size as f64 / 1_048_576.0,
+        cache_dir: stats.cache_dir.to_string_lossy().to_string(),
+    })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CacheStatsResponse {
+    pub games_count: u32,
+    pub total_assets_count: u32,
+    pub total_assets_size_mb: f64,
+    pub cache_dir: String,
+}
+

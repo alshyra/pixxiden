@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::process::Command;
-use sysinfo::{System, Disks, Networks};
+use sysinfo::{System, Disks};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

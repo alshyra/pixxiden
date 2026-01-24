@@ -1,6 +1,8 @@
 mod commands;
 mod database;
 mod gamepad;
+mod models;
+mod services;
 mod store;
 mod system;
 
@@ -8,13 +10,14 @@ mod system;
 mod tests;
 
 use commands::{
-    get_game, get_games, get_store_status, get_game_config, install_game, launch_game, sync_games,
+    get_game, get_games, get_enriched_games, get_store_status, get_game_config, install_game, launch_game, sync_games,
     scan_gog_installed, uninstall_game,
     close_splashscreen, get_system_info, get_disk_info, check_for_updates, shutdown_system, 
-    get_settings, save_settings, AppState,
+    get_settings, save_settings, clear_game_cache, clear_all_cache, get_cache_stats, AppState,
 };
 use database::Database;
 use gamepad::GamepadMonitor;
+use services::GameEnricher;
 use store::{gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter};
 use std::sync::Arc;
 use tauri::{Manager, Window};
@@ -22,6 +25,11 @@ use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load environment variables from .env file
+    if let Err(e) = dotenvy::dotenv() {
+        log::warn!("Failed to load .env file: {}", e);
+    }
+    
     tauri::Builder::default()
         .setup(|app| {
             // Initialize logging
@@ -38,6 +46,14 @@ pub fn run() {
             let db = rt.block_on(async {
                 Database::new().await.expect("Failed to initialize database")
             });
+            
+            // Initialize game enricher
+            let enricher = rt.block_on(async {
+                let enricher = GameEnricher::new(Default::default())
+                    .expect("Failed to create game enricher");
+                enricher.init().await.expect("Failed to initialize game enricher");
+                enricher
+            });
 
             // Create store adapters
             let legendary = LegendaryAdapter::new();
@@ -50,6 +66,7 @@ pub fn run() {
                 legendary: Arc::new(legendary),
                 gogdl: Arc::new(gogdl),
                 nile: Arc::new(nile),
+                enricher: Arc::new(Mutex::new(enricher)),
             };
 
             app.manage(state);
@@ -64,6 +81,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             get_games,
+            get_enriched_games,
             get_game,
             get_game_config,
             sync_games,
@@ -81,10 +99,14 @@ pub fn run() {
             shutdown_system,
             get_settings,
             save_settings,
+            clear_game_cache,
+            clear_all_cache,
+            get_cache_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
 
 /// Start gamepad monitoring for overlay toggle
 #[tauri::command]

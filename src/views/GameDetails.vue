@@ -6,7 +6,7 @@
       <!-- Background Image -->
       <div
         class="absolute inset-0 bg-cover bg-center opacity-50 scale-100 transition-opacity duration-1000 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-black">
-        <img v-if="game?.backgroundUrl" :src="game?.backgroundUrl" :alt="game?.title"
+        <img v-if="heroImage || game?.backgroundUrl" :src="heroImage || game?.backgroundUrl" :alt="game?.title"
           class="w-full h-full object-cover" />
       </div>
 
@@ -18,7 +18,7 @@
         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center z-10">
         <h1
           class="text-[100px] font-black italic tracking-tighter text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] leading-none uppercase">
-          {{ (game?.title || 'HOLLOW KNIGHT').toUpperCase() }}
+          {{ (game?.title || 'GAME').toUpperCase() }}
         </h1>
         <div class="flex gap-4 mt-2 opacity-30">
           <div class="w-12 h-[1px] bg-[#5e5ce6] shadow-[0_0_8px_#5e5ce6]"></div>
@@ -112,10 +112,12 @@
             <div class="p-6 space-y-3">
               <div class="flex justify-between items-end">
                 <span class="text-[10px] font-black uppercase tracking-widest text-[#5e5ce6]">Succès</span>
-                <span class="text-[9px] font-bold text-gray-500">37/63</span>
+                <span v-if="achievementsProgress" class="text-[9px] font-bold text-gray-500">{{
+                  achievementsProgress.unlocked }}/{{ achievementsProgress.total }}</span>
+                <span v-else class="text-[9px] font-bold text-gray-500">--/--</span>
               </div>
               <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                <div class="h-full bg-[#5e5ce6]" style="width: 59%"></div>
+                <div class="h-full bg-[#5e5ce6]" :style="{ width: `${achievementsProgress?.percentage ?? 0}%` }"></div>
               </div>
             </div>
           </div>
@@ -152,18 +154,28 @@
           </div>
 
           <!-- Stats Bottom -->
-          <div class="grid grid-cols-3 gap-4 shrink-0 pb-2">
+          <div class="grid grid-cols-4 gap-4 shrink-0 pb-2">
             <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
               <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Taille</span>
-              <div class="text-xl font-black italic mt-0.5 text-cyan-400">9.2 GB</div>
+              <div class="text-xl font-black italic mt-0.5 text-cyan-400">{{ enrichedGame?.install_size ||
+                game?.installSize || '--' }}</div>
             </div>
             <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
               <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Durée</span>
-              <div class="text-xl font-black italic mt-0.5 text-pink-400">40-60h</div>
+              <div class="text-xl font-black italic mt-0.5 text-pink-400">{{ gameDurations?.formattedRange || '--' }}
+              </div>
             </div>
             <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
               <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Note</span>
-              <div class="text-xl font-black italic mt-0.5 text-green-400">93/100</div>
+              <div class="text-xl font-black italic mt-0.5" :class="scoreBadge?.colorClass || 'text-gray-400'">
+                {{ scoreBadge?.display || '--' }}
+              </div>
+            </div>
+            <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
+              <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">ProtonDB</span>
+              <div class="text-xl font-black italic mt-0.5" :class="protonBadge?.colorClass || 'text-gray-400'">
+                {{ protonBadge?.tier || '--' }}
+              </div>
             </div>
           </div>
         </div>
@@ -185,9 +197,24 @@ import { useRoute } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import InstallModal from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
-import type { Metadata } from '@/types'
+import type { EnrichedGame } from '@/types'
+import { ProtonTierUtils } from '@/types'
 
 type UnlistenFn = () => void
+
+// Tauri convertFileSrc helper
+let convertFileSrc: ((path: string) => string) | null = null
+
+const loadConvertFileSrc = async () => {
+  try {
+    const { convertFileSrc: fn } = await import('@tauri-apps/api/core')
+    convertFileSrc = fn
+  } catch (e) {
+    console.warn('[GameDetails] convertFileSrc not available (E2E mode):', e)
+    // Fallback: return path as-is (won't work but allows E2E testing)
+    convertFileSrc = (path: string) => path
+  }
+}
 
 const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
   try {
@@ -204,8 +231,14 @@ const libraryStore = useLibraryStore()
 
 const showInstallModal = ref(false)
 const gameId = computed(() => route.params.id as string)
-const game = computed(() => libraryStore.games.find(g => g.id === gameId.value))
-const metadata = ref<Metadata | null>(null)
+
+// Use enriched game data when available, fall back to base game
+const enrichedGame = computed<EnrichedGame | undefined>(() =>
+  libraryStore.getEnrichedGame(gameId.value)
+)
+const game = computed(() =>
+  enrichedGame.value || libraryStore.games.find(g => g.id === gameId.value)
+)
 
 const isDownloading = ref(false)
 const downloadProgress = ref(0)
@@ -231,8 +264,93 @@ let unlistenInstallProgress: UnlistenFn | undefined
 let unlistenInstalled: UnlistenFn | undefined
 let unlistenInstallFailed: UnlistenFn | undefined
 
+// === COMPUTED PROPERTIES FOR ENRICHED DATA ===
+
+// Hero background image
+const heroImage = computed(() => {
+  if (!enrichedGame.value) return ''
+
+  // Prefer local hero path, then background URL
+  if (enrichedGame.value.heroPath && convertFileSrc) {
+    return convertFileSrc(enrichedGame.value.heroPath)
+  }
+  return enrichedGame.value.backgroundUrl || ''
+})
+
+// Score badge (Metacritic or IGDB rating)
+const scoreBadge = computed(() => {
+  if (!enrichedGame.value) return null
+
+  const score = enrichedGame.value.metacriticScore ||
+    Math.round(enrichedGame.value.igdbRating || 0)
+
+  if (!score) return null
+
+  let colorClass = 'bg-red-500/20 text-red-500 border-red-500/20'
+  if (score >= 75) colorClass = 'bg-green-500/20 text-green-500 border-green-500/20'
+  else if (score >= 50) colorClass = 'bg-yellow-500/20 text-yellow-500 border-yellow-500/20'
+
+  return { score, colorClass }
+})
+
+// ProtonDB badge
+const protonBadge = computed(() => {
+  if (!enrichedGame.value?.protonTier) return null
+
+  const tier = enrichedGame.value.protonTier
+  return {
+    tier,
+    label: tier.toUpperCase(),
+    colorClass: ProtonTierUtils.getColorClass(tier),
+    isPlayable: ProtonTierUtils.isPlayable(tier),
+  }
+})
+
+// HowLongToBeat durations
+const gameDurations = computed(() => {
+  if (!enrichedGame.value) return null
+
+  const { hltbMain, hltbMainExtra, hltbComplete } = enrichedGame.value
+  if (!hltbMain && !hltbComplete) return null
+
+  return {
+    main: hltbMain,
+    mainExtra: hltbMainExtra,
+    complete: hltbComplete,
+    formattedMain: hltbMain ? `${hltbMain}h` : '-',
+    formattedRange: hltbMain && hltbComplete ? `${hltbMain}-${hltbComplete}h` : (hltbMain ? `~${hltbMain}h` : '-'),
+  }
+})
+
+// Achievements progress
+const achievementsProgress = computed(() => {
+  if (!enrichedGame.value?.achievementsTotal) return null
+
+  const { achievementsTotal, achievementsUnlocked = 0 } = enrichedGame.value
+  const percentage = Math.round((achievementsUnlocked / achievementsTotal) * 100)
+
+  return {
+    total: achievementsTotal,
+    unlocked: achievementsUnlocked,
+    percentage,
+  }
+})
+
+// Genres formatted
+const genresList = computed(() => {
+  if (!enrichedGame.value?.genres?.length) return null
+  return enrichedGame.value.genres.slice(0, 3) // Max 3 genres
+})
+
+// Release year
+const releaseYear = computed(() => {
+  const date = enrichedGame.value?.releaseDate || game.value?.releaseDate
+  if (!date) return null
+  return new Date(date).getFullYear()
+})
+
 const formattedPlayTime = computed(() => {
-  const minutes = game.value?.playTime || 0
+  const minutes = game.value?.playTimeMinutes || game.value?.playTime || 0
   if (minutes === 0) return '0h'
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
@@ -246,7 +364,7 @@ const formattedLastPlayed = computed(() => {
 })
 
 const completionStatus = computed(() => {
-  const minutes = game.value?.playTime || 0
+  const minutes = game.value?.playTimeMinutes || game.value?.playTime || 0
   if (minutes === 0) return 'Non joué'
   if (minutes > 3600) return 'Terminé'
   if (minutes > 1200) return 'En cours'
@@ -288,7 +406,16 @@ async function handleStartInstallation(config: any) {
 }
 
 onMounted(async () => {
+  // Load Tauri helpers
+  await loadConvertFileSrc()
+
+  // Fetch enriched games if not already loaded
+  if (libraryStore.enrichedGames.length === 0) {
+    await libraryStore.fetchEnrichedGames()
+  }
+
   console.log('🎮 Game data:', game.value)
+  console.log('🎮 Enriched data:', enrichedGame.value)
 
   try {
     unlistenInstalling = await safeListen('game-installing', (event: any) => {

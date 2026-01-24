@@ -48,3 +48,26 @@ sysinfo = "0.32"
 
 # Gamepad support
 gilrs = "0.11"
+
+# HTTP client for API calls
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Environment variables
+dotenvy = "0.15"
+
+# SHA256 for cache validation
+sha2 = "0.10"
+
+# Base64 encoding (for IGDB)
+base64 = "0.22"
+
+# Async file operations
+tokio-util = { version = "0.7", features = ["io"] }
+
+# Rate limiting
+governor = "0.8"
+
+# For HowLongToBeat scraping
+scraper = "0.22"
+# URL encoding
+urlencoding = "2.1"
