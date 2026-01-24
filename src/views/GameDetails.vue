@@ -290,9 +290,9 @@ const diskSpace = ref('9.2 GO')
 // Download state
 const isDownloading = ref(false)
 const downloadProgress = ref(0)
-const downloadedSize = ref('0 Mo')
-const totalSize = ref('0 Mo')
-const downloadSpeed = ref('0 Mo/s')
+const downloadedSize = ref('0 MB')
+const totalSize = ref('0 MB')
+const downloadSpeed = ref('0 MB/s')
 
 // Launch overlay state
 const isLaunching = ref(false)
@@ -343,16 +343,24 @@ const completionStatus = computed(() => {
   return 'Commencé'
 })
 
+// Achievement data (TODO: Fetch from API when available)
 const achievementEarned = ref(37)
 const achievementTotal = ref(63)
 const achievementPercentage = computed(() => {
+  if (achievementTotal.value === 0) return 0
   return Math.round((achievementEarned.value / achievementTotal.value) * 100)
 })
 
-// Bottom stats
-const historyTime = ref('27h')
-const rateTime = ref('63.5h')
-const speedValue = ref('45 Mo/s')
+// Bottom stats (using computed values from game data where possible)
+const historyTime = computed(() => formattedPlayTime.value)
+const rateTime = computed(() => {
+  // TODO: Calculate from HowLongToBeat or similar API
+  return '63.5h'
+})
+const speedValue = computed(() => {
+  // Show download speed when downloading, otherwise default
+  return isDownloading.value ? downloadSpeed.value : '45 MB/s'
+})
 
 async function playGame() {
   if (!game.value) return
@@ -377,21 +385,18 @@ async function handleStartInstallation() {
   showInstallModal.value = false
   isDownloading.value = true
   downloadProgress.value = 0
-  downloadedSize.value = '0 Mo'
-  totalSize.value = '9.2 GO'
+  downloadedSize.value = '0 MB'
+  totalSize.value = '0 GB'
   
-  // Simulate download progress
-  const interval = setInterval(() => {
-    if (downloadProgress.value >= 100) {
-      clearInterval(interval)
+  // Start actual installation via library store
+  if (game.value) {
+    try {
+      await libraryStore.installGame(game.value.id)
+    } catch (error) {
+      console.error('Failed to start installation:', error)
       isDownloading.value = false
-      return
     }
-    downloadProgress.value += Math.random() * 5
-    const downloaded = (downloadProgress.value / 100) * 9200
-    downloadedSize.value = `${downloaded.toFixed(1)} Mo`
-    downloadSpeed.value = `${(45 + Math.random() * 10).toFixed(1)} Mo/s`
-  }, 500)
+  }
 }
 
 onMounted(async () => {
@@ -407,8 +412,8 @@ onMounted(async () => {
     unlistenInstallProgress = await safeListen('game-install-progress', (event: any) => {
       if (event.payload?.gameId === gameId.value) {
         downloadProgress.value = event.payload.progress || 0
-        downloadedSize.value = event.payload.downloaded || '0 Mo'
-        totalSize.value = event.payload.total || '0 Mo'
+        downloadedSize.value = event.payload.downloaded || '0 MB'
+        totalSize.value = event.payload.total || '0 MB'
         downloadSpeed.value = event.payload.speed || 'N/A'
       }
     })
