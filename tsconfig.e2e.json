@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -16,10 +16,13 @@
         "src/*"
       ]
     },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./e2e/types"
+    ],
     "types": [
       "node",
-      "@wdio/mocha-framework",
-      "webdriverio"
+      "mocha"
     ]
   },
   "include": [

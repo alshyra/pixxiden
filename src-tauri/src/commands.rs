@@ -89,10 +89,30 @@ pub struct StoreStatus {
 
 // ===================== COMMANDS =====================
 
+/// Get all games with enriched metadata (IGDB, HLTB, ProtonDB, assets)
+/// The backend automatically enriches games - frontend just receives Game objects
 #[tauri::command]
-pub async fn get_games(state: State<'_, AppState>) -> Result<Vec<Game>, String> {
+pub async fn get_games(state: State<'_, AppState>) -> Result<Vec<EnrichedGame>, String> {
+    log::info!("Fetching games with enrichment...");
+    
+    // Get base games from database
     let db = state.db.lock().await;
-    db.get_all_games().await.map_err(|e| e.to_string())
+    let games = db.get_all_games().await.map_err(|e| e.to_string())?;
+    drop(db);
+    
+    if games.is_empty() {
+        log::info!("No games in database");
+        return Ok(vec![]);
+    }
+    
+    log::info!("Enriching {} games...", games.len());
+    
+    // Enrich games with metadata (uses cache when available)
+    let enricher = state.enricher.lock().await;
+    let enriched = enricher.enrich_games(&games).await;
+    
+    log::info!("Returning {} enriched games", enriched.len());
+    Ok(enriched)
 }
 
 #[tauri::command]
@@ -406,33 +426,7 @@ pub fn save_settings(config: SettingsConfig) -> Result<(), String> {
     system::save_settings(config)
 }
 
-// ===================== ENRICHED GAMES COMMANDS =====================
-
-/// Get all games with enriched metadata (IGDB, HLTB, ProtonDB, assets)
-/// This is the main command for fetching games with all metadata
-#[tauri::command]
-pub async fn get_enriched_games(state: State<'_, AppState>) -> Result<Vec<EnrichedGame>, String> {
-    log::info!("Fetching enriched games...");
-    
-    // Get base games from database
-    let db = state.db.lock().await;
-    let games = db.get_all_games().await.map_err(|e| e.to_string())?;
-    drop(db);
-    
-    if games.is_empty() {
-        log::info!("No games in database");
-        return Ok(vec![]);
-    }
-    
-    log::info!("Enriching {} games...", games.len());
-    
-    // Enrich games with metadata
-    let enricher = state.enricher.lock().await;
-    let enriched = enricher.enrich_games(&games).await;
-    
-    log::info!("Successfully enriched {} games", enriched.len());
-    Ok(enriched)
-}
+// ===================== CACHE MANAGEMENT COMMANDS =====================
 
 /// Clear cache for a specific game
 #[tauri::command]

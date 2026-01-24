@@ -157,8 +157,7 @@
           <div class="grid grid-cols-4 gap-4 shrink-0 pb-2">
             <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
               <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Taille</span>
-              <div class="text-xl font-black italic mt-0.5 text-cyan-400">{{ enrichedGame?.install_size ||
-                game?.installSize || '--' }}</div>
+              <div class="text-xl font-black italic mt-0.5 text-cyan-400">{{ game?.installSize || '--' }}</div>
             </div>
             <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
               <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Durée</span>
@@ -183,7 +182,7 @@
     </div>
 
     <!-- Install Modal -->
-    <InstallModal v-model="showInstallModal" :game="game" @install-started="handleStartInstallation" />
+    <InstallModal v-if="game" v-model="showInstallModal" :game="game" @install-started="handleStartInstallation" />
 
     <!-- Launch Overlay -->
     <LaunchOverlay :is-visible="isLaunching" :game-title="game?.title || 'Hollow Knight'" :runner="launchRunner"
@@ -197,7 +196,7 @@ import { useRoute } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import InstallModal from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
-import type { EnrichedGame } from '@/types'
+import type { Game } from '@/types'
 import { ProtonTierUtils } from '@/types'
 
 type UnlistenFn = () => void
@@ -232,13 +231,8 @@ const libraryStore = useLibraryStore()
 const showInstallModal = ref(false)
 const gameId = computed(() => route.params.id as string)
 
-// Use enriched game data when available, fall back to base game
-const enrichedGame = computed<EnrichedGame | undefined>(() =>
-  libraryStore.getEnrichedGame(gameId.value)
-)
-const game = computed(() =>
-  enrichedGame.value || libraryStore.games.find(g => g.id === gameId.value)
-)
+// Get game from store - backend already returns enriched games
+const game = computed<Game | undefined>(() => libraryStore.getGame(gameId.value))
 
 const isDownloading = ref(false)
 const downloadProgress = ref(0)
@@ -264,53 +258,62 @@ let unlistenInstallProgress: UnlistenFn | undefined
 let unlistenInstalled: UnlistenFn | undefined
 let unlistenInstallFailed: UnlistenFn | undefined
 
-// === COMPUTED PROPERTIES FOR ENRICHED DATA ===
+// === COMPUTED PROPERTIES FOR GAME DATA ===
 
 // Hero background image
 const heroImage = computed(() => {
-  if (!enrichedGame.value) return ''
+  if (!game.value) return ''
 
   // Prefer local hero path, then background URL
-  if (enrichedGame.value.heroPath && convertFileSrc) {
-    return convertFileSrc(enrichedGame.value.heroPath)
+  if (game.value.heroPath && convertFileSrc) {
+    return convertFileSrc(game.value.heroPath)
   }
-  return enrichedGame.value.backgroundUrl || ''
+  return game.value.backgroundUrl || ''
 })
 
 // Score badge (Metacritic or IGDB rating)
 const scoreBadge = computed(() => {
-  if (!enrichedGame.value) return null
+  if (!game.value) return null
 
-  const score = enrichedGame.value.metacriticScore ||
-    Math.round(enrichedGame.value.igdbRating || 0)
+  const score = game.value.metacriticScore ||
+    Math.round(game.value.igdbRating || 0)
 
   if (!score) return null
 
-  let colorClass = 'bg-red-500/20 text-red-500 border-red-500/20'
-  if (score >= 75) colorClass = 'bg-green-500/20 text-green-500 border-green-500/20'
-  else if (score >= 50) colorClass = 'bg-yellow-500/20 text-yellow-500 border-yellow-500/20'
+  let colorClass = 'text-red-400'
+  if (score >= 75) colorClass = 'text-green-400'
+  else if (score >= 50) colorClass = 'text-yellow-400'
 
-  return { score, colorClass }
+  return { score, display: `${score}/100`, colorClass }
 })
 
 // ProtonDB badge
 const protonBadge = computed(() => {
-  if (!enrichedGame.value?.protonTier) return null
+  if (!game.value?.protonTier) return null
 
-  const tier = enrichedGame.value.protonTier
+  const tier = game.value.protonTier
+  const colors: Record<string, string> = {
+    native: 'text-blue-400',
+    platinum: 'text-cyan-400',
+    gold: 'text-yellow-400',
+    silver: 'text-gray-400',
+    bronze: 'text-orange-400',
+    pending: 'text-gray-500',
+    borked: 'text-red-500',
+  }
+
   return {
-    tier,
-    label: tier.toUpperCase(),
-    colorClass: ProtonTierUtils.getColorClass(tier),
+    tier: tier.charAt(0).toUpperCase() + tier.slice(1),
+    colorClass: colors[tier] || 'text-gray-400',
     isPlayable: ProtonTierUtils.isPlayable(tier),
   }
 })
 
 // HowLongToBeat durations
 const gameDurations = computed(() => {
-  if (!enrichedGame.value) return null
+  if (!game.value) return null
 
-  const { hltbMain, hltbMainExtra, hltbComplete } = enrichedGame.value
+  const { hltbMain, hltbMainExtra, hltbComplete } = game.value
   if (!hltbMain && !hltbComplete) return null
 
   return {
@@ -324,9 +327,9 @@ const gameDurations = computed(() => {
 
 // Achievements progress
 const achievementsProgress = computed(() => {
-  if (!enrichedGame.value?.achievementsTotal) return null
+  if (!game.value?.achievementsTotal) return null
 
-  const { achievementsTotal, achievementsUnlocked = 0 } = enrichedGame.value
+  const { achievementsTotal, achievementsUnlocked = 0 } = game.value
   const percentage = Math.round((achievementsUnlocked / achievementsTotal) * 100)
 
   return {
@@ -336,21 +339,8 @@ const achievementsProgress = computed(() => {
   }
 })
 
-// Genres formatted
-const genresList = computed(() => {
-  if (!enrichedGame.value?.genres?.length) return null
-  return enrichedGame.value.genres.slice(0, 3) // Max 3 genres
-})
-
-// Release year
-const releaseYear = computed(() => {
-  const date = enrichedGame.value?.releaseDate || game.value?.releaseDate
-  if (!date) return null
-  return new Date(date).getFullYear()
-})
-
 const formattedPlayTime = computed(() => {
-  const minutes = game.value?.playTimeMinutes || game.value?.playTime || 0
+  const minutes = game.value?.playTimeMinutes || 0
   if (minutes === 0) return '0h'
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
@@ -364,7 +354,7 @@ const formattedLastPlayed = computed(() => {
 })
 
 const completionStatus = computed(() => {
-  const minutes = game.value?.playTimeMinutes || game.value?.playTime || 0
+  const minutes = game.value?.playTimeMinutes || 0
   if (minutes === 0) return 'Non joué'
   if (minutes > 3600) return 'Terminé'
   if (minutes > 1200) return 'En cours'
@@ -409,13 +399,12 @@ onMounted(async () => {
   // Load Tauri helpers
   await loadConvertFileSrc()
 
-  // Fetch enriched games if not already loaded
-  if (libraryStore.enrichedGames.length === 0) {
-    await libraryStore.fetchEnrichedGames()
+  // Fetch games if not already loaded (backend returns enriched games)
+  if (libraryStore.games.length === 0) {
+    await libraryStore.fetchGames()
   }
 
   console.log('🎮 Game data:', game.value)
-  console.log('🎮 Enriched data:', enrichedGame.value)
 
   try {
     unlistenInstalling = await safeListen('game-installing', (event: any) => {

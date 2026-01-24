@@ -1,4 +1,4 @@
-import type { Game, EnrichedGame, CacheStats } from '@/types'
+import type { Game, CacheStats } from '@/types'
 
 // Import Tauri invoke - we'll wrap calls in try/catch for E2E compatibility
 // The invoke function is lazy-loaded to avoid import errors in E2E tests
@@ -65,12 +65,117 @@ export const disableMockMode = () => {
 // Import mock games (will be tree-shaken in production if not used)
 let mockGamesData: Game[] | null = null
 
-// Lazy load mock games
+// Enrich raw mock games with realistic test data
+const enrichMockGames = (games: any[]): Game[] => {
+  // Realistic enriched data for specific games
+  const enrichedData: Record<string, Partial<Game>> = {
+    '1': { // DREDGE
+      genres: ['Adventure', 'Indie', 'Simulation'],
+      developer: 'Black Salt Games',
+      publisher: 'Team17',
+      releaseDate: '2023-03-30',
+      metacriticScore: 84,
+      igdbRating: 82,
+      hltbMain: 12,
+      hltbMainExtra: 18,
+      hltbComplete: 25,
+      protonTier: 'platinum',
+      achievementsTotal: 45,
+      achievementsUnlocked: 28,
+      description: 'A single-player fishing adventure with a sinister undercurrent. Explore a mysterious archipelago and discover why some things are best left forgotten.',
+    },
+    '2': { // Call of Duty
+      genres: ['Shooter', 'Action'],
+      developer: 'Infinity Ward',
+      publisher: 'Activision',
+      releaseDate: '2003-10-29',
+      metacriticScore: 91,
+      igdbRating: 88,
+      hltbMain: 7,
+      hltbMainExtra: 9,
+      hltbComplete: 12,
+      protonTier: 'gold',
+      achievementsTotal: 36,
+      achievementsUnlocked: 0,
+      description: 'Call of Duty delivers the gritty realism and cinematic intensity of World War II\'s epic battlefield moments.',
+    },
+    '3': { // Fortnite
+      genres: ['Shooter', 'Battle Royale', 'Action'],
+      developer: 'Epic Games',
+      publisher: 'Epic Games',
+      releaseDate: '2017-07-25',
+      metacriticScore: 81,
+      igdbRating: 76,
+      hltbMain: 0, // No story mode
+      hltbMainExtra: 0,
+      hltbComplete: 0,
+      protonTier: 'borked',
+      achievementsTotal: 0,
+      achievementsUnlocked: 0,
+      description: 'The action building game where you team up with other players to build massive forts and battle against hordes of monsters.',
+    },
+    '4': { // Sea of Thieves
+      genres: ['Action', 'Adventure', 'Multiplayer'],
+      developer: 'Rare',
+      publisher: 'Xbox Game Studios',
+      releaseDate: '2018-03-20',
+      metacriticScore: 69,
+      igdbRating: 71,
+      hltbMain: 15,
+      hltbMainExtra: 45,
+      hltbComplete: 120,
+      protonTier: 'silver',
+      achievementsTotal: 189,
+      achievementsUnlocked: 42,
+      description: 'A pirate adventure game that lets you explore an open world via a pirate ship from a first-person perspective.',
+    },
+    '7': { // Red Dead Redemption 2
+      genres: ['Action', 'Adventure', 'Shooter'],
+      developer: 'Rockstar Games',
+      publisher: 'Rockstar Games',
+      releaseDate: '2018-10-26',
+      metacriticScore: 97,
+      igdbRating: 93,
+      hltbMain: 50,
+      hltbMainExtra: 79,
+      hltbComplete: 173,
+      protonTier: 'gold',
+      achievementsTotal: 59,
+      achievementsUnlocked: 35,
+      description: 'America, 1899. The end of the Wild West era has begun. After a robbery goes badly wrong, Arthur Morgan must fight to survive against rival gangs, natural forces, and his own inner demons.',
+    },
+  }
+
+  return games.map(game => {
+    const enrichment = enrichedData[game.id] || {}
+    return {
+      ...game,
+      genres: enrichment.genres ?? [],
+      developer: enrichment.developer,
+      publisher: enrichment.publisher,
+      releaseDate: enrichment.releaseDate,
+      description: enrichment.description ?? game.description,
+      metacriticScore: enrichment.metacriticScore,
+      igdbRating: enrichment.igdbRating,
+      hltbMain: enrichment.hltbMain,
+      hltbMainExtra: enrichment.hltbMainExtra,
+      hltbComplete: enrichment.hltbComplete,
+      protonTier: enrichment.protonTier,
+      achievementsTotal: enrichment.achievementsTotal,
+      achievementsUnlocked: enrichment.achievementsUnlocked,
+      playTimeMinutes: game.playTime ?? game.playTimeMinutes ?? 0,
+      createdAt: game.createdAt ?? new Date().toISOString(),
+      updatedAt: game.updatedAt ?? new Date().toISOString(),
+    }
+  })
+}
+
+// Lazy load mock games (returns already enriched games)
 const getMockGames = async (): Promise<Game[]> => {
   // Check for mock games injected by E2E tests first (in window)
   if (typeof window !== 'undefined' && (window as any).__MOCK_GAMES__) {
     console.log('🎮 [MOCK] Using window.__MOCK_GAMES__')
-    return (window as any).__MOCK_GAMES__
+    return enrichMockGames((window as any).__MOCK_GAMES__)
   }
   
   // Check for mock games stored in localStorage (survives page reload)
@@ -80,7 +185,7 @@ const getMockGames = async (): Promise<Game[]> => {
       if (stored) {
         const games = JSON.parse(stored)
         console.log('🎮 [MOCK] Using localStorage PIXXIDEN_MOCK_GAMES:', games.length, 'games')
-        return games
+        return enrichMockGames(games)
       }
     } catch (e) {
       console.error('🎮 [MOCK] Failed to parse localStorage mock games:', e)
@@ -93,7 +198,7 @@ const getMockGames = async (): Promise<Game[]> => {
   
   if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
     const module = await import('../../e2e/fixtures/mockGames')
-    mockGamesData = module.mockGames
+    mockGamesData = enrichMockGames(module.mockGames)
     return mockGamesData
   }
   
@@ -141,15 +246,17 @@ interface SettingsConfig {
 }
 
 // Games API - Direct IPC calls to Rust backend
+// Backend automatically enriches games with metadata - frontend just gets Game objects
 
 export async function getGames(): Promise<Game[]> {
   if (isMockMode()) {
     const mockData = await getMockGames()
     console.log('🎮 [MOCK MODE] Returning mock games:', mockData.length)
-    return Promise.resolve([...mockData])
+    return mockData
   }
   
   try {
+    // Backend returns already-enriched games
     const games = await invoke<Game[]>('get_games')
     return games
   } catch (error) {
@@ -161,7 +268,7 @@ export async function getGames(): Promise<Game[]> {
 export async function getGame(gameId: string): Promise<Game | null> {
   if (isMockMode()) {
     const mockData = await getMockGames()
-    const game = mockData.find(g => g.id === gameId || g.appId === gameId) || null
+    const game = mockData.find(g => g.id === gameId) || null
     console.log(`🎮 [MOCK MODE] getGame(${gameId}):`, game?.title || 'not found')
     return game
   }
@@ -171,52 +278,6 @@ export async function getGame(gameId: string): Promise<Game | null> {
     return game
   } catch (error) {
     console.error('Failed to get game:', error)
-    throw error
-  }
-}
-
-/**
- * Get all games with enriched metadata (IGDB, HowLongToBeat, ProtonDB, assets)
- * This is the main function to use for displaying game details with full metadata
- */
-export async function getEnrichedGames(): Promise<EnrichedGame[]> {
-  if (isMockMode()) {
-    // In mock mode, convert mock games to enriched format
-    const mockData = await getMockGames()
-    console.log('🎮 [MOCK MODE] Returning mock games as enriched:', mockData.length)
-    return mockData.map(game => ({
-      id: game.id,
-      title: game.title,
-      store: game.store,
-      storeId: game.storeId,
-      installed: game.installed,
-      installPath: game.installPath,
-      description: game.description,
-      developer: game.developer,
-      publisher: game.publisher,
-      genres: [],
-      releaseDate: game.releaseDate,
-      playTimeMinutes: game.playTimeMinutes ?? 0,
-      lastPlayed: game.lastPlayed,
-      createdAt: game.createdAt ?? new Date().toISOString(),
-      updatedAt: game.updatedAt ?? new Date().toISOString(),
-      coverUrl: game.backgroundUrl,
-      backgroundUrl: game.backgroundUrl,
-      // Mock some enriched data
-      metacriticScore: Math.floor(Math.random() * 30) + 70,
-      hltbMain: Math.floor(Math.random() * 30) + 10,
-      hltbComplete: Math.floor(Math.random() * 50) + 30,
-      protonTier: ['platinum', 'gold', 'silver'][Math.floor(Math.random() * 3)] as 'platinum' | 'gold' | 'silver',
-      achievementsTotal: Math.floor(Math.random() * 50) + 10,
-      achievementsUnlocked: Math.floor(Math.random() * 30),
-    }))
-  }
-  
-  try {
-    const games = await invoke<EnrichedGame[]>('get_enriched_games')
-    return games
-  } catch (error) {
-    console.error('Failed to get enriched games:', error)
     throw error
   }
 }

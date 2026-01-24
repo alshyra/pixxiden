@@ -1,22 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as api from '@/services/api'
-import type { Game, EnrichedGame } from '@/types'
+import type { Game } from '@/types'
 
 export const useLibraryStore = defineStore('library', () => {
+  // All games (already enriched by backend)
   const games = ref<Game[]>([])
-  const enrichedGames = ref<EnrichedGame[]>([])
   const selectedGame = ref<Game | null>(null)
   const loading = ref(false)
   const syncing = ref(false)
-  const enriching = ref(false)
   const error = ref<string | null>(null)
   const syncErrors = ref<string[]>([])
   const hasSynced = ref(false)
 
-  // Computed: Get an enriched game by ID
-  const getEnrichedGame = computed(() => (gameId: string) => {
-    return enrichedGames.value.find(g => g.id === gameId)
+  // Computed: Get a game by ID
+  const getGame = computed(() => (gameId: string) => {
+    return games.value.find(g => g.id === gameId)
   })
 
   async function fetchGames() {
@@ -24,6 +23,7 @@ export const useLibraryStore = defineStore('library', () => {
     loading.value = true
     error.value = null
     try {
+      // Backend returns already-enriched games
       const data = await api.getGames()
       console.log('🎮 Got', data.length, 'games')
       // If no games in DB and never synced, auto-sync
@@ -38,45 +38,6 @@ export const useLibraryStore = defineStore('library', () => {
       console.error('🎮 Error:', err)
     } finally {
       loading.value = false
-    }
-  }
-
-  /**
-   * Fetch games with full enriched metadata (IGDB, HLTB, ProtonDB, assets)
-   * Use this for game details views
-   */
-  async function fetchEnrichedGames() {
-    console.log('🎮 fetchEnrichedGames()')
-    enriching.value = true
-    error.value = null
-    try {
-      const data = await api.getEnrichedGames()
-      console.log('🎮 Got', data.length, 'enriched games')
-      enrichedGames.value = data
-      
-      // Also update base games for backwards compatibility
-      games.value = data.map(eg => ({
-        id: eg.id,
-        title: eg.title,
-        store: eg.store,
-        storeId: eg.storeId,
-        installed: eg.installed,
-        installPath: eg.installPath,
-        description: eg.description,
-        developer: eg.developer,
-        publisher: eg.publisher,
-        releaseDate: eg.releaseDate,
-        backgroundUrl: eg.backgroundUrl || eg.heroPath,
-        playTimeMinutes: eg.playTimeMinutes,
-        lastPlayed: eg.lastPlayed,
-        createdAt: eg.createdAt,
-        updatedAt: eg.updatedAt,
-      }))
-    } catch (err) {
-      error.value = 'Failed to fetch enriched games'
-      console.error('🎮 Error:', err)
-    } finally {
-      enriching.value = false
     }
   }
 
@@ -181,16 +142,13 @@ export const useLibraryStore = defineStore('library', () => {
 
   return {
     games,
-    enrichedGames,
     selectedGame,
     loading,
     syncing,
-    enriching,
     error,
     syncErrors,
-    getEnrichedGame,
+    getGame,
     fetchGames,
-    fetchEnrichedGames,
     syncLibrary,
     scanGogInstalled,
     launchGame,

@@ -1,18 +1,37 @@
-import type { Game } from '@/types'
-
 /**
- * Mock games data for E2E testing
+ * Mock games data for E2E testing (LEGACY)
  * 
- * This fixture provides consistent game data for testing without
- * relying on actual store connections or backend availability.
+ * NOTE: These mocks are DEPRECATED. New E2E tests should use real backend data.
+ * This file is kept for backwards compatibility with legacy tests.
+ * 
+ * @deprecated Use real backend data instead of mocks
  */
 
-export const mockGames: Game[] = [
+// Local type for mock games (doesn't depend on main Game type)
+interface MockGame {
+  id: string
+  title: string
+  store: string
+  storeId: string
+  appId?: string // Legacy field
+  installed: boolean
+  installPath?: string
+  executablePath?: string
+  playTime?: number
+  lastPlayed?: string
+  backgroundUrl?: string
+  genres?: string[]
+  playTimeMinutes?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export const mockGames: MockGame[] = [
   {
     id: '1',
     title: 'DREDGE',
     store: 'gog',
-    storeId: 'gog',
+    storeId: 'dredge-gog',
     appId: 'dredge-gog',
     installed: true,
     installPath: '/games/dredge',
@@ -25,7 +44,7 @@ export const mockGames: Game[] = [
     id: '2',
     title: 'Call of Duty',
     store: 'epic',
-    storeId: 'epic',
+    storeId: 'cod-epic',
     appId: 'cod-epic',
     installed: false,
     installPath: '',
@@ -37,7 +56,7 @@ export const mockGames: Game[] = [
     id: '3',
     title: 'Fortnite',
     store: 'epic',
-    storeId: 'epic',
+    storeId: 'fortnite-epic',
     appId: 'fortnite-epic',
     installed: true,
     installPath: '/games/fortnite',
@@ -205,35 +224,35 @@ export const mockGames: Game[] = [
 /**
  * Get games filtered by store
  */
-export function getGamesByStore(store: string): Game[] {
+export function getGamesByStore(store: string): MockGame[] {
   return mockGames.filter(g => g.store === store)
 }
 
 /**
  * Get installed games
  */
-export function getInstalledGames(): Game[] {
+export function getInstalledGames(): MockGame[] {
   return mockGames.filter(g => g.installed)
 }
 
 /**
  * Get not installed games
  */
-export function getNotInstalledGames(): Game[] {
+export function getNotInstalledGames(): MockGame[] {
   return mockGames.filter(g => !g.installed)
 }
 
 /**
  * Get a specific game by ID
  */
-export function getGameById(id: string): Game | undefined {
+export function getGameById(id: string): MockGame | undefined {
   return mockGames.find(g => g.id === id)
 }
 
 /**
  * Get recently played games (last 30 days)
  */
-export function getRecentlyPlayedGames(): Game[] {
+export function getRecentlyPlayedGames(): MockGame[] {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   

@@ -1,32 +1,9 @@
-export interface Game {
-  id: string
-  title: string
-  store: string
-  storeId: string
-  appId?: string // Alias for storeId in some contexts
-  installed: boolean
-  installPath?: string
-  executablePath?: string
-  backgroundUrl?: string
-  developer?: string
-  publisher?: string
-  description?: string
-  releaseDate?: string
-  runner?: string
-  playTime?: number // Alias for playTimeMinutes
-  playTimeMinutes?: number
-  lastPlayed?: string
-  downloading?: boolean
-  downloadProgress?: number
-  createdAt?: string
-  updatedAt?: string
-}
-
 /**
- * Enriched Game with full metadata from external APIs
- * Used by GameDetails and other views that need rich metadata
+ * Game type - Unified game data with all metadata
+ * The backend automatically enriches games with IGDB, HowLongToBeat, ProtonDB, and assets
+ * Frontend just consumes Game objects - no distinction between "basic" and "enriched"
  */
-export interface EnrichedGame {
+export interface Game {
   // Base info (from legendary/gogdl/nile)
   id: string
   title: string
@@ -34,18 +11,21 @@ export interface EnrichedGame {
   storeId: string
   installed: boolean
   installPath?: string
+  installSize?: string
+  executablePath?: string
   winePrefix?: string
   wineVersion?: string
+  runner?: string
   
   // Metadata (from IGDB)
   description?: string
+  summary?: string
   metacriticScore?: number       // 0-100
   igdbRating?: number            // 0-100
   developer?: string
   publisher?: string
   genres: string[]
   releaseDate?: string
-  summary?: string
   
   // Playtime (from HowLongToBeat)
   hltbMain?: number              // hours for main story
@@ -54,7 +34,7 @@ export interface EnrichedGame {
   hltbSpeedrun?: number          // hours for speedrun (any%)
   
   // Compatibility (from ProtonDB)
-  protonTier?: 'platinum' | 'gold' | 'silver' | 'bronze' | 'borked' | 'native' | 'pending'
+  protonTier?: ProtonTier
   protonConfidence?: string      // "good", "adequate", "low"
   protonTrendingTier?: string
   steamAppId?: number
@@ -76,12 +56,17 @@ export interface EnrichedGame {
   // User data
   playTimeMinutes: number
   lastPlayed?: string
+  downloading?: boolean
+  downloadProgress?: number
   
   // Timestamps
   createdAt: string
   updatedAt: string
   enrichedAt?: string
 }
+
+// Backwards compatibility alias
+export type EnrichedGame = Game
 
 /**
  * Cache statistics

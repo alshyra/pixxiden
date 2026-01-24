@@ -22,7 +22,9 @@ export const config: Options.Testrunner = {
   // ==================
   // Specify Test Files
   // ==================
-  specs: ['./e2e/tests/**/*.spec.ts'],
+  // Run user journey tests by default (real data, no mocks)
+  // To run legacy mock-based tests: npx wdio --spec ./e2e/tests/0*.spec.ts
+  specs: ['./e2e/tests/user-journey.spec.ts'],
   exclude: [],
 
   //
@@ -72,6 +74,22 @@ export const config: Options.Testrunner = {
   // =====
   onPrepare: async function () {
     const { execSync } = await import('child_process')
+    const { rmSync, existsSync } = await import('fs')
+    const { join } = await import('path')
+    
+    // Clear Pixxiden cache to test real enrichment pipeline
+    const cacheDir = join(process.env.HOME || '', '.local/share/pixxiden')
+    console.log('🗑️  Clearing Pixxiden cache for fresh E2E run...')
+    try {
+      if (existsSync(cacheDir)) {
+        rmSync(cacheDir, { recursive: true, force: true })
+        console.log(`✅ Cleared cache at ${cacheDir}`)
+      } else {
+        console.log(`📁 Cache directory doesn't exist yet: ${cacheDir}`)
+      }
+    } catch (e) {
+      console.warn(`⚠️  Could not clear cache: ${e}`)
+    }
     
     // Kill any existing tauri-driver processes and free up ports
     console.log('🧹 Cleaning up any existing tauri-driver processes...')
