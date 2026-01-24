@@ -56,7 +56,7 @@
             <!-- Title & Meta -->
             <div>
               <h1 class="text-6xl font-black mb-4 tracking-tight uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                {{ game?.title || 'Loading...' }}
+                {{ game?.title || 'Loading Game...' }}
               </h1>
               
               <div class="flex items-center gap-3 mb-4">
@@ -70,15 +70,15 @@
                 <Badge 
                   v-for="genre in displayGenres" 
                   :key="genre"
-                  variant="outline"
-                  class="px-3 py-1 bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-colors"
+                  variant="default"
+                  class="px-3 py-1"
                 >
                   {{ genre }}
                 </Badge>
                 <Badge 
                   v-if="metacriticScore"
                   variant="success"
-                  class="px-3 py-1 bg-green-500/20 text-green-400 font-bold"
+                  class="px-3 py-1 font-bold"
                 >
                   {{ metacriticScore }}
                 </Badge>
@@ -160,7 +160,7 @@
             <div class="bg-white/5 rounded-xl p-6 border border-white/10">
               <h3 class="text-lg font-bold mb-3 text-white/90">About this game</h3>
               <p class="text-white/70 leading-relaxed">
-                {{ game?.description || metadata?.description || 'Forge your own path in this epic adventure! A masterfully crafted game with emphasis on skill and exploration. Fight fearsome creatures, avoid intricate traps, and solve ancient mysteries in a beautifully hand-drawn world.' }}
+                {{ game?.description || metadata?.description || DEFAULT_DESCRIPTION }}
               </p>
             </div>
           </div>
@@ -223,6 +223,11 @@ import type { Metadata } from '@/types'
 
 // Define UnlistenFn type locally to avoid import issues in E2E
 type UnlistenFn = () => void
+
+// Constants
+const DEFAULT_GENRES = ['Action', 'Adventure', 'Indie']
+const DEFAULT_YEAR = '2017'
+const DEFAULT_DESCRIPTION = 'Forge your own path in this epic adventure! A masterfully crafted game with emphasis on skill and exploration. Fight fearsome creatures, avoid intricate traps, and solve ancient mysteries in a beautifully hand-drawn world.'
 
 // Safe listen wrapper for E2E compatibility
 const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
@@ -296,8 +301,7 @@ const displayGenres = computed(() => {
   if (metadata.value?.genres && metadata.value.genres.length > 0) {
     return metadata.value.genres.slice(0, 5)
   }
-  // Default genres for demo
-  return ['Action', 'Adventure', 'Indie']
+  return DEFAULT_GENRES
 })
 
 // Release year from metadata
@@ -305,7 +309,7 @@ const getReleaseYear = computed(() => {
   if (metadata.value?.releaseDate) {
     return new Date(metadata.value.releaseDate).getFullYear()
   }
-  return '2017' // Default year
+  return DEFAULT_YEAR
 })
 
 // Achievement percentage (mock data for now)
