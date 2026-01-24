@@ -1,176 +1,181 @@
 <template>
-  <div class="game-details min-h-screen bg-black text-white">
-    <!-- Background -->
-    <div class="absolute inset-0 overflow-hidden">
-      <img 
-        v-if="game?.backgroundUrl"
-        :src="game?.backgroundUrl"
-        class="w-full h-full object-cover opacity-50 scale-110"
-      />
-      <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
-    </div>
-    
-    <!-- Content -->
-    <div class="relative z-10 min-h-screen flex">
-      <!-- Left Panel: Game Info -->
-      <div class="flex-1 p-12 flex flex-col justify-center max-w-3xl">
-        <!-- Back Button -->
-        <Button 
-          variant="ghost"
-          size="sm"
-          class="mb-8 self-start"
-          @click="$router.back()"
-        >
-          <template #icon>
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
-            </svg>
-          </template>
-          Back
-        </Button>
-        
-        <!-- Title -->
-        <h1 class="text-5xl font-bold mb-4">{{ game?.title }}</h1>
-        
-        <!-- Meta -->
-        <div class="flex items-center gap-3 mb-6 text-sm">
-          <Badge variant="default">PC (Windows)</Badge>
-          <Badge v-if="metadata?.releaseDate" variant="default">
-            {{ new Date(metadata.releaseDate).getFullYear() }}
-          </Badge>
-          <Badge v-if="metacriticScore" variant="success">{{ metacriticScore }}</Badge>
-        </div>
-        
-        <!-- Stats -->
-        <div class="space-y-3 mb-8">
-          <div class="flex items-center gap-3">
-            <span class="text-green-400 font-medium">Time Played</span>
-            <span class="text-white/80">{{ formattedPlayTime }}</span>
-          </div>
-          <div v-if="game?.lastPlayed" class="flex items-center gap-3">
-            <span class="text-green-400 font-medium">Last Played</span>
-            <span class="text-white/80">{{ formattedLastPlayed }}</span>
-          </div>
-          <div v-if="achievements" class="flex items-center gap-3">
-            <span class="text-green-400 font-medium">Achievements</span>
-            <span class="text-white/80">{{ achievements }}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-green-400 font-medium">Completion Status</span>
-            <span class="text-white/80">{{ completionStatus }}</span>
-          </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-4 mb-8">
-          <Button 
-            v-if="game?.installed"
-            variant="primary" 
-            size="lg"
-            class="bg-green-600 hover:bg-green-500"
-            @click="playGame"
-          >
-            <template #icon>
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
-              </svg>
-            </template>
-            {{ isPlaying ? 'Running' : 'Play' }}
-          </Button>
-          
-          <Button 
-            v-else
-            variant="primary" 
-            size="lg"
-            @click="showInstallModal = true"
-          >
-            <template #icon>
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
-              </svg>
-            </template>
-            Install
-          </Button>
-          
-          <Button variant="ghost" @click="showSettings = true">
-            •••
-          </Button>
-          
-          <Button v-if="isPlaying" variant="ghost" @click="returnToGame">
-            Return to Game
-          </Button>
-          
-          <Button v-if="isPlaying" variant="ghost" @click="exitGame">
-            Exit
-          </Button>
-        </div>
-        
-        <!-- Description -->
-        <div v-if="metadata?.description" class="text-white/70 text-sm leading-relaxed max-w-xl">
-          {{ metadata.description }}
-        </div>
+  <div class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
+
+    <!-- SECTION HERO (45vh) -->
+    <div class="relative h-[45vh] w-full overflow-hidden shrink-0 bg-[#0a0a0a]">
+      <!-- Background Image -->
+      <div
+        class="absolute inset-0 bg-cover bg-center opacity-50 scale-100 transition-opacity duration-1000 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-black">
+        <img v-if="game?.backgroundUrl" :src="game?.backgroundUrl" :alt="game?.title"
+          class="w-full h-full object-cover" />
       </div>
-      
-      <!-- Right Panel: Cover Art -->
-      <div class="flex-shrink-0 w-80 p-12 flex flex-col items-end justify-end">
-        <div class="w-48 aspect-[3/4] rounded-xl overflow-hidden shadow-2xl">
-          <img 
-            v-if="game?.backgroundUrl"
-            :src="game.backgroundUrl"
-            :alt="game.title"
-            class="w-full h-full object-cover"
-          />
-          <div v-else class="w-full h-full bg-gray-800 flex items-center justify-center">
-            <span class="text-4xl">🎮</span>
-          </div>
-        </div>
-        
-        <!-- Genres -->
-        <div v-if="metadata?.genres" class="mt-4 text-right text-white/60 text-sm">
-          {{ metadata.genres.join(' | ') }}
+
+      <!-- Gradient Overlay -->
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/40 to-[#050505]"></div>
+
+      <!-- Titre Centré (position absolute) -->
+      <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center z-10">
+        <h1
+          class="text-[100px] font-black italic tracking-tighter text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] leading-none uppercase">
+          {{ (game?.title || 'HOLLOW KNIGHT').toUpperCase() }}
+        </h1>
+        <div class="flex gap-4 mt-2 opacity-30">
+          <div class="w-12 h-[1px] bg-[#5e5ce6] shadow-[0_0_8px_#5e5ce6]"></div>
+          <div class="w-12 h-[1px] bg-[#5e5ce6] shadow-[0_0_8px_#5e5ce6]"></div>
         </div>
       </div>
     </div>
-    
-    <!-- Settings Modal -->
-    <GameSettingsModal 
-      :show="showSettings" 
-      :game-id="gameId"
-      @close="showSettings = false"
-    />
-    
+
+    <!-- CONTENU PRINCIPAL -->
+    <div class="flex-1 max-w-[1500px] mx-auto px-10 -mt-24 relative z-20 w-full mb-6">
+      <div class="grid grid-cols-12 gap-6 h-full items-start">
+
+        <!-- COLONNE GAUCHE (4/12) -->
+        <div class="col-span-12 lg:col-span-4 space-y-4 h-full flex flex-col">
+          <div
+            class="bg-[#0f0f12]/95 backdrop-blur-2xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+
+            <!-- Header Card -->
+            <div class="flex p-5 gap-5 border-b border-white/5 bg-white/2 items-center">
+              <div class="w-24 h-24 shrink-0 bg-[#1a1a1e] rounded-lg overflow-hidden border border-white/10 shadow-xl">
+                <div
+                  class="w-full h-full bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 flex items-center justify-center">
+                  <span class="text-4xl">🎮</span>
+                </div>
+              </div>
+              <div>
+                <h2 class="text-xl font-black italic tracking-tight text-white leading-tight">
+                  {{ game?.title?.toUpperCase() || 'HOLLOW KNIGHT' }}
+                </h2>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                  {{ game?.developer || 'TEAM CHERRY' }} • 2017
+                </p>
+                <div class="flex gap-2 mt-2">
+                  <span
+                    class="bg-green-500/20 text-green-500 text-[9px] font-black px-1.5 py-0.5 rounded border border-green-500/20">93</span>
+                  <span
+                    class="bg-white/5 text-gray-400 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-widest">INDÉ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Install Button Section -->
+            <div class="p-5 bg-gradient-to-b from-white/2 to-transparent">
+              <button v-if="!game?.installed && !isDownloading" @click="showInstallModal = true"
+                class="w-full bg-[#5e5ce6] hover:bg-[#6e6cf7] text-white py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(94,92,230,0.3)] transition-all flex items-center justify-center gap-3 group">
+                <span class="text-lg group-hover:translate-y-0.5 transition-transform">↓</span>
+                Installer
+              </button>
+
+              <!-- Download Progress -->
+              <div v-if="isDownloading" class="space-y-3">
+                <div class="flex justify-between items-end">
+                  <span class="text-[9px] font-black uppercase tracking-widest text-[#5e5ce6]">Téléchargement...</span>
+                  <span class="text-[10px] font-bold text-white">{{ Math.floor(downloadProgress) }}%</span>
+                </div>
+                <div class="w-full h-2.5 bg-white/5 rounded-full overflow-hidden p-[1px] border border-white/5">
+                  <div
+                    class="h-full bg-gradient-to-r from-[#5e5ce6] to-[#a78bfa] rounded-full shadow-[0_0_15px_rgba(94,92,230,0.6)] transition-all duration-300"
+                    :style="{ width: `${downloadProgress}%` }"></div>
+                </div>
+                <div class="flex justify-between text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
+                  <span>{{ downloadSpeed }}</span>
+                  <span>{{ downloadedSize }} / {{ totalSize }}</span>
+                </div>
+              </div>
+
+              <!-- Play Button -->
+              <button v-else-if="game?.installed" @click="playGame"
+                class="w-full bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-3">
+                <span class="text-lg">▶</span> Lancer le jeu
+              </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-3 text-center border-y border-white/5 bg-white/2">
+              <div class="p-3 border-r border-white/5 flex flex-col items-center">
+                <span class="text-[8px] font-black text-gray-600 uppercase mb-0.5">Temps</span>
+                <span class="text-xs font-bold text-white">{{ formattedPlayTime }}</span>
+              </div>
+              <div class="p-3 border-r border-white/5 flex flex-col items-center">
+                <span class="text-[8px] font-black text-gray-600 uppercase mb-0.5">Dernier</span>
+                <span class="text-xs font-bold text-white">{{ formattedLastPlayed }}</span>
+              </div>
+              <div class="p-3 flex flex-col items-center">
+                <span class="text-[8px] font-black text-gray-600 uppercase mb-0.5">Statut</span>
+                <span class="text-xs font-bold text-orange-400 italic">{{ completionStatus }}</span>
+              </div>
+            </div>
+
+            <!-- Achievements -->
+            <div class="p-6 space-y-3">
+              <div class="flex justify-between items-end">
+                <span class="text-[10px] font-black uppercase tracking-widest text-[#5e5ce6]">Succès</span>
+                <span class="text-[9px] font-bold text-gray-500">37/63</span>
+              </div>
+              <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full bg-[#5e5ce6]" style="width: 59%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Synopsis -->
+          <div class="px-2 overflow-hidden flex-shrink">
+            <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2 italic">Synopsis</h3>
+            <p class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80">
+              {{ game?.description || 'Missing description' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- COLONNE DROITE (8/12) -->
+        <div class="col-span-12 lg:col-span-8 space-y-6 h-full flex flex-col">
+          <!-- Gameplay Image/Video -->
+          <div
+            class="relative flex-1 rounded-3xl overflow-hidden border border-white/10 shadow-2xl group cursor-pointer max-h-[460px] bg-[#1a1a1e]">
+            <!-- Background Placeholder -->
+            <div
+              class="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-blue-900/30 to-cyan-900/20 transition-transform duration-700 group-hover:scale-105 opacity-80">
+            </div>
+
+            <!-- Play Button Overlay -->
+            <div
+              class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <div
+                class="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center transition-transform group-hover:scale-110 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                <div
+                  class="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white border-b-[10px] border-b-transparent ml-2">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats Bottom -->
+          <div class="grid grid-cols-3 gap-4 shrink-0 pb-2">
+            <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
+              <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Taille</span>
+              <div class="text-xl font-black italic mt-0.5 text-cyan-400">9.2 GB</div>
+            </div>
+            <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
+              <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Durée</span>
+              <div class="text-xl font-black italic mt-0.5 text-pink-400">40-60h</div>
+            </div>
+            <div class="bg-[#0f0f12] border border-white/5 p-4 rounded-xl flex flex-col">
+              <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest italic">Note</span>
+              <div class="text-xl font-black italic mt-0.5 text-green-400">93/100</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Install Modal -->
-    <InstallModal
-      v-if="game"
-      v-model="showInstallModal"
-      :game="game"
-      @install-started="handleInstallStarted"
-    />
-    
+    <InstallModal v-model="showInstallModal" :game="game" @install-started="handleStartInstallation" />
+
     <!-- Launch Overlay -->
-    <LaunchOverlay
-      :is-visible="isLaunching"
-      :game-title="game?.title || 'Game'"
-      :runner="launchRunner"
-      :error="launchError"
-      @close="closeLaunchOverlay"
-    />
-    
-    <!-- Download Overlay -->
-    <DownloadOverlay
-      :is-visible="isDownloading"
-      :game-title="game?.title || 'Game'"
-      :runner="launchRunner"
-      :error="downloadError"
-      :progress="downloadProgress"
-      :downloaded="downloadedSize"
-      :total="totalSize"
-      :speed="downloadSpeed"
-      :eta="downloadEta"
-      @close="closeDownloadOverlay"
-      @cancel="cancelDownload"
-    />
+    <LaunchOverlay :is-visible="isLaunching" :game-title="game?.title || 'Hollow Knight'" :runner="launchRunner"
+      :error="launchError" @close="closeLaunchOverlay" />
   </div>
 </template>
 
@@ -178,25 +183,19 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
-import { Button, Badge } from '@/components/ui'
-import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
 import InstallModal from '@/components/game/InstallModal.vue'
-import type { InstallConfig } from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
-import DownloadOverlay from '@/components/game/DownloadOverlay.vue'
 import type { Metadata } from '@/types'
 
-// Define UnlistenFn type locally to avoid import issues in E2E
 type UnlistenFn = () => void
 
-// Safe listen wrapper for E2E compatibility
 const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
   try {
     const { listen } = await import('@tauri-apps/api/event')
     return listen(event, handler)
   } catch (e) {
-    console.warn(`[GameDetails] Failed to setup listener for '${event}' (expected in E2E):`, e)
-    return () => {} // Return no-op unlisten function
+    console.warn(`[GameDetails] Failed to setup listener for '${event}':`, e)
+    return () => { }
   }
 }
 
@@ -205,27 +204,15 @@ const libraryStore = useLibraryStore()
 
 const showInstallModal = ref(false)
 const gameId = computed(() => route.params.id as string)
-const showSettings = ref(false)
-const game = computed(() => {
-  const g = libraryStore.games.find(g => g.id === gameId.value)
-  if (g) {
-    console.log('🎮 Game data:', {
-      id: g.id,
-      title: g.title,
-      hasCover: !!g.backgroundUrl,
-      hasBackground: !!g.backgroundUrl,
-      coverUrl: g.backgroundUrl?.substring(0, 50),
-      backgroundUrl: g.backgroundUrl?.substring(0, 50)
-    })
-  }
-  return g
-})
+const game = computed(() => libraryStore.games.find(g => g.id === gameId.value))
 const metadata = ref<Metadata | null>(null)
-const isPlaying = ref(false)
-const installing = ref(false)
-const metacriticScore = ref<number | null>(85) // TODO: Get from API
 
-// Launch overlay state
+const isDownloading = ref(false)
+const downloadProgress = ref(0)
+const downloadedSize = ref('0 MB')
+const totalSize = ref('9.2 GB')
+const downloadSpeed = ref('0 MB/s')
+
 const isLaunching = ref(false)
 const launchError = ref<string | null>(null)
 const launchRunner = computed(() => {
@@ -234,61 +221,46 @@ const launchRunner = computed(() => {
     case 'epic': return 'Legendary (Epic Games)'
     case 'gog': return 'GOGdl (GOG Galaxy)'
     case 'amazon': return 'Nile (Amazon Games)'
+    case 'steam': return 'Steam'
     default: return game.value.store
   }
 })
 
-// Download overlay state
-const isDownloading = ref(false)
-const downloadError = ref<string | null>(null)
-const downloadProgress = ref(0)
-const downloadedSize = ref('0 MB')
-const totalSize = ref('0 MB')
-const downloadSpeed = ref('Calculating...')
-const downloadEta = ref('Calculating...')
-
-// Event listeners
-let unlistenLaunching: UnlistenFn | undefined
-let unlistenLaunched: UnlistenFn | undefined
-let unlistenFailed: UnlistenFn | undefined
 let unlistenInstalling: UnlistenFn | undefined
 let unlistenInstallProgress: UnlistenFn | undefined
 let unlistenInstalled: UnlistenFn | undefined
 let unlistenInstallFailed: UnlistenFn | undefined
 
-const achievements = computed(() => {
-  // TODO: Get from API
-  return '17/60 (29%)'
-})
-
-const completionStatus = computed(() => {
-  if (!game.value?.playTime) return 'Not Played'
-  if (game.value.playTime > 3600 * 20) return 'Played'
-  return 'Started'
-})
-
 const formattedPlayTime = computed(() => {
   const minutes = game.value?.playTime || 0
+  if (minutes === 0) return '0h'
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  return `${hours}h ${mins}m`
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
 })
 
 const formattedLastPlayed = computed(() => {
-  if (!game.value?.lastPlayed) return 'Never'
-  return new Date(game.value.lastPlayed).toLocaleDateString()
+  if (!game.value?.lastPlayed) return 'Jamais'
+  const date = new Date(game.value.lastPlayed)
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+})
+
+const completionStatus = computed(() => {
+  const minutes = game.value?.playTime || 0
+  if (minutes === 0) return 'Non joué'
+  if (minutes > 3600) return 'Terminé'
+  if (minutes > 1200) return 'En cours'
+  return 'Commencé'
 })
 
 async function playGame() {
   if (!game.value) return
-  
-  // Reset state and show overlay
+
   launchError.value = null
   isLaunching.value = true
-  
+
   try {
     await libraryStore.launchGame(game.value.id)
-    // Success will be handled by event listener
   } catch (error: any) {
     launchError.value = error?.message || error?.toString() || 'Unknown error'
     console.error('Failed to launch game:', error)
@@ -300,120 +272,63 @@ function closeLaunchOverlay() {
   launchError.value = null
 }
 
-function handleInstallStarted(config: InstallConfig) {
-  console.log('Installation started with config:', config)
-  installing.value = true
+async function handleStartInstallation(config: any) {
+  showInstallModal.value = false
   isDownloading.value = true
   downloadProgress.value = 0
-  downloadError.value = null
-  
-  // The actual installation is triggered by the InstallModal
-  // Events will be handled by the existing event listeners
-}
 
-function closeDownloadOverlay() {
-  isDownloading.value = false
-  downloadError.value = null
-  downloadProgress.value = 0
-}
-
-function cancelDownload() {
-  // TODO: Implement cancel download via Tauri command
-  console.log('Cancel download requested')
-  closeDownloadOverlay()
-  installing.value = false
-}
-
-function returnToGame() {
-  // TODO: Focus game window
-}
-
-function exitGame() {
-  // TODO: Kill game process
-  isPlaying.value = false
+  if (game.value) {
+    try {
+      await libraryStore.installGame(game.value.id, config.installPath)
+    } catch (error) {
+      console.error('Failed to start installation:', error)
+      isDownloading.value = false
+    }
+  }
 }
 
 onMounted(async () => {
-  // Setup Tauri event listeners with try/catch for E2E test compatibility
+  console.log('🎮 Game data:', game.value)
+
   try {
-    // Listen to Tauri events - Launch
-    unlistenLaunching = await safeListen('game-launching', (event: any) => {
-      console.log('🚀 Game launching:', event.payload)
-      if (event.payload?.gameId === gameId.value) {
-        isLaunching.value = true
-        launchError.value = null
-      }
-    })
-    
-    unlistenLaunched = await safeListen('game-launched', (event: any) => {
-      console.log('✅ Game launched:', event.payload)
-      if (event.payload?.gameId === gameId.value) {
-        // Small delay before hiding overlay for smoother UX
-        setTimeout(() => {
-          isLaunching.value = false
-          isPlaying.value = true
-        }, 500)
-      }
-    })
-    
-    unlistenFailed = await safeListen('game-launch-failed', (event: any) => {
-      console.log('❌ Game launch failed:', event.payload)
-      if (event.payload?.gameId === gameId.value) {
-        launchError.value = event.payload?.error || 'Unknown error'
-      }
-    })
-    
-    // Listen to Tauri events - Install/Download
     unlistenInstalling = await safeListen('game-installing', (event: any) => {
-      console.log('📥 Game installing:', event.payload)
       if (event.payload?.gameId === gameId.value) {
         isDownloading.value = true
-        downloadError.value = null
         downloadProgress.value = 0
       }
     })
-    
+
     unlistenInstallProgress = await safeListen('game-install-progress', (event: any) => {
-      console.log('📊 Download progress:', event.payload)
       if (event.payload?.gameId === gameId.value) {
         downloadProgress.value = event.payload.progress || 0
         downloadedSize.value = event.payload.downloaded || '0 MB'
-        totalSize.value = event.payload.total || '0 MB'
-        downloadSpeed.value = event.payload.speed || 'N/A'
-        downloadEta.value = event.payload.eta || 'Calculating...'
+        totalSize.value = event.payload.total || '9.2 GB'
+        downloadSpeed.value = event.payload.speed || '0 MB/s'
       }
     })
-    
+
     unlistenInstalled = await safeListen('game-installed', (event: any) => {
-      console.log('✅ Game installed:', event.payload)
       if (event.payload?.gameId === gameId.value) {
         downloadProgress.value = 100
-        // Refresh game data after install
-        setTimeout(async () => {
+        setTimeout(() => {
           isDownloading.value = false
-          installing.value = false
-          await libraryStore.fetchGames()
+          libraryStore.fetchGames()
         }, 1500)
       }
     })
-    
+
     unlistenInstallFailed = await safeListen('game-install-failed', (event: any) => {
-      console.log('❌ Game install failed:', event.payload)
       if (event.payload?.gameId === gameId.value) {
-        downloadError.value = event.payload?.error || 'Download failed'
-        installing.value = false
+        isDownloading.value = false
+        console.error('Install failed:', event.payload?.error)
       }
     })
   } catch (e) {
-    // In E2E tests, Tauri event listeners may fail - this is expected
-    console.warn('[GameDetails] Failed to setup Tauri event listeners (expected in E2E tests):', e)
+    console.warn('[GameDetails] Failed to setup Tauri event listeners:', e)
   }
 })
 
 onUnmounted(() => {
-  unlistenLaunching?.()
-  unlistenLaunched?.()
-  unlistenFailed?.()
   unlistenInstalling?.()
   unlistenInstallProgress?.()
   unlistenInstalled?.()

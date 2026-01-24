@@ -19,11 +19,13 @@ const routes = [
     name: 'game-detail',
     component: GameDetails,
   },
-  {
-    path: '/downloads',
-    name: 'downloads',
-    component: () => import('@/views/DownloadsView.vue'),
-  },
+  // TODO implement the dowloads view later
+  // should be accessible from notif or settings
+  // {
+  //   path: '/downloads',
+  //   name: 'downloads',
+  //   component: () => import('@/views/DownloadsView.vue'),
+  // },
   {
     path: '/settings',
     name: 'settings',
