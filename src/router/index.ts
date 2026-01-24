@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LibraryFullscreen from '@/views/LibraryFullscreen.vue'
+import SettingsView from '@/views/SettingsView.vue'
+import GameDetails from '@/views/GameDetails.vue'
 
 const routes = [
   {
@@ -15,7 +17,7 @@ const routes = [
   {
     path: '/game/:id',
     name: 'game-detail',
-    component: () => import('@/views/GameDetails.vue'),
+    component: GameDetails,
   },
   {
     path: '/downloads',
@@ -25,7 +27,7 @@ const routes = [
   {
     path: '/settings',
     name: 'settings',
-    component: () => import('@/views/SettingsView.vue'),
+    component: SettingsView,
   },
 ]
 

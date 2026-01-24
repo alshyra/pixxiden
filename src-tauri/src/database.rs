@@ -44,10 +44,10 @@ impl Database {
     pub async fn new() -> anyhow::Result<Self> {
         let data_dir = dirs::data_dir()
             .ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?
-            .join("pixiden");
+            .join("Pixxiden");
         
         std::fs::create_dir_all(&data_dir)?;
-        let db_path = data_dir.join("pixiden.db");
+        let db_path = data_dir.join("Pixxiden.db");
         
         let database_url = format!("sqlite:{}?mode=rwc", db_path.display());
         

@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "pixiden",
+  "productName": "Pixxiden",
   "version": "0.1.0",
-  "identifier": "com.pixiden.launcher",
+  "identifier": "com.Pixxiden.launcher",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -14,22 +14,23 @@
       {
         "label": "main",
         "title": "Pixxiden",
+        "url": "index.html",
         "visible": false,
-        "width": 1280,
-        "height": 720,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": true,
+        "maximized": true,
+        "center": true
       },
       {
         "label": "splashscreen",
         "url": "index.html?splash",
-        "width": 500,
-        "height": 500,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "center": true,
-        "resizable": false
+        "resizable": false,
+        "maximized": true,
+        "fullscreen": true
       }
     ],
     "security": {
@@ -38,7 +39,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["appimage", "deb"],
+    "targets": [
+      "appimage",
+      "deb"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

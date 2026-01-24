@@ -1,12 +1,11 @@
-# Contributing to PixiDen
+# Contributing to Pixxiden
 
-Thank you for your interest in contributing to PixiDen! 🎮
+Thank you for your interest in contributing to Pixxiden! 🎮
 
 ## Development Setup
 
 ### Prerequisites
 
-- Go 1.21+
 - Node.js 18+
 - Rust (for Tauri)
 - Git
@@ -16,8 +15,8 @@ Thank you for your interest in contributing to PixiDen! 🎮
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/pixiden.git
-   cd pixiden
+   git clone https://github.com/YOUR-USERNAME/Pixxiden.git
+   cd Pixxiden
    ```
 
 3. Install dependencies:
@@ -39,7 +38,7 @@ Thank you for your interest in contributing to PixiDen! 🎮
 ## Project Structure
 
 ```
-pixiden/
+Pixxiden/
 ├── backend/          # Go backend daemon
 │   ├── cmd/         # Entry points
 │   ├── internal/    # Private packages

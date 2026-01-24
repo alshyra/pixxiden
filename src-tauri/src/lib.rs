@@ -2,14 +2,16 @@ mod commands;
 mod database;
 mod gamepad;
 mod store;
+mod system;
 
 #[cfg(test)]
 mod tests;
 
 use commands::{
-    get_game, get_games, get_store_status, get_game_config, install_game, launch_game,
-    scan_gog_installed, sync_games, uninstall_game,
-    close_splashscreen, AppState,
+    get_game, get_games, get_store_status, get_game_config, install_game, launch_game, sync_games,
+    scan_gog_installed, uninstall_game,
+    close_splashscreen, get_system_info, get_disk_info, check_for_updates, shutdown_system, 
+    get_settings, save_settings, AppState,
 };
 use database::Database;
 use gamepad::GamepadMonitor;
@@ -56,7 +58,7 @@ pub fn run() {
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
             app.manage(gamepad_monitor);
 
-            log::info!("PixiDen initialized successfully!");
+            log::info!("Pixxiden initialized successfully!");
             Ok(())
         })
         .plugin(tauri_plugin_shell::init())
@@ -73,6 +75,12 @@ pub fn run() {
             close_splashscreen,
             start_gamepad_monitoring,
             stop_gamepad_monitoring,
+            get_system_info,
+            get_disk_info,
+            check_for_updates,
+            shutdown_system,
+            get_settings,
+            save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,6 @@
-# PixiDen E2E Tests
+# Pixxiden E2E Tests
 
-End-to-end tests for PixiDen using Tauri WebDriver with real store binary integration.
+End-to-end tests for Pixxiden using Tauri WebDriver with real store binary integration.
 
 ## Prerequisites
 

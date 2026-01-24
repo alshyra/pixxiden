@@ -3,8 +3,8 @@
     <!-- Background -->
     <div class="absolute inset-0 overflow-hidden">
       <img 
-        v-if="game?.backgroundUrl || game?.coverUrl"
-        :src="game?.backgroundUrl || game?.coverUrl"
+        v-if="game?.backgroundUrl"
+        :src="game?.backgroundUrl"
         class="w-full h-full object-cover opacity-50 scale-110"
       />
       <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />
@@ -16,23 +16,27 @@
       <!-- Left Panel: Game Info -->
       <div class="flex-1 p-12 flex flex-col justify-center max-w-3xl">
         <!-- Back Button -->
-        <button 
-          class="mb-8 flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+        <Button 
+          variant="ghost"
+          size="sm"
+          class="mb-8 self-start"
           @click="$router.back()"
         >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
-          </svg>
+          <template #icon>
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+            </svg>
+          </template>
           Back
-        </button>
+        </Button>
         
         <!-- Title -->
         <h1 class="text-5xl font-bold mb-4">{{ game?.title }}</h1>
         
         <!-- Meta -->
         <div class="flex items-center gap-3 mb-6 text-sm">
-          <Badge variant="outline">PC (Windows)</Badge>
-          <Badge v-if="metadata?.releaseDate" variant="outline">
+          <Badge variant="default">PC (Windows)</Badge>
+          <Badge v-if="metadata?.releaseDate" variant="default">
             {{ new Date(metadata.releaseDate).getFullYear() }}
           </Badge>
           <Badge v-if="metacriticScore" variant="success">{{ metacriticScore }}</Badge>
@@ -62,8 +66,9 @@
         <div class="flex items-center gap-4 mb-8">
           <Button 
             v-if="game?.installed"
-            variant="success" 
+            variant="primary" 
             size="lg"
+            class="bg-green-600 hover:bg-green-500"
             @click="playGame"
           >
             <template #icon>
@@ -78,8 +83,7 @@
             v-else
             variant="primary" 
             size="lg"
-            :disabled="installing"
-            @click="installGame"
+            @click="showInstallModal = true"
           >
             <template #icon>
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -89,7 +93,7 @@
             Install
           </Button>
           
-          <Button variant="secondary" @click="showSettings = true">
+          <Button variant="ghost" @click="showSettings = true">
             •••
           </Button>
           
@@ -112,8 +116,8 @@
       <div class="flex-shrink-0 w-80 p-12 flex flex-col items-end justify-end">
         <div class="w-48 aspect-[3/4] rounded-xl overflow-hidden shadow-2xl">
           <img 
-            v-if="game?.coverUrl"
-            :src="game.coverUrl"
+            v-if="game?.backgroundUrl"
+            :src="game.backgroundUrl"
             :alt="game.title"
             class="w-full h-full object-cover"
           />
@@ -134,6 +138,14 @@
       :show="showSettings" 
       :game-id="gameId"
       @close="showSettings = false"
+    />
+    
+    <!-- Install Modal -->
+    <InstallModal
+      v-if="game"
+      v-model="showInstallModal"
+      :game="game"
+      @install-started="handleInstallStarted"
     />
     
     <!-- Launch Overlay -->
@@ -165,17 +177,33 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { useLibraryStore } from '@/stores/library'
 import { Button, Badge } from '@/components/ui'
 import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
+import InstallModal from '@/components/game/InstallModal.vue'
+import type { InstallConfig } from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
 import DownloadOverlay from '@/components/game/DownloadOverlay.vue'
 import type { Metadata } from '@/types'
 
+// Define UnlistenFn type locally to avoid import issues in E2E
+type UnlistenFn = () => void
+
+// Safe listen wrapper for E2E compatibility
+const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
+  try {
+    const { listen } = await import('@tauri-apps/api/event')
+    return listen(event, handler)
+  } catch (e) {
+    console.warn(`[GameDetails] Failed to setup listener for '${event}' (expected in E2E):`, e)
+    return () => {} // Return no-op unlisten function
+  }
+}
+
 const route = useRoute()
 const libraryStore = useLibraryStore()
 
+const showInstallModal = ref(false)
 const gameId = computed(() => route.params.id as string)
 const showSettings = ref(false)
 const game = computed(() => {
@@ -184,9 +212,9 @@ const game = computed(() => {
     console.log('🎮 Game data:', {
       id: g.id,
       title: g.title,
-      hasCover: !!g.coverUrl,
+      hasCover: !!g.backgroundUrl,
       hasBackground: !!g.backgroundUrl,
-      coverUrl: g.coverUrl?.substring(0, 50),
+      coverUrl: g.backgroundUrl?.substring(0, 50),
       backgroundUrl: g.backgroundUrl?.substring(0, 50)
     })
   }
@@ -272,22 +300,15 @@ function closeLaunchOverlay() {
   launchError.value = null
 }
 
-async function installGame() {
-  if (!game.value) return
+function handleInstallStarted(config: InstallConfig) {
+  console.log('Installation started with config:', config)
   installing.value = true
   isDownloading.value = true
   downloadProgress.value = 0
   downloadError.value = null
   
-  try {
-    await libraryStore.installGame(game.value.id)
-    // Success will be handled by event listener
-  } catch (error: any) {
-    downloadError.value = error?.message || error?.toString() || 'Download failed'
-    console.error('Failed to install game:', error)
-  } finally {
-    installing.value = false
-  }
+  // The actual installation is triggered by the InstallModal
+  // Events will be handled by the existing event listeners
 }
 
 function closeDownloadOverlay() {
@@ -313,74 +334,80 @@ function exitGame() {
 }
 
 onMounted(async () => {
-  // Listen to Tauri events - Launch
-  unlistenLaunching = await listen('game-launching', (event: any) => {
-    console.log('🚀 Game launching:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      isLaunching.value = true
-      launchError.value = null
-    }
-  })
-  
-  unlistenLaunched = await listen('game-launched', (event: any) => {
-    console.log('✅ Game launched:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      // Small delay before hiding overlay for smoother UX
-      setTimeout(() => {
-        isLaunching.value = false
-        isPlaying.value = true
-      }, 500)
-    }
-  })
-  
-  unlistenFailed = await listen('game-launch-failed', (event: any) => {
-    console.log('❌ Game launch failed:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      launchError.value = event.payload?.error || 'Unknown error'
-    }
-  })
-  
-  // Listen to Tauri events - Install/Download
-  unlistenInstalling = await listen('game-installing', (event: any) => {
-    console.log('📥 Game installing:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      isDownloading.value = true
-      downloadError.value = null
-      downloadProgress.value = 0
-    }
-  })
-  
-  unlistenInstallProgress = await listen('game-install-progress', (event: any) => {
-    console.log('📊 Download progress:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      downloadProgress.value = event.payload.progress || 0
-      downloadedSize.value = event.payload.downloaded || '0 MB'
-      totalSize.value = event.payload.total || '0 MB'
-      downloadSpeed.value = event.payload.speed || 'N/A'
-      downloadEta.value = event.payload.eta || 'Calculating...'
-    }
-  })
-  
-  unlistenInstalled = await listen('game-installed', (event: any) => {
-    console.log('✅ Game installed:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      downloadProgress.value = 100
-      // Refresh game data after install
-      setTimeout(async () => {
-        isDownloading.value = false
+  // Setup Tauri event listeners with try/catch for E2E test compatibility
+  try {
+    // Listen to Tauri events - Launch
+    unlistenLaunching = await safeListen('game-launching', (event: any) => {
+      console.log('🚀 Game launching:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        isLaunching.value = true
+        launchError.value = null
+      }
+    })
+    
+    unlistenLaunched = await safeListen('game-launched', (event: any) => {
+      console.log('✅ Game launched:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        // Small delay before hiding overlay for smoother UX
+        setTimeout(() => {
+          isLaunching.value = false
+          isPlaying.value = true
+        }, 500)
+      }
+    })
+    
+    unlistenFailed = await safeListen('game-launch-failed', (event: any) => {
+      console.log('❌ Game launch failed:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        launchError.value = event.payload?.error || 'Unknown error'
+      }
+    })
+    
+    // Listen to Tauri events - Install/Download
+    unlistenInstalling = await safeListen('game-installing', (event: any) => {
+      console.log('📥 Game installing:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        isDownloading.value = true
+        downloadError.value = null
+        downloadProgress.value = 0
+      }
+    })
+    
+    unlistenInstallProgress = await safeListen('game-install-progress', (event: any) => {
+      console.log('📊 Download progress:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        downloadProgress.value = event.payload.progress || 0
+        downloadedSize.value = event.payload.downloaded || '0 MB'
+        totalSize.value = event.payload.total || '0 MB'
+        downloadSpeed.value = event.payload.speed || 'N/A'
+        downloadEta.value = event.payload.eta || 'Calculating...'
+      }
+    })
+    
+    unlistenInstalled = await safeListen('game-installed', (event: any) => {
+      console.log('✅ Game installed:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        downloadProgress.value = 100
+        // Refresh game data after install
+        setTimeout(async () => {
+          isDownloading.value = false
+          installing.value = false
+          await libraryStore.fetchGames()
+        }, 1500)
+      }
+    })
+    
+    unlistenInstallFailed = await safeListen('game-install-failed', (event: any) => {
+      console.log('❌ Game install failed:', event.payload)
+      if (event.payload?.gameId === gameId.value) {
+        downloadError.value = event.payload?.error || 'Download failed'
         installing.value = false
-        await libraryStore.fetchGames()
-      }, 1500)
-    }
-  })
-  
-  unlistenInstallFailed = await listen('game-install-failed', (event: any) => {
-    console.log('❌ Game install failed:', event.payload)
-    if (event.payload?.gameId === gameId.value) {
-      downloadError.value = event.payload?.error || 'Download failed'
-      installing.value = false
-    }
-  })
+      }
+    })
+  } catch (e) {
+    // In E2E tests, Tauri event listeners may fail - this is expected
+    console.warn('[GameDetails] Failed to setup Tauri event listeners (expected in E2E tests):', e)
+  }
 })
 
 onUnmounted(() => {

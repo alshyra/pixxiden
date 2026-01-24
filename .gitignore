@@ -6,3 +6,4 @@ dist
 src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
 !src-tauri/binaries/README.md
+e2e/screenshots

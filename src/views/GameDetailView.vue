@@ -26,8 +26,8 @@
       <!-- Hero section with cover -->
       <div class="relative rounded-2xl overflow-hidden mb-8 h-80 bg-remix-bg-card">
         <img 
-          v-if="game.coverUrl" 
-          :src="game.coverUrl" 
+          v-if="game.backgroundUrl" 
+          :src="game.backgroundUrl" 
           :alt="game.title"
           class="w-full h-full object-cover opacity-40"
         />
@@ -38,8 +38,8 @@
           <div class="flex items-end gap-6">
             <!-- Cover thumbnail -->
             <img 
-              v-if="game.coverUrl"
-              :src="game.coverUrl" 
+              v-if="game.backgroundUrl"
+              :src="game.backgroundUrl" 
               :alt="game.title"
               class="w-32 h-44 rounded-lg shadow-lg object-cover"
             />
@@ -213,7 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { 
   ArrowLeftIcon, 

@@ -3,7 +3,7 @@
     <!-- Carousel Container -->
     <div 
       ref="carouselRef"
-      class="flex gap-4 overflow-x-auto scrollbar-hide px-12 py-4 scroll-smooth"
+      class="flex gap-4 overflow-x-auto scrollbar-hide px-12 py-6 scroll-smooth"
       @scroll="updateScrollState"
       @wheel="handleWheel"
     >

@@ -1,5 +1,5 @@
 /**
- * PixiDen E2E Tests - Splash Screen
+ * Pixxiden E2E Tests - Splash Screen
  * 
  * Tests that the splash screen appears on startup and transitions correctly to the main window.
  */
@@ -17,7 +17,7 @@ describe('Splash Screen', () => {
     
     // If splash is still visible, verify it
     if (await splashTitle.isExisting()) {
-      expect(await splashTitle.getText()).toBe('PixiDen')
+      expect(await splashTitle.getText()).toBe('Pixxiden')
       await takeScreenshot('splash-screen-visible')
     }
   })
@@ -38,7 +38,7 @@ describe('Splash Screen', () => {
         return false
       },
       { 
-        timeout: 30000, 
+        timeout: 3000, 
         timeoutMsg: 'Main window did not appear after splash screen' 
       }
     )
@@ -52,17 +52,18 @@ describe('Splash Screen', () => {
 
   it('should have loaded the main window with proper title', async () => {
     const title = await browser.getTitle()
-    expect(title).toContain('PixiDen')
+    expect(title).toContain('Pixxiden')
   })
 
   it('should have rendered the main app content', async () => {
-    // Wait for main content to be visible
+    // Wait for main content to be visible - LibraryFullscreen uses BottomFilters
     await browser.waitUntil(
       async () => {
-        const h2 = await $('h2')
-        return h2.isExisting()
+        const bodyText = await $('body').getText()
+        // BottomFilters component shows "all games" filter
+        return bodyText.includes('all games')
       },
-      { timeout: 10000 }
+      { timeout: 1000, timeoutMsg: 'Main app content not rendered' }
     )
 
     // Verify we're in the main app, not splash screen

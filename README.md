@@ -1,9 +1,8 @@
-# PixiDen 🎮
+# Pixxiden 🎮
 
 > A cozy, modern game library launcher for Linux with multi-store support and session mode
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://go.dev/)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24C8DB?logo=tauri)](https://tauri.app/)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?logo=vue.js)](https://vuejs.org/)
 
@@ -20,7 +19,7 @@
 
 ## 🏗️ Architecture
 
-PixiDen uses a modern, modular architecture:
+Pixxiden uses a modern, modular architecture:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -28,17 +27,6 @@ PixiDen uses a modern, modular architecture:
 │  - ReMiX Theme UI                       │
 │  - Controller Support                   │
 │  - IPC Communication                    │
-└─────────────────┬───────────────────────┘
-                  │ gRPC/IPC
-┌─────────────────▼───────────────────────┐
-│  Backend (Go Daemon)                    │
-│  - Store Adapters (CLI wrappers)        │
-│    • Legendary (Epic)                   │
-│    • GOGdl (GOG)                        │
-│    • Nile (Amazon)                      │
-│  - Runner Management                    │
-│  - Download Queue                       │
-│  - SQLite Database                      │
 └─────────────────────────────────────────┘
 ```
 
@@ -46,39 +34,49 @@ PixiDen uses a modern, modular architecture:
 
 ### Prerequisites
 
-- **Go** 1.21 or higher
 - **Node.js** 18 or higher
 - **Rust** (for Tauri)
 - **Wine-GE** or **Proton-GE** (optional, can be bundled)
 
-### Backend Setup
+### Setup
+
+Install dependencies:
 
 ```bash
-cd backend
-go mod download
-go run cmd/pixiden-daemon/main.go
+# On Debian/Ubuntu-based systems
+sudo apt update
+sudo apt install -y \
+  libwebkit2gtk-4.1-dev \
+  build-essential \
+  curl \
+  wget \
+  file \
+  libssl-dev \
+  libgtk-3-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  libudev-dev
+```
+```bash
+sudo pacman -S \
+  webkit2gtk-4.1 \
+  gtk3 \
+  glib2 \
+  libsoup3 \
+  librsvg \
+  libayatana-appindicator \
+  openssl \
+  base-devel
 ```
 
-### Frontend Setup
-
 ```bash
-cd frontend
-npm install
+npm i
 npm run tauri dev
 ```
 
 ## 🎮 Usage
 
-Launch PixiDen from your application menu or:
 
-```bash
-pixiden
-```
-
-For session mode:
-```bash
-pixiden-session  # Launches with Gamescope
-```
 
 ## 📄 License
 

@@ -1,5 +1,6 @@
 use crate::database::{Database, Game};
 use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileAdapter, StoreAdapter};
+use crate::system::{self, SystemInfo, DiskInfo, SettingsConfig};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
@@ -357,14 +358,46 @@ pub async fn close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
     // Get the splash screen window
     if let Some(splash_window) = app.get_webview_window("splashscreen") {
         // Close the splash screen
-        splash_window.close().map_err(|e| e.to_string())?;
+        splash_window.close().map_err(|e: tauri::Error| e.to_string())?;
     }
     
     // Get the main window and show it
     if let Some(main_window) = app.get_webview_window("main") {
-        main_window.show().map_err(|e| e.to_string())?;
-        main_window.set_focus().map_err(|e| e.to_string())?;
+        main_window.show().map_err(|e: tauri::Error| e.to_string())?;
+        main_window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
     }
     
     Ok(())
+}
+
+// ===================== SYSTEM COMMANDS =====================
+
+#[tauri::command]
+pub fn get_system_info() -> Result<SystemInfo, String> {
+    system::get_system_info()
+}
+
+#[tauri::command]
+pub fn get_disk_info() -> Result<Vec<DiskInfo>, String> {
+    system::get_disk_info()
+}
+
+#[tauri::command]
+pub async fn check_for_updates() -> Result<bool, String> {
+    system::check_for_updates().await
+}
+
+#[tauri::command]
+pub async fn shutdown_system() -> Result<(), String> {
+    system::shutdown_system().await
+}
+
+#[tauri::command]
+pub fn get_settings() -> Result<SettingsConfig, String> {
+    system::get_settings()
+}
+
+#[tauri::command]
+pub fn save_settings(config: SettingsConfig) -> Result<(), String> {
+    system::save_settings(config)
 }
