@@ -85,11 +85,17 @@
                 </div>
               </div>
 
-              <!-- Play Button -->
-              <button v-else-if="game?.installed" @click="playGame"
-                class="w-full bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-3">
-                <span class="text-lg">▶</span> Lancer le jeu
-              </button>
+              <!-- Play/Stop Buttons -->
+              <div v-else-if="game?.installed" class="space-y-2">
+                <button v-if="!isLaunching" @click="playGame"
+                  class="w-full bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-3">
+                  <span class="text-lg">▶</span> Lancer le jeu
+                </button>
+                <button v-else @click="forceCloseGame"
+                  class="w-full bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(239,68,68,0.3)] transition-all flex items-center justify-center gap-3">
+                  <span class="text-lg">■</span> Forcer la fermeture
+                </button>
+              </div>
             </div>
 
             <!-- Stats Grid -->
@@ -234,6 +240,7 @@ const libraryStore = useLibraryStore()
 const { on: onGamepad } = useGamepad()
 
 const showInstallModal = ref(false)
+const showSettings = ref(false)
 const gameId = computed(() => route.params.id as string)
 
 // Get game from store - backend already returns enriched games
@@ -262,6 +269,9 @@ let unlistenInstalling: UnlistenFn | undefined
 let unlistenInstallProgress: UnlistenFn | undefined
 let unlistenInstalled: UnlistenFn | undefined
 let unlistenInstallFailed: UnlistenFn | undefined
+let unlistenLaunching: UnlistenFn | undefined
+let unlistenLaunched: UnlistenFn | undefined
+let unlistenFailed: UnlistenFn | undefined
 
 // === COMPUTED PROPERTIES FOR GAME DATA ===
 
@@ -380,6 +390,22 @@ async function playGame() {
   }
 }
 
+async function forceCloseGame() {
+  if (!game.value) return
+  
+  try {
+    // Use pkill to terminate the game process
+    // This is a fallback - ideally we'd track PIDs
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('force_close_game', { gameId: game.value.id })
+  } catch (error) {
+    console.error('Failed to force close game:', error)
+  } finally {
+    isLaunching.value = false
+    launchError.value = null
+  }
+}
+
 function closeLaunchOverlay() {
   isLaunching.value = false
   launchError.value = null
@@ -461,6 +487,29 @@ onMounted(async () => {
   
   // Setup Tauri event listeners with try/catch for E2E test compatibility
   try {
+    // Launch events
+    unlistenLaunching = await safeListen('game-launching', (event: any) => {
+      if (event.payload?.gameId === gameId.value) {
+        isLaunching.value = true
+        launchError.value = null
+      }
+    })
+
+    unlistenLaunched = await safeListen('game-launched', (event: any) => {
+      if (event.payload?.gameId === gameId.value) {
+        setTimeout(() => {
+          isLaunching.value = false
+        }, 500)
+      }
+    })
+
+    unlistenFailed = await safeListen('game-launch-failed', (event: any) => {
+      if (event.payload?.gameId === gameId.value) {
+        launchError.value = event.payload?.error || 'Unknown error'
+      }
+    })
+
+    // Install events
     unlistenInstalling = await safeListen('game-installing', (event: any) => {
       if (event.payload?.gameId === gameId.value) {
         isDownloading.value = true

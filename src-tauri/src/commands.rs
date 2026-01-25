@@ -685,6 +685,45 @@ pub async fn update_game_custom_executable(
     Ok(())
 }
 
+/// Force close a running game
+#[tauri::command]
+pub async fn force_close_game(
+    game_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().await;
+    let game = db.get_game(&game_id).await.map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Game {} not found", game_id))?;
+    drop(db);
+    
+    log::info!("Force closing game: {} ({})", game.title, game_id);
+    
+    // Try to find and kill the game process by name
+    // This uses pkill on Linux to find processes matching the game title
+    let process_name = game.title.split_whitespace().next().unwrap_or(&game.title);
+    
+    let output = std::process::Command::new("pkill")
+        .args(["-9", "-f", process_name])
+        .output();
+    
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                log::info!("Successfully killed process for game: {}", game.title);
+                Ok(())
+            } else {
+                // pkill returns non-zero if no process found, which is fine
+                log::info!("No running process found for game: {}", game.title);
+                Ok(())
+            }
+        }
+        Err(e) => {
+            log::error!("Failed to execute pkill: {}", e);
+            Err(format!("Failed to kill process: {}", e))
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiKeyTestResult {

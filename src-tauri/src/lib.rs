@@ -15,7 +15,7 @@ use commands::{
     close_splashscreen, get_system_info, get_disk_info, check_for_updates, shutdown_system, 
     get_settings, save_settings, clear_game_cache, clear_all_cache, get_cache_stats,
     get_api_keys, needs_setup, save_api_keys, skip_setup, test_api_keys,
-    update_game_custom_executable,
+    update_game_custom_executable, force_close_game,
     AppState,
 };
 use database::Database;
@@ -112,6 +112,8 @@ pub fn run() {
             test_api_keys,
             // Game settings
             update_game_custom_executable,
+            // Game control
+            force_close_game,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

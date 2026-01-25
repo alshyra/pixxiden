@@ -60,8 +60,8 @@ describe('Splash Screen', () => {
     await browser.waitUntil(
       async () => {
         const bodyText = await $('body').getText()
-        // BottomFilters component shows "all games" filter
-        return bodyText.includes('all games')
+        // BottomFilters component shows "tous" filter (French for "all")
+        return bodyText.includes('tous') || bodyText.includes('installés')
       },
       { timeout: 1000, timeoutMsg: 'Main app content not rendered' }
     )

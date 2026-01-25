@@ -274,6 +274,7 @@ export async function getStoreStatus(store: 'legendary' | 'gogdl' | 'nile'): Pro
 /**
  * Take a screenshot for debugging
  * Handles "no such window" errors gracefully
+ * Has a 10-second timeout to prevent hanging on WebDriver issues
  */
 export async function takeScreenshot(name: string): Promise<void> {
   try {
@@ -292,8 +293,14 @@ export async function takeScreenshot(name: string): Promise<void> {
       await browser.switchToWindow(handles[0])
     }
     
+    // Use Promise.race to add a timeout to screenshot capture
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    await browser.saveScreenshot(`./e2e/screenshots/${name}-${timestamp}.png`)
+    const screenshotPromise = browser.saveScreenshot(`./e2e/screenshots/${name}-${timestamp}.png`)
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Screenshot timeout')), 10000)
+    )
+    
+    await Promise.race([screenshotPromise, timeoutPromise])
   } catch (error) {
     console.log(`[takeScreenshot] Failed to take screenshot '${name}': ${(error as Error).message}`)
   }

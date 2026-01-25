@@ -78,11 +78,25 @@ function emit(event: GamepadEventType, data?: any) {
 function detectControllerType(gamepad: Gamepad): ControllerType {
   const id = gamepad.id.toLowerCase()
   
-  if (id.includes('playstation') || id.includes('dualshock') || id.includes('dualsense') || 
-      id.includes('sony') || id.includes('ps4') || id.includes('ps5') || id.includes('054c')) {
+  // PlayStation controllers - check first as they're more specific
+  // DualSense (PS5): "DualSense Wireless Controller"
+  // DualShock 4 (PS4): "Wireless Controller" or "DUALSHOCK 4"
+  // Vendor ID 054c = Sony
+  if (id.includes('playstation') || 
+      id.includes('dualshock') || 
+      id.includes('dualsense') || 
+      id.includes('dual sense') ||
+      id.includes('sony') || 
+      id.includes('ps4') || 
+      id.includes('ps5') || 
+      id.includes('054c') ||
+      // Linux often reports PS controllers as "Wireless Controller" with vendor 054c
+      (id.includes('wireless controller') && !id.includes('xbox'))) {
     return 'ps'
   }
   
+  // Xbox controllers
+  // Vendor ID 045e = Microsoft
   if (id.includes('xbox') || id.includes('microsoft') || id.includes('xinput') || id.includes('045e')) {
     return 'xbox'
   }

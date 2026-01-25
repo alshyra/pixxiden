@@ -3,7 +3,7 @@
  * 
  * Tests for the library view UI interactions:
  * - Game grid display
- * - Filter interactions (BottomFilters: all games, installed, most played, etc.)
+ * - Filter interactions (BottomFilters: tous, installés, Epic, GOG, etc.)
  * - Game card interactions (hover/click)
  */
 
@@ -17,6 +17,43 @@ import {
 } from '../helpers'
 import { mockGames } from '../fixtures/mockGames'
 
+/**
+ * Helper to dismiss the setup wizard if it's open
+ */
+async function dismissSetupWizard() {
+  const wizardDismissed = await browser.execute(() => {
+    // Check if setup wizard is visible
+    const skipButton = document.querySelector('button')
+    for (const btn of document.querySelectorAll('button')) {
+      if (btn.textContent?.includes('Passer')) {
+        (btn as HTMLElement).click()
+        return true
+      }
+    }
+    return false
+  })
+  if (wizardDismissed) {
+    console.log('[Test] Setup wizard dismissed')
+    await browser.pause(500)
+  }
+}
+
+/**
+ * Helper to click a filter by label using JavaScript
+ */
+async function clickFilter(label: string) {
+  return await browser.execute((filterLabel) => {
+    const elements = document.querySelectorAll('nav button, nav [role="button"], nav span, button')
+    for (const el of elements) {
+      if (el.textContent?.toLowerCase().includes(filterLabel.toLowerCase())) {
+        (el as HTMLElement).click()
+        return true
+      }
+    }
+    return false
+  }, label)
+}
+
 describe('Library UI', () => {
   const stats = getMockGameStats()
 
@@ -26,6 +63,9 @@ describe('Library UI', () => {
     // Setup mock Tauri commands FIRST
     await setupMockTauriCommands()
     await injectMockGames()
+    
+    // Dismiss setup wizard if present
+    await dismissSetupWizard()
     
     // Trigger library refresh to load mock games
     await refreshLibrary()
@@ -55,9 +95,9 @@ describe('Library UI', () => {
     console.log(`[DIAG] Current URL: ${diagnostics.currentUrl}`)
     console.log(`[DIAG] Body HTML (first 2000 chars): ${diagnostics.bodyHTML}`)
     
-    // Verify mock games are loaded by checking body text contains filter labels
+    // Verify mock games are loaded by checking body text contains filter labels (now in French)
     const bodyText = await $('body').getText()
-    const hasFilters = bodyText.toLowerCase().includes('all games') || bodyText.toLowerCase().includes('installed')
+    const hasFilters = bodyText.toLowerCase().includes('tous') || bodyText.toLowerCase().includes('installés')
     console.log(`Filters visible: ${hasFilters}`)
     console.log(`Body text: ${bodyText.substring(0, 500)}`)
     
@@ -68,9 +108,9 @@ describe('Library UI', () => {
 
   describe('Game Grid Display', () => {
     it('should display the library view with filters', async () => {
-      // BottomFilters displays English labels: "all games", "installed", etc.
+      // BottomFilters displays French labels: "tous", "installés", etc.
       const bodyText = await $('body').getText()
-      const hasFilters = bodyText.includes('all games') || bodyText.includes('installed')
+      const hasFilters = bodyText.includes('tous') || bodyText.includes('installés')
       expect(hasFilters).toBe(true)
     })
 
@@ -93,9 +133,13 @@ describe('Library UI', () => {
     })
 
     it('should show game titles on hover', async () => {
-      // Hover over a game card to reveal overlay with title
+      // Use JavaScript to simulate hover since WebDriver moveTo doesn't work reliably with Tauri
       const firstCard = await $('.game-card')
-      await firstCard.moveTo()
+      
+      // Dispatch mouseenter event to trigger hover state
+      await browser.execute((el) => {
+        el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }))
+      }, firstCard)
       
       // Wait for hover animation
       await browser.pause(500)
@@ -128,44 +172,40 @@ describe('Library UI', () => {
 
   describe('Filter Interactions', () => {
     it('should display filter buttons', async () => {
-      // BottomFilters uses English labels: all games, installed, most played, etc.
+      // BottomFilters uses French labels: tous, installés, Epic, GOG, etc.
       const bodyText = await $('body').getText()
       
-      const hasAllFilter = bodyText.includes('all games')
-      const hasInstalledFilter = bodyText.includes('installed')
+      const hasAllFilter = bodyText.includes('tous')
+      const hasInstalledFilter = bodyText.includes('installés')
       
-      console.log(`Filter "all games" found: ${hasAllFilter}`)
-      console.log(`Filter "installed" found: ${hasInstalledFilter}`)
+      console.log(`Filter "tous" found: ${hasAllFilter}`)
+      console.log(`Filter "installés" found: ${hasInstalledFilter}`)
       
       expect(hasAllFilter || hasInstalledFilter).toBe(true)
     })
 
-    it('should filter installed games when "installed" filter is clicked', async () => {
-      // Click "installed" filter (BottomFilters uses English)
-      const installedButton = await $('button*=installed')
-      if (await installedButton.isExisting()) {
-        await installedButton.click()
-        await browser.pause(500)
+    it('should filter installed games when \"installés\" filter is clicked', async () => {
+      // Click \"installés\" filter using JavaScript to avoid WebDriver issues
+      const clicked = await clickFilter('installés')
+      console.log(`Clicked installés filter: ${clicked}`)
+      await browser.pause(500)
 
-        const gameCards = await $$('.game-card')
-        console.log(`"installed" filter: ${gameCards.length} games displayed`)
-        
-        // Number should be less than or equal to total (only installed games)
-        expect(gameCards.length).toBeLessThanOrEqual(stats.total)
-      }
+      const gameCards = await $$('.game-card')
+      console.log(`\"installés\" filter: ${gameCards.length} games displayed`)
+      
+      // Number should be less than or equal to total (only installed games)
+      expect(gameCards.length).toBeLessThanOrEqual(stats.total)
     })
 
-    it('should show all games when "all games" filter is selected', async () => {
-      // Click "all games" filter (BottomFilters uses English)
-      const allButton = await $('button*=all games')
-      if (await allButton.isExisting()) {
-        await allButton.click()
-        await browser.pause(500)
-      }
+    it('should show all games when \"tous\" filter is selected', async () => {
+      // Click \"tous\" filter using JavaScript
+      const clicked = await clickFilter('tous')
+      console.log(`Clicked tous filter: ${clicked}`)
+      await browser.pause(500)
 
       // Count displayed game cards
       const gameCards = await $$('.game-card')
-      console.log(`"all games" filter: ${gameCards.length} games displayed`)
+      console.log(`\"tous\" filter: ${gameCards.length} games displayed`)
       
       expect(gameCards.length).toBeGreaterThan(0)
     })
@@ -220,8 +260,10 @@ describe('Library UI', () => {
 
       const card = await $('.game-card')
       
-      // Hover over card
-      await card.moveTo()
+      // Use JavaScript hover since WebDriver moveTo doesn't work with Tauri
+      await browser.execute((el) => {
+        el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }))
+      }, card)
       await browser.pause(500)
 
       // Check for card title element (always visible in .card-title)
@@ -240,8 +282,11 @@ describe('Library UI', () => {
 
       const card = await $('.game-card')
       
-      // Get initial state
-      await card.moveTo()
+      // Use JavaScript focus/hover since WebDriver doesn't work with Tauri
+      await browser.execute((el) => {
+        el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }))
+        el.focus()
+      }, card)
       await browser.pause(500)
 
       // Card should have visual feedback (ring, scale, etc.)
@@ -258,13 +303,19 @@ describe('Library UI', () => {
         return
       }
 
-      const card = await $('.game-card')
-      
       // Get initial URL
       const initialUrl = await browser.getUrl()
       
-      // Click on the card
-      await card.click()
+      // Click on the card using JavaScript to avoid WebDriver issues
+      const clicked = await browser.execute(() => {
+        const card = document.querySelector('.game-card')
+        if (card) {
+          (card as HTMLElement).click()
+          return true
+        }
+        return false
+      })
+      console.log(`Clicked game card: ${clicked}`)
 
       // Wait for navigation
       await browser.pause(1500)
@@ -318,7 +369,13 @@ describe('Library UI', () => {
     })
   })
 
-  after(async () => {
-    await takeScreenshot('library-ui-final')
-  })
+  // Skip final screenshot - it times out on slow systems
+  // after(async function () {
+  //   this.timeout(30000)
+  //   try {
+  //     await takeScreenshot('library-ui-final')
+  //   } catch (e) {
+  //     console.log(`Screenshot failed: ${e}`)
+  //   }
+  // })
 })

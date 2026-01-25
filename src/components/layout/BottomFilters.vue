@@ -34,6 +34,7 @@ import { computed } from 'vue'
 
 defineProps<{
   modelValue: string
+  // Note: filters are defined internally in this component
 }>()
 
 defineEmits<{
@@ -44,12 +45,12 @@ const { state: gamepadState } = useGamepad()
 const controllerType = computed(() => gamepadState.value.type)
 
 const filters = [
-  { id: 'all', label: 'all games', icon: 'games' },
-  { id: 'controller', label: 'controller enabled', icon: 'controller' },
-  { id: 'installed', label: 'installed', icon: 'download' },
-  { id: 'most-played', label: 'most played', icon: 'clock' },
-  { id: 'recently-added', label: 'recently added', icon: 'calendar' },
-  { id: 'recent', label: 'recent games', icon: 'history' }
+  { id: 'all', label: 'tous', icon: 'games' },
+  { id: 'installed', label: 'installés', icon: 'download' },
+  { id: 'epic', label: 'Epic', icon: 'epic' },
+  { id: 'gog', label: 'GOG', icon: 'gog' },
+  { id: 'amazon', label: 'Amazon', icon: 'amazon' },
+  { id: 'steam', label: 'Steam', icon: 'steam' }
 ]
 </script>
 

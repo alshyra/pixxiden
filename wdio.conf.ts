@@ -106,8 +106,17 @@ export const config: Options.Testrunner = {
     
     const tauriDriverPath = process.env.HOME + '/.cargo/bin/tauri-driver'
     console.log('🚀 Starting tauri-driver...')
+    
+    // Pass through current environment
+    // Note: On Wayland/CachyOS, screenshots may be black but tests still work
+    // via DOM inspection
+    const env = {
+      ...process.env,
+    }
+    
     tauriDriver = spawn(tauriDriverPath, [], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      env,
     })
 
     tauriDriver.stdout?.on('data', (data) => {

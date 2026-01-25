@@ -22,7 +22,6 @@
     
     <!-- Bottom Filters -->
     <BottomFilters
-      :filters="filters"
       v-model="currentFilter"
     />
     
@@ -138,13 +137,7 @@ const selectedGame = ref<Game | null>(null)
 const playingGame = ref<Game | null>(null)
 const selectedMetadataGame = ref(null)
 
-// Filters
-const filters = [
-  { label: 'Tous', value: 'all', icon: '🎮' },
-  { label: 'Installés', value: 'installed', icon: '💾' },
-  { label: 'Les + joués', value: 'most-played', icon: '⭐' },
-  { label: 'Récents', value: 'recent', icon: '🕐' }
-]
+// Filters - handled by BottomFilters component
 
 // Filter games based on current filter
 const filteredGames = computed(() => {
@@ -154,19 +147,20 @@ const filteredGames = computed(() => {
     case 'installed':
       games = games.filter(g => g.installed)
       break
-    case 'most-played':
-      games = games.filter(g => g.playTimeMinutes && g.playTimeMinutes > 0)
-        .sort((a, b) => (b.playTimeMinutes || 0) - (a.playTimeMinutes || 0))
+    case 'epic':
+      games = games.filter(g => g.store === 'epic')
       break
-    case 'recent':
-      games = games.filter(g => g.lastPlayed)
-        .sort((a, b) => {
-          const timeA = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0
-          const timeB = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0
-          return timeB - timeA
-        })
+    case 'gog':
+      games = games.filter(g => g.store === 'gog')
+      break
+    case 'amazon':
+      games = games.filter(g => g.store === 'amazon')
+      break
+    case 'steam':
+      games = games.filter(g => g.store === 'steam')
       break
     default:
+      // 'all' - sort alphabetically
       games = games.sort((a, b) => a.title.localeCompare(b.title))
   }
   
@@ -200,15 +194,16 @@ function navigateCarousel(direction: 'left' | 'right') {
   })
 }
 
-// Navigate filters (up/down)
+// Navigate filters (left/right via LB/RB)
+const filterOrder = ['all', 'installed', 'epic', 'gog', 'amazon', 'steam']
+
 function navigateFilters(direction: 'up' | 'down') {
-  const filterValues = filters.map(f => f.value)
-  const currentIdx = filterValues.indexOf(currentFilter.value)
+  const currentIdx = filterOrder.indexOf(currentFilter.value)
   
   if (direction === 'up' && currentIdx > 0) {
-    currentFilter.value = filterValues[currentIdx - 1]
-  } else if (direction === 'down' && currentIdx < filterValues.length - 1) {
-    currentFilter.value = filterValues[currentIdx + 1]
+    currentFilter.value = filterOrder[currentIdx - 1]
+  } else if (direction === 'down' && currentIdx < filterOrder.length - 1) {
+    currentFilter.value = filterOrder[currentIdx + 1]
   }
 }
 
@@ -338,19 +333,18 @@ watch(filteredGames, () => {
 
 // Quick filter switch with LB/RB
 function switchFilter(direction: 'prev' | 'next') {
-  const filterValues = filters.map(f => f.value)
-  const currentIdx = filterValues.indexOf(currentFilter.value)
+  const currentIdx = filterOrder.indexOf(currentFilter.value)
   
-  if (direction === 'prev' && currentIdx > 0) {
-    currentFilter.value = filterValues[currentIdx - 1]
-  } else if (direction === 'next' && currentIdx < filterValues.length - 1) {
-    currentFilter.value = filterValues[currentIdx + 1]
-  } else if (direction === 'prev' && currentIdx === 0) {
-    // Wrap to last
-    currentFilter.value = filterValues[filterValues.length - 1]
-  } else if (direction === 'next' && currentIdx === filterValues.length - 1) {
-    // Wrap to first
-    currentFilter.value = filterValues[0]
+  if (direction === 'prev') {
+    // Go to previous, wrap to last if at beginning
+    currentFilter.value = currentIdx > 0 
+      ? filterOrder[currentIdx - 1] 
+      : filterOrder[filterOrder.length - 1]
+  } else {
+    // Go to next, wrap to first if at end
+    currentFilter.value = currentIdx < filterOrder.length - 1 
+      ? filterOrder[currentIdx + 1] 
+      : filterOrder[0]
   }
 }
 
