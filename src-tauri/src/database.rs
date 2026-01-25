@@ -13,6 +13,8 @@ pub struct Game {
     pub installed: bool,
     #[serde(rename = "installPath")]
     pub install_path: Option<String>,
+    #[serde(rename = "customExecutable")]
+    pub custom_executable: Option<String>,
     #[serde(rename = "winePrefix")]
     pub wine_prefix: Option<String>,
     #[serde(rename = "wineVersion")]
@@ -64,6 +66,7 @@ impl Database {
     }
     
     async fn run_migrations(&self) -> anyhow::Result<()> {
+        // Create games table if not exists
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS games (
@@ -73,6 +76,7 @@ impl Database {
                 store_id TEXT NOT NULL,
                 installed INTEGER DEFAULT 0,
                 install_path TEXT,
+                custom_executable TEXT,
                 wine_prefix TEXT,
                 wine_version TEXT,
                 cover_url TEXT,
@@ -91,6 +95,22 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
+        
+        // Migration: Add custom_executable column if it doesn't exist
+        // SQLite doesn't have IF NOT EXISTS for ALTER TABLE, so we check first
+        let has_custom_executable: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM pragma_table_info('games') WHERE name = 'custom_executable'"
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+        
+        if !has_custom_executable {
+            log::info!("Adding custom_executable column to games table...");
+            sqlx::query("ALTER TABLE games ADD COLUMN custom_executable TEXT")
+                .execute(&self.pool)
+                .await?;
+        }
         
         sqlx::query(
             r#"
@@ -113,7 +133,7 @@ impl Database {
     pub async fn get_all_games(&self) -> anyhow::Result<Vec<Game>> {
         let rows = sqlx::query(
             r#"
-            SELECT id, title, store, store_id, installed, install_path,
+            SELECT id, title, store, store_id, installed, install_path, custom_executable,
                    wine_prefix, wine_version,
                    cover_url, background_url, developer, publisher, description,
                    release_date, last_played, play_time_minutes, created_at, updated_at
@@ -133,6 +153,7 @@ impl Database {
                 store_id: row.get("store_id"),
                 installed: row.get::<i32, _>("installed") == 1,
                 install_path: row.get("install_path"),
+                custom_executable: row.get("custom_executable"),
                 wine_prefix: row.get("wine_prefix"),
                 wine_version: row.get("wine_version"),
                 cover_url: row.get("cover_url"),
@@ -161,7 +182,7 @@ impl Database {
     pub async fn get_game(&self, id: &str) -> anyhow::Result<Option<Game>> {
         let row = sqlx::query(
             r#"
-            SELECT id, title, store, store_id, installed, install_path,
+            SELECT id, title, store, store_id, installed, install_path, custom_executable,
                    wine_prefix, wine_version,
                    cover_url, background_url, developer, publisher, description,
                    release_date, last_played, play_time_minutes, created_at, updated_at
@@ -179,6 +200,7 @@ impl Database {
             store_id: row.get("store_id"),
             installed: row.get::<i32, _>("installed") == 1,
             install_path: row.get("install_path"),
+            custom_executable: row.get("custom_executable"),
             wine_prefix: row.get("wine_prefix"),
             wine_version: row.get("wine_version"),
             cover_url: row.get("cover_url"),
@@ -204,11 +226,11 @@ impl Database {
     pub async fn upsert_game(&self, game: &Game) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO games (id, title, store, store_id, installed, install_path,
+            INSERT INTO games (id, title, store, store_id, installed, install_path, custom_executable,
                               wine_prefix, wine_version,
                               cover_url, background_url, developer, publisher, description,
                               release_date, last_played, play_time_minutes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(store, store_id) DO UPDATE SET
                 title = excluded.title,
                 installed = excluded.installed,
@@ -230,6 +252,7 @@ impl Database {
         .bind(&game.store_id)
         .bind(if game.installed { 1 } else { 0 })
         .bind(&game.install_path)
+        .bind(&game.custom_executable)
         .bind(&game.wine_prefix)
         .bind(&game.wine_version)
         .bind(&game.cover_url)
@@ -277,6 +300,22 @@ impl Database {
         )
         .bind(minutes)
         .bind(Utc::now().to_rfc3339())
+        .bind(Utc::now().to_rfc3339())
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        
+        Ok(())
+    }
+    
+    pub async fn update_custom_executable(&self, id: &str, custom_executable: Option<&str>) -> anyhow::Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE games SET custom_executable = ?, updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(custom_executable)
         .bind(Utc::now().to_rfc3339())
         .bind(id)
         .execute(&self.pool)

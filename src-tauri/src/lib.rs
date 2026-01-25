@@ -13,7 +13,10 @@ use commands::{
     get_game, get_games, get_store_status, get_game_config, install_game, launch_game, sync_games,
     scan_gog_installed, uninstall_game,
     close_splashscreen, get_system_info, get_disk_info, check_for_updates, shutdown_system, 
-    get_settings, save_settings, clear_game_cache, clear_all_cache, get_cache_stats, AppState,
+    get_settings, save_settings, clear_game_cache, clear_all_cache, get_cache_stats,
+    get_api_keys, needs_setup, save_api_keys, skip_setup, test_api_keys,
+    update_game_custom_executable,
+    AppState,
 };
 use database::Database;
 use gamepad::GamepadMonitor;
@@ -101,6 +104,14 @@ pub fn run() {
             clear_game_cache,
             clear_all_cache,
             get_cache_stats,
+            // API Keys management
+            get_api_keys,
+            needs_setup,
+            save_api_keys,
+            skip_setup,
+            test_api_keys,
+            // Game settings
+            update_game_custom_executable,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

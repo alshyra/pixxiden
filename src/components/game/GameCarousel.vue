@@ -8,8 +8,9 @@
       @wheel="handleWheel"
     >
       <GameCard
-        v-for="game in games"
+        v-for="(game, index) in games"
         :key="game.id"
+        :ref="el => setCardRef(index, el)"
         :game="game"
         :selected="selectedId === game.id"
         :playing="playingId === game.id"
@@ -43,14 +44,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import type { Game } from '@/types'
 import GameCard from './GameCard.vue'
 
-defineProps<{
+const props = defineProps<{
   games: Game[]
   selectedId?: string
   playingId?: string
+  autoScrollOnSelect?: boolean // Only scroll on keyboard/gamepad navigation
 }>()
 
 const emit = defineEmits<{
@@ -61,6 +63,17 @@ const emit = defineEmits<{
 const carouselRef = ref<HTMLElement>()
 const canScrollLeft = ref(false)
 const canScrollRight = ref(true)
+
+// Store card element refs for scroll-into-view
+const cardRefs = ref<Map<number, HTMLElement>>(new Map())
+
+function setCardRef(index: number, el: any) {
+  if (el?.$el) {
+    cardRefs.value.set(index, el.$el)
+  } else if (el instanceof HTMLElement) {
+    cardRefs.value.set(index, el)
+  }
+}
 
 function updateScrollState() {
   if (!carouselRef.value) return
@@ -83,8 +96,41 @@ function handleWheel(e: WheelEvent) {
   carouselRef.value?.scrollBy({ left: e.deltaY * 2, behavior: 'auto' })
 }
 
+// Scroll selected item into view
+function scrollToSelected() {
+  if (!props.selectedId || !carouselRef.value) return
+  
+  const selectedIndex = props.games.findIndex(g => g.id === props.selectedId)
+  if (selectedIndex === -1) return
+  
+  const cardEl = cardRefs.value.get(selectedIndex)
+  if (cardEl) {
+    cardEl.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    })
+  }
+}
+
+// Expose scrollToSelected for external calls (keyboard/gamepad)
+defineExpose({ scrollToSelected })
+
+// Watch for selection changes (only scroll if autoScrollOnSelect is true)
+watch(() => props.selectedId, () => {
+  if (props.autoScrollOnSelect) {
+    nextTick(() => {
+      scrollToSelected()
+    })
+  }
+})
+
 onMounted(() => {
   updateScrollState()
+  // Initial scroll to selected only if autoScrollOnSelect
+  if (props.autoScrollOnSelect) {
+    nextTick(() => scrollToSelected())
+  }
 })
 </script>
 

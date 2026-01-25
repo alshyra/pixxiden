@@ -13,6 +13,7 @@ export interface Game {
   installPath?: string
   installSize?: string
   executablePath?: string
+  customExecutable?: string  // User-defined executable override
   winePrefix?: string
   wineVersion?: string
   runner?: string

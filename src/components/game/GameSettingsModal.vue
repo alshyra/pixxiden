@@ -43,6 +43,44 @@
               </div>
             </div>
             
+            <!-- Custom Executable (for GOG games) -->
+            <div v-if="config.installed && config.store === 'gog'" class="bg-gray-800/50 rounded-lg p-4 space-y-3">
+              <h3 class="text-sm font-semibold text-white/80 uppercase tracking-wide mb-2">Launch Settings</h3>
+              
+              <div>
+                <label class="text-xs text-white/60 uppercase tracking-wide mb-1 block">Custom Executable (optional)</label>
+                <div class="flex gap-2">
+                  <input
+                    v-model="customExecutable"
+                    type="text"
+                    placeholder="e.g., bin/bg3_dx11.exe"
+                    class="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm font-mono 
+                           border border-gray-600 focus:border-blue-500 focus:outline-none
+                           placeholder:text-gray-500"
+                  />
+                  <button
+                    @click="saveCustomExecutable"
+                    :disabled="saving"
+                    class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 
+                           transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {{ saving ? 'Saving...' : 'Save' }}
+                  </button>
+                </div>
+                <p class="text-xs text-white/50 mt-2">
+                  Override the default game executable. Use a relative path from the install directory.
+                  <br />
+                  Example: For Baldur's Gate 3, use <code class="text-blue-400">bin/bg3_dx11.exe</code> to skip the Larian launcher.
+                </p>
+                <div v-if="saveSuccess" class="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded text-green-400 text-sm">
+                  ✓ Custom executable saved successfully
+                </div>
+                <div v-if="saveError" class="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+                  {{ saveError }}
+                </div>
+              </div>
+            </div>
+            
             <!-- Wine Config (Epic Games only) -->
             <div v-if="config.store === 'epic'" class="bg-gray-800/50 rounded-lg p-4 space-y-3">
               <h3 class="text-sm font-semibold text-white/80 uppercase tracking-wide mb-2">Wine Configuration</h3>
@@ -111,7 +149,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { getGameConfig, type GameConfig } from '@/services/api'
+import { getGameConfig, updateGameCustomExecutable, type GameConfig } from '@/services/api'
 
 interface Props {
   show: boolean
@@ -119,22 +157,30 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-defineEmits<{
+const emit = defineEmits<{
   close: []
+  updated: []
 }>()
 
 const config = ref<GameConfig | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const customExecutable = ref('')
+const saving = ref(false)
+const saveSuccess = ref(false)
+const saveError = ref<string | null>(null)
 
 watch(() => props.show, async (show) => {
   if (show && props.gameId) {
     config.value = null
     error.value = null
     loading.value = true
+    saveSuccess.value = false
+    saveError.value = null
     
     try {
       config.value = await getGameConfig(props.gameId)
+      customExecutable.value = config.value.customExecutable || ''
     } catch (err: any) {
       console.error('Failed to load game config:', err)
       error.value = err?.message || err?.toString() || 'Unknown error'
@@ -143,26 +189,29 @@ watch(() => props.show, async (show) => {
     }
   }
 })
+
+async function saveCustomExecutable() {
+  if (!config.value) return
+  
+  saving.value = true
+  saveSuccess.value = false
+  saveError.value = null
+  
+  try {
+    const value = customExecutable.value.trim() || null
+    await updateGameCustomExecutable(props.gameId, value)
+    saveSuccess.value = true
+    emit('updated')
+    
+    // Clear success message after 3 seconds
+    setTimeout(() => {
+      saveSuccess.value = false
+    }, 3000)
+  } catch (err: any) {
+    console.error('Failed to save custom executable:', err)
+    saveError.value = err?.message || err?.toString() || 'Failed to save'
+  } finally {
+    saving.value = false
+  }
+}
 </script>
-
-<style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-active > div,
-.modal-leave-active > div {
-  transition: transform 0.2s ease;
-}
-
-.modal-enter-from > div,
-.modal-leave-to > div {
-  transform: scale(0.95);
-}
-</style>

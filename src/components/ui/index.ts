@@ -7,6 +7,8 @@ export { default as Toggle } from './Toggle.vue'
 export { default as Modal } from './Modal.vue'
 export { default as Tabs } from './Tabs.vue'
 export { default as Dropdown } from './Dropdown.vue'
+export { default as SetupWizard } from './SetupWizard.vue'
+export { default as ControllerButton } from './ControllerButton.vue'
 
 // Re-export types
 export type { SelectOption } from './Select.vue'

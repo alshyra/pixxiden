@@ -560,6 +560,7 @@ export interface GameConfig {
   store: string
   storeId: string
   installPath: string | null
+  customExecutable: string | null  // User-defined executable override
   winePrefix: string | null
   wineVersion: string | null
   installed: boolean
@@ -591,6 +592,7 @@ export async function getGameConfig(id: string): Promise<GameConfig> {
       store: game.store,
       storeId: game.storeId || game.id,
       installPath: game.installed ? `/home/user/Games/${game.title}` : null,
+      customExecutable: game.customExecutable || null,
       winePrefix: game.store === 'epic' ? `/home/user/.local/share/pixxiden/prefixes/${game.id}` : null,
       wineVersion: game.store === 'epic' ? 'ge-proton-8-32' : null,
       installed: game.installed || false,
@@ -608,4 +610,170 @@ export async function getGameConfig(id: string): Promise<GameConfig> {
   }
 }
 
+/**
+ * Update custom executable path for a game
+ */
+export async function updateGameCustomExecutable(gameId: string, customExecutable: string | null): Promise<void> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Updating custom executable for:', gameId, customExecutable)
+    return
+  }
+  
+  try {
+    await invoke('update_game_custom_executable', { 
+      gameId, 
+      customExecutable 
+    })
+  } catch (error) {
+    console.error('Failed to update custom executable:', error)
+    throw error
+  }
+}
+
 export type { SystemInfo, DiskInfo, SettingsConfig, StoreStatus, SyncResult }
+
+// ============================================================================
+// API Keys Management
+// ============================================================================
+
+export interface ApiKeysConfig {
+  steamgriddbApiKey: string | null
+  igdbClientId: string | null
+  igdbClientSecret: string | null
+  steamApiKey: string | null
+  steamId: string | null
+  setupCompleted: boolean
+  hasSteamgriddb: boolean
+  hasIgdb: boolean
+  hasSteam: boolean
+}
+
+export interface ApiKeysUpdateRequest {
+  steamgriddbApiKey?: string | null
+  igdbClientId?: string | null
+  igdbClientSecret?: string | null
+  steamApiKey?: string | null
+  steamId?: string | null
+  markSetupCompleted?: boolean
+}
+
+export interface ApiKeyTestResult {
+  steamgriddbValid: boolean
+  steamgriddbMessage: string | null
+  igdbValid: boolean
+  igdbMessage: string | null
+  steamValid: boolean
+  steamMessage: string | null
+}
+
+/**
+ * Check if the initial setup wizard should be shown
+ */
+export async function needsSetup(): Promise<boolean> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Checking if setup needed')
+    // In mock mode, check localStorage for mock setup state
+    try {
+      return localStorage.getItem('PIXXIDEN_SETUP_COMPLETED') !== 'true'
+    } catch {
+      return false
+    }
+  }
+  
+  try {
+    return await invoke<boolean>('needs_setup')
+  } catch (error) {
+    console.error('Failed to check setup status:', error)
+    return false
+  }
+}
+
+/**
+ * Get current API keys configuration
+ */
+export async function getApiKeys(): Promise<ApiKeysConfig> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Getting mock API keys')
+    return {
+      steamgriddbApiKey: null,
+      igdbClientId: null,
+      igdbClientSecret: null,
+      steamApiKey: null,
+      steamId: null,
+      setupCompleted: localStorage.getItem('PIXXIDEN_SETUP_COMPLETED') === 'true',
+      hasSteamgriddb: false,
+      hasIgdb: false,
+      hasSteam: false,
+    }
+  }
+  
+  try {
+    return await invoke<ApiKeysConfig>('get_api_keys')
+  } catch (error) {
+    console.error('Failed to get API keys:', error)
+    throw error
+  }
+}
+
+/**
+ * Save API keys configuration
+ */
+export async function saveApiKeys(request: ApiKeysUpdateRequest): Promise<ApiKeysConfig> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Saving mock API keys:', request)
+    if (request.markSetupCompleted) {
+      localStorage.setItem('PIXXIDEN_SETUP_COMPLETED', 'true')
+    }
+    return getApiKeys()
+  }
+  
+  try {
+    return await invoke<ApiKeysConfig>('save_api_keys', { request })
+  } catch (error) {
+    console.error('Failed to save API keys:', error)
+    throw error
+  }
+}
+
+/**
+ * Skip the setup wizard (mark as completed without providing keys)
+ */
+export async function skipSetup(): Promise<void> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Skipping setup')
+    localStorage.setItem('PIXXIDEN_SETUP_COMPLETED', 'true')
+    return
+  }
+  
+  try {
+    await invoke('skip_setup')
+  } catch (error) {
+    console.error('Failed to skip setup:', error)
+    throw error
+  }
+}
+
+/**
+ * Test API keys connectivity
+ */
+export async function testApiKeys(request: ApiKeysUpdateRequest): Promise<ApiKeyTestResult> {
+  if (isMockMode()) {
+    console.log('🎮 [MOCK MODE] Testing mock API keys')
+    // Simulate test results
+    return {
+      steamgriddbValid: !!request.steamgriddbApiKey,
+      steamgriddbMessage: request.steamgriddbApiKey ? 'Mock: Valid' : null,
+      igdbValid: !!(request.igdbClientId && request.igdbClientSecret),
+      igdbMessage: (request.igdbClientId && request.igdbClientSecret) ? 'Mock: Valid' : null,
+      steamValid: !!(request.steamApiKey && request.steamId),
+      steamMessage: (request.steamApiKey && request.steamId) ? 'Mock: Valid' : null,
+    }
+  }
+  
+  try {
+    return await invoke<ApiKeyTestResult>('test_api_keys', { request })
+  } catch (error) {
+    console.error('Failed to test API keys:', error)
+    throw error
+  }
+}

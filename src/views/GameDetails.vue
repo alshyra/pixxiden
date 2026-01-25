@@ -192,8 +192,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
+import { useGamepad } from '@/composables/useGamepad'
+import { Button, Badge } from '@/components/ui'
+import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
 import InstallModal from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
 import type { Game } from '@/types'
@@ -226,7 +229,9 @@ const safeListen = async (event: string, handler: (event: any) => void): Promise
 }
 
 const route = useRoute()
+const router = useRouter()
 const libraryStore = useLibraryStore()
+const { on: onGamepad } = useGamepad()
 
 const showInstallModal = ref(false)
 const gameId = computed(() => route.params.id as string)
@@ -395,6 +400,51 @@ async function handleStartInstallation(config: any) {
   }
 }
 
+// Keyboard shortcuts
+function handleKeyDown(e: KeyboardEvent) {
+  // B or Escape to go back
+  if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
+    e.preventDefault()
+    router.back()
+    return
+  }
+  
+  // A or Enter to play
+  if (e.key === 'a' || e.key === 'A' || e.key === 'Enter') {
+    e.preventDefault()
+    if (game.value?.installed) {
+      playGame()
+    } else {
+      showInstallModal.value = true
+    }
+    return
+  }
+  
+  // X for options
+  if (e.key === 'x' || e.key === 'X') {
+    e.preventDefault()
+    showSettings.value = true
+    return
+  }
+}
+
+// Gamepad handlers
+onGamepad('back', () => {
+  router.back()
+})
+
+onGamepad('confirm', () => {
+  if (game.value?.installed) {
+    playGame()
+  } else {
+    showInstallModal.value = true
+  }
+})
+
+onGamepad('options', () => {
+  showSettings.value = true
+})
+
 onMounted(async () => {
   // Load Tauri helpers
   await loadConvertFileSrc()
@@ -406,6 +456,10 @@ onMounted(async () => {
 
   console.log('🎮 Game data:', game.value)
 
+  // Add keyboard listener
+  window.addEventListener('keydown', handleKeyDown)
+  
+  // Setup Tauri event listeners with try/catch for E2E test compatibility
   try {
     unlistenInstalling = await safeListen('game-installing', (event: any) => {
       if (event.payload?.gameId === gameId.value) {
@@ -445,6 +499,10 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+  unlistenLaunching?.()
+  unlistenLaunched?.()
+  unlistenFailed?.()
   unlistenInstalling?.()
   unlistenInstallProgress?.()
   unlistenInstalled?.()

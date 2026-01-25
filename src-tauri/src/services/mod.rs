@@ -1,3 +1,4 @@
+pub mod api_keys;
 pub mod cache_manager;
 pub mod steamgriddb;
 pub mod igdb;
@@ -8,3 +9,4 @@ pub mod game_enricher;
 
 // Re-export main orchestrator for easy access
 pub use game_enricher::GameEnricher;
+pub use api_keys::{ApiKeysConfig, ApiKeysManager};

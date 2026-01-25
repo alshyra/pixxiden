@@ -34,11 +34,12 @@ struct GogGame {
     install_path: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct InstalledGame {
     #[serde(rename = "appName")]
     app_name: String,
     install_path: Option<String>,
+    platform: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -188,7 +189,7 @@ impl GogdlAdapter {
     }
     
     /// Read installed games from Heroic's gog_store/installed.json
-    fn read_installed_games(&self) -> HashMap<String, String> {
+    fn read_installed_games(&self) -> HashMap<String, InstalledGame> {
         let installed_path = dirs::home_dir()
             .map(|h| h.join(".config/heroic/gog_store/installed.json"))
             .unwrap_or_default();
@@ -198,9 +199,7 @@ impl GogdlAdapter {
         if let Ok(content) = std::fs::read_to_string(&installed_path) {
             if let Ok(data) = serde_json::from_str::<InstalledGames>(&content) {
                 for game in data.installed {
-                    if let Some(path) = game.install_path {
-                        result.insert(game.app_name, path);
-                    }
+                    result.insert(game.app_name.clone(), game);
                 }
             }
         }
@@ -298,6 +297,7 @@ impl GogdlAdapter {
                 store_id: app_id,
                 installed: true,
                 install_path: Some(path.to_string_lossy().to_string()),
+                custom_executable: None,
                 wine_prefix,
                 wine_version: Some("wine-ge".to_string()),
                 cover_url: None,
@@ -367,7 +367,8 @@ impl GogdlAdapter {
         let now = Utc::now();
         let games: Vec<Game> = installed_data
             .into_iter()
-            .map(|(app_name, install_path)| {
+            .map(|(app_name, installed_game)| {
+                let install_path = installed_game.install_path.unwrap_or_default();
                 // Try to get title from install path folder name
                 let title = std::path::Path::new(&install_path)
                     .file_name()
@@ -385,6 +386,7 @@ impl GogdlAdapter {
                     store_id: app_name,
                     installed: true,
                     install_path: Some(install_path),
+                    custom_executable: None,
                     wine_prefix: if wine_prefix.is_empty() { None } else { Some(wine_prefix) },
                     wine_version: if wine_version.is_empty() { None } else { Some(wine_version) },
                     cover_url: None,
@@ -489,6 +491,117 @@ impl GogdlAdapter {
         };
         
         Some((progress, downloaded, total, speed, eta))
+    }
+    
+    /// Find wine binary path from Heroic wine version name
+    fn find_wine_binary(&self, wine_version: &str) -> Option<String> {
+        // Check common Heroic wine locations
+        let heroic_wine_dir = dirs::home_dir()?.join(".config/heroic/tools/wine");
+        
+        // Try to find the wine version directory
+        if let Ok(entries) = std::fs::read_dir(&heroic_wine_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let dir_name = entry.file_name().to_string_lossy().to_string();
+                    if dir_name.contains(wine_version) || wine_version.contains(&dir_name) {
+                        let wine_bin = path.join("bin/wine");
+                        if wine_bin.exists() {
+                            return Some(wine_bin.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Check Proton locations
+        let proton_dir = dirs::home_dir()?.join(".config/heroic/tools/proton");
+        if let Ok(entries) = std::fs::read_dir(&proton_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let dir_name = entry.file_name().to_string_lossy().to_string();
+                    if dir_name.contains(wine_version) || wine_version.contains(&dir_name) {
+                        let wine_bin = path.join("files/bin/wine");
+                        if wine_bin.exists() {
+                            return Some(wine_bin.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        
+        None
+    }
+    
+    /// Launch a GOG game with optional custom executable override
+    pub async fn launch_game_with_custom_exe(&self, store_id: &str, custom_executable: Option<&str>) -> anyhow::Result<()> {
+        log::info!("Launching GOG game: {} (custom_exe: {:?})", store_id, custom_executable);
+        
+        // Check if gogdl binary is available
+        if !self.binary_path.exists() {
+            anyhow::bail!("GOGDL binary not found. Please install Heroic Launcher")
+        }
+        
+        // Read installed games to get install_path and platform
+        let installed_games = self.read_installed_games();
+        let installed_game = installed_games.get(store_id)
+            .ok_or_else(|| anyhow::anyhow!("Game {} not found in Heroic installed games", store_id))?;
+        
+        let install_path = installed_game.install_path.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("No install path found for game {}", store_id))?;
+        
+        let platform = installed_game.platform.as_deref().unwrap_or("windows");
+        
+        // Read wine config from Heroic
+        let (wine_prefix, wine_version) = self.read_heroic_game_config(store_id)
+            .unwrap_or((String::new(), String::new()));
+        
+        log::info!("Launching with path: {}, platform: {}", install_path, platform);
+        
+        // Get auth config path from Heroic
+        let auth_config_path = dirs::home_dir()
+            .map(|h| h.join(".config/heroic/gog_store/auth.json"))
+            .ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        
+        if !auth_config_path.exists() {
+            anyhow::bail!("GOG auth config not found at {:?}. Please login to GOG in Heroic Launcher first.", auth_config_path);
+        }
+        
+        let mut cmd = Command::new(&self.binary_path);
+        // gogdl requires --auth-config-path and launch needs: path id --platform
+        cmd.args([
+            "--auth-config-path", auth_config_path.to_str().unwrap_or(""),
+            "launch", install_path, store_id, 
+            "--platform", platform
+        ]);
+        
+        // If custom executable is specified, use --override-exe
+        if let Some(exe) = custom_executable {
+            if !exe.is_empty() {
+                log::info!("Using custom executable: {}", exe);
+                cmd.args(["--override-exe", exe]);
+            }
+        }
+        
+        // If wine prefix exists, pass it as argument
+        if !wine_prefix.is_empty() {
+            log::info!("Using wine prefix: {}", wine_prefix);
+            cmd.args(["--wine-prefix", &wine_prefix]);
+        }
+        
+        // If wine version specified, try to find and pass the wine binary
+        if !wine_version.is_empty() {
+            if let Some(wine_bin) = self.find_wine_binary(&wine_version) {
+                log::info!("Using wine: {}", wine_bin);
+                cmd.args(["--wine", &wine_bin]);
+            }
+        }
+        
+        log::info!("Executing: {:?}", cmd);
+        cmd.spawn()?;
+        
+        Ok(())
     }
 }
 
@@ -602,7 +715,8 @@ impl StoreAdapter for GogdlAdapter {
                         }
                         
                         let is_installed = installed_data.contains_key(app_name);
-                        let install_path = installed_data.get(app_name).cloned();
+                        let install_path = installed_data.get(app_name)
+                            .and_then(|g| g.install_path.clone());
                         
                         log::debug!("GOG game: {} ({}), installed: {}", title, app_name, is_installed);
                         
@@ -617,6 +731,7 @@ impl StoreAdapter for GogdlAdapter {
                             store_id: app_name.to_string(),
                             installed: is_installed,
                             install_path,
+                            custom_executable: None,
                             wine_prefix: if wine_prefix.is_empty() { None } else { Some(wine_prefix) },
                             wine_version: if wine_version.is_empty() { None } else { Some(wine_version) },
                             cover_url: g.get("art_square").and_then(|u| u.as_str()).map(String::from),
@@ -649,29 +764,59 @@ impl StoreAdapter for GogdlAdapter {
     async fn launch_game(&self, store_id: &str) -> anyhow::Result<()> {
         log::info!("Launching GOG game: {}", store_id);
         
-        // Try to launch via Wine-GE for games in ~/GOG Games/
-        // First check if we can find the game in our database via scan
-        // For now, just use gogdl if available, otherwise error
-        
-        // Read wine config from Heroic
-        let (wine_prefix, _wine_version) = self.read_heroic_game_config(store_id)
-            .unwrap_or((String::new(), String::new()));
-        
         // Check if gogdl binary is available
         if !self.binary_path.exists() {
             anyhow::bail!("GOGDL binary not found. Please install Heroic Launcher or use scan_gog_installed for ~/GOG Games/ detection")
         }
         
-        let mut cmd = Command::new(&self.binary_path);
-        cmd.args(["launch", store_id])
-            .env("GOGDL_CONFIG_PATH", &self.config_path);
+        // Read installed games to get install_path and platform
+        let installed_games = self.read_installed_games();
+        let installed_game = installed_games.get(store_id)
+            .ok_or_else(|| anyhow::anyhow!("Game {} not found in Heroic installed games", store_id))?;
         
-        // If wine prefix exists, pass it
-        if !wine_prefix.is_empty() {
-            log::info!("Using wine prefix: {}", wine_prefix);
-            cmd.env("WINEPREFIX", wine_prefix);
+        let install_path = installed_game.install_path.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("No install path found for game {}", store_id))?;
+        
+        let platform = installed_game.platform.as_deref().unwrap_or("windows");
+        
+        // Read wine config from Heroic
+        let (wine_prefix, wine_version) = self.read_heroic_game_config(store_id)
+            .unwrap_or((String::new(), String::new()));
+        
+        log::info!("Launching with path: {}, platform: {}", install_path, platform);
+        
+        // Get auth config path from Heroic
+        let auth_config_path = dirs::home_dir()
+            .map(|h| h.join(".config/heroic/gog_store/auth.json"))
+            .ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        
+        if !auth_config_path.exists() {
+            anyhow::bail!("GOG auth config not found at {:?}. Please login to GOG in Heroic Launcher first.", auth_config_path);
         }
         
+        let mut cmd = Command::new(&self.binary_path);
+        // gogdl requires --auth-config-path and launch needs: path id --platform
+        cmd.args([
+            "--auth-config-path", auth_config_path.to_str().unwrap_or(""),
+            "launch", install_path, store_id, 
+            "--platform", platform
+        ]);
+        
+        // If wine prefix exists, pass it as argument
+        if !wine_prefix.is_empty() {
+            log::info!("Using wine prefix: {}", wine_prefix);
+            cmd.args(["--wine-prefix", &wine_prefix]);
+        }
+        
+        // If wine version specified, try to find and pass the wine binary
+        if !wine_version.is_empty() {
+            if let Some(wine_bin) = self.find_wine_binary(&wine_version) {
+                log::info!("Using wine: {}", wine_bin);
+                cmd.args(["--wine", &wine_bin]);
+            }
+        }
+        
+        log::info!("Executing: {:?}", cmd);
         cmd.spawn()?;
         
         Ok(())

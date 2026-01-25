@@ -1,5 +1,12 @@
 <template>
   <div id="app" class="min-h-screen bg-black text-white">
+    <!-- Setup Wizard (first-run) -->
+    <SetupWizard 
+      v-if="showSetupWizard" 
+      @complete="onSetupComplete"
+      @skip="onSetupSkip"
+    />
+    
     <!-- Main router view - no transitions for E2E compatibility -->
     <router-view v-slot="{ Component, route }">
       <component 
@@ -11,7 +18,7 @@
     </router-view>
     
     <!-- Console Footer (persistent) -->
-    <ConsoleFooter v-if="!isSplashScreen" />
+    <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
     
     <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
     <GameOverlay ref="gameOverlay" />
@@ -19,13 +26,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, computed, watch } from 'vue'
+import { ref, provide, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { GameOverlay } from '@/components/game'
 import { ConsoleFooter } from '@/components/layout'
+import { SetupWizard } from '@/components/ui'
+import * as api from '@/services/api'
 
 const route = useRoute()
 const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null)
+const showSetupWizard = ref(false)
+
+// Check if setup wizard is needed on mount
+onMounted(async () => {
+  try {
+    const needsSetup = await api.needsSetup()
+    showSetupWizard.value = needsSetup
+  } catch (error) {
+    console.error('Failed to check setup status:', error)
+    // Don't show wizard on error - user can configure later in settings
+  }
+})
+
+function onSetupComplete() {
+  showSetupWizard.value = false
+}
+
+function onSetupSkip() {
+  showSetupWizard.value = false
+}
 
 // Provide overlay control to child components
 provide('gameOverlay', gameOverlay)

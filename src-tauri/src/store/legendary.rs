@@ -318,6 +318,7 @@ impl StoreAdapter for LegendaryAdapter {
                     store_id: g.app_name.clone(),
                     installed: installed_ids.contains(&g.app_name),
                     install_path: install_paths.get(&g.app_name).cloned(),
+                    custom_executable: None,
                     wine_prefix: if wine_prefix.is_empty() { None } else { Some(wine_prefix) },
                     wine_version: if wine_version.is_empty() { None } else { Some(wine_version) },
                     cover_url: Self::extract_cover_url(&g.metadata),

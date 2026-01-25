@@ -21,9 +21,11 @@
           :key="btn.key" 
           class="control-hint"
         >
-          <span :class="getButtonClass(btn.key)" class="btn-icon">
-            {{ getButtonIcon(btn.key) }}
-          </span>
+          <ControllerButton 
+            :button="btn.key" 
+            :type="controllerType" 
+            size="md"
+          />
           <span class="control-label">{{ btn.label }}</span>
         </div>
       </div>
@@ -34,13 +36,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useFooterControls } from '@/composables/useFooterControls'
+import { ControllerButton } from '@/components/ui'
 
 const { 
   buttons, 
   controllerType, 
-  isConnected, 
-  getButtonIcon, 
-  getButtonClass 
+  isConnected
 } = useFooterControls()
 
 const statusText = computed(() => {
@@ -87,92 +88,6 @@ const controllerLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 0.5rem;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: all 0.2s ease;
-}
-
-/* Keyboard style */
-.btn-keyboard {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-/* PlayStation style */
-.btn-ps-cross {
-  background: rgba(94, 92, 230, 0.2);
-  border: 1px solid rgba(94, 92, 230, 0.5);
-  color: #5e5ce6;
-}
-
-.btn-ps-circle {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  color: #ef4444;
-}
-
-.btn-ps-square {
-  background: rgba(236, 72, 153, 0.2);
-  border: 1px solid rgba(236, 72, 153, 0.5);
-  color: #ec4899;
-}
-
-.btn-ps-triangle {
-  background: rgba(16, 185, 129, 0.2);
-  border: 1px solid rgba(16, 185, 129, 0.5);
-  color: #10b981;
-}
-
-.btn-ps-select {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 10px;
-}
-
-/* Xbox style */
-.btn-xbox-a {
-  background: rgba(16, 185, 129, 0.2);
-  border: 1px solid rgba(16, 185, 129, 0.5);
-  color: #10b981;
-}
-
-.btn-xbox-b {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  color: #ef4444;
-}
-
-.btn-xbox-x {
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  color: #3b82f6;
-}
-
-.btn-xbox-y {
-  background: rgba(245, 158, 11, 0.2);
-  border: 1px solid rgba(245, 158, 11, 0.5);
-  color: #f59e0b;
-}
-
-.btn-xbox-back {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 10px;
 }
 
 .control-label {

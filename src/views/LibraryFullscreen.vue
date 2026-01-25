@@ -11,6 +11,7 @@
     <!-- Games Carousel -->
     <div class="absolute bottom-14 left-0 right-0">
       <GameCarousel
+        ref="carouselRef"
         :games="filteredGames"
         :selected-id="selectedGame?.id"
         :playing-id="playingGame?.id"
@@ -113,10 +114,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
-import { useFocusNavigation } from '@/composables/useFocusNavigation'
+import { useGamepad } from '@/composables/useGamepad'
 import type { Game } from '@/types'
 import GameCarousel from '@/components/game/GameCarousel.vue'
 import { HeroBanner } from '@/components/game'
@@ -124,12 +125,15 @@ import { BottomFilters } from '@/components/layout'
 
 const router = useRouter()
 const libraryStore = useLibraryStore()
+const { on: onGamepad } = useGamepad()
+
+// Carousel ref for programmatic scroll
+const carouselRef = ref<InstanceType<typeof GameCarousel> | null>(null)
 
 // Local state
 const loading = ref(true)
 const syncing = ref(false)
 const currentFilter = ref('all')
-const gridColumns = ref(5)
 const selectedGame = ref<Game | null>(null)
 const playingGame = ref<Game | null>(null)
 const selectedMetadataGame = ref(null)
@@ -151,8 +155,8 @@ const filteredGames = computed(() => {
       games = games.filter(g => g.installed)
       break
     case 'most-played':
-      games = games.filter(g => g.playTime && g.playTime > 0)
-        .sort((a, b) => (b.playTime || 0) - (a.playTime || 0))
+      games = games.filter(g => g.playTimeMinutes && g.playTimeMinutes > 0)
+        .sort((a, b) => (b.playTimeMinutes || 0) - (a.playTimeMinutes || 0))
       break
     case 'recent':
       games = games.filter(g => g.lastPlayed)
@@ -169,34 +173,53 @@ const filteredGames = computed(() => {
   return games
 })
 
-// Focus navigation
-const { 
-  focusedIndex, 
-  updateFocusables, 
-  setGridColumns,
-} = useFocusNavigation('.focusable-game', {
-  gridColumns: gridColumns.value,
-  autoScroll: true
-})
+// Current selection index in carousel
+const selectedIndex = ref(0)
 
-// Update grid columns based on window width
-function updateGridColumns() {
-  const width = window.innerWidth
-  if (width < 768) {
-    gridColumns.value = 2
-  } else if (width < 1024) {
-    gridColumns.value = 3
-  } else if (width < 1440) {
-    gridColumns.value = 4
+// Navigate in carousel
+function navigateCarousel(direction: 'left' | 'right') {
+  const total = filteredGames.value.length
+  if (total === 0) return
+  
+  if (direction === 'left') {
+    selectedIndex.value = selectedIndex.value > 0 
+      ? selectedIndex.value - 1 
+      : total - 1 // Wrap to end
   } else {
-    gridColumns.value = 5
+    selectedIndex.value = selectedIndex.value < total - 1 
+      ? selectedIndex.value + 1 
+      : 0 // Wrap to beginning
   }
-  setGridColumns(gridColumns.value)
+  
+  // Update selected game
+  selectedGame.value = filteredGames.value[selectedIndex.value] || null
+  
+  // Scroll to the selected game (keyboard/gamepad navigation)
+  nextTick(() => {
+    carouselRef.value?.scrollToSelected()
+  })
+}
+
+// Navigate filters (up/down)
+function navigateFilters(direction: 'up' | 'down') {
+  const filterValues = filters.map(f => f.value)
+  const currentIdx = filterValues.indexOf(currentFilter.value)
+  
+  if (direction === 'up' && currentIdx > 0) {
+    currentFilter.value = filterValues[currentIdx - 1]
+  } else if (direction === 'down' && currentIdx < filterValues.length - 1) {
+    currentFilter.value = filterValues[currentIdx + 1]
+  }
 }
 
 // Select a game
 function selectGame(game: Game) {
   selectedGame.value = game
+  // Update index to match
+  const idx = filteredGames.value.findIndex(g => g.id === game.id)
+  if (idx !== -1) {
+    selectedIndex.value = idx
+  }
 }
 
 // Open game details
@@ -245,28 +268,65 @@ function handleKeyDown(e: KeyboardEvent) {
   // Don't trigger if typing in an input
   if (document.activeElement?.tagName === 'INPUT') return
   
+  // Arrow keys for navigation
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    navigateCarousel('left')
+    return
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    navigateCarousel('right')
+    return
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    navigateFilters('up')
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    navigateFilters('down')
+    return
+  }
+  
+  // Q/E keys for filter switching (LB/RB equivalent)
+  if (e.key === 'q' || e.key === 'Q') {
+    e.preventDefault()
+    switchFilter('prev')
+    return
+  }
+  if (e.key === 'e' || e.key === 'E') {
+    e.preventDefault()
+    switchFilter('next')
+    return
+  }
+  
   // S key to open settings
   if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
     e.preventDefault()
     openSettings()
   }
   
-  // Enter to open game details
-  if (e.key === 'Enter') {
-    const focusedGame = filteredGames.value[focusedIndex.value]
-    if (focusedGame) {
+  // Enter / A to open game details
+  if (e.key === 'Enter' || e.key === 'a' || e.key === 'A') {
+    if (selectedGame.value) {
       e.preventDefault()
-      openGameDetails(focusedGame)
+      openGameDetails(selectedGame.value)
     }
+  }
+  
+  // Escape / B to go back
+  if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
+    e.preventDefault()
+    router.back()
   }
 }
 
 // Watch for filter changes
 watch(filteredGames, () => {
-  setTimeout(updateFocusables, 100)
-  
-  // Reset focus to first game
-  focusedIndex.value = 0
+  // Reset selection to first game
+  selectedIndex.value = 0
   
   // Update selected game
   if (filteredGames.value.length > 0) {
@@ -276,23 +336,63 @@ watch(filteredGames, () => {
   }
 }, { immediate: true })
 
-// Watch for focused game changes (from gamepad/keyboard navigation)
-watch(focusedIndex, (newIndex) => {
-  if (filteredGames.value[newIndex]) {
-    selectedGame.value = filteredGames.value[newIndex]
+// Quick filter switch with LB/RB
+function switchFilter(direction: 'prev' | 'next') {
+  const filterValues = filters.map(f => f.value)
+  const currentIdx = filterValues.indexOf(currentFilter.value)
+  
+  if (direction === 'prev' && currentIdx > 0) {
+    currentFilter.value = filterValues[currentIdx - 1]
+  } else if (direction === 'next' && currentIdx < filterValues.length - 1) {
+    currentFilter.value = filterValues[currentIdx + 1]
+  } else if (direction === 'prev' && currentIdx === 0) {
+    // Wrap to last
+    currentFilter.value = filterValues[filterValues.length - 1]
+  } else if (direction === 'next' && currentIdx === filterValues.length - 1) {
+    // Wrap to first
+    currentFilter.value = filterValues[0]
   }
+}
+
+// Setup gamepad handlers
+onGamepad('navigate', ({ direction }: { direction: string }) => {
+  if (direction === 'left') {
+    navigateCarousel('left')
+  } else if (direction === 'right') {
+    navigateCarousel('right')
+  } else if (direction === 'up') {
+    navigateFilters('up')
+  } else if (direction === 'down') {
+    navigateFilters('down')
+  }
+})
+
+onGamepad('confirm', () => {
+  if (selectedGame.value) {
+    openGameDetails(selectedGame.value)
+  }
+})
+
+onGamepad('options', () => {
+  openSettings()
+})
+
+// LB/RB for quick filter switching
+onGamepad('lb', () => {
+  switchFilter('prev')
+})
+
+onGamepad('rb', () => {
+  switchFilter('next')
 })
 
 onMounted(() => {
   loadGames()
-  updateGridColumns()
   
-  window.addEventListener('resize', updateGridColumns)
   window.addEventListener('keydown', handleKeyDown)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateGridColumns)
   window.removeEventListener('keydown', handleKeyDown)
 })
 </script>

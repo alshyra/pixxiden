@@ -97,11 +97,12 @@ describe('SettingsView', () => {
   })
 
   describe('Navigation', () => {
-    it('should have three navigation sections', () => {
+    it('should have four navigation sections', () => {
       const wrapper = mount(SettingsView)
       const bodyText = wrapper.text()
       expect(bodyText).toContain('Système')
       expect(bodyText).toContain('Comptes')
+      expect(bodyText).toContain('Clés API')
       expect(bodyText).toContain('Avancé')
     })
 
@@ -109,7 +110,7 @@ describe('SettingsView', () => {
       const wrapper = mount(SettingsView)
       const bodyText = wrapper.text()
       expect(bodyText).toContain('Système')
-      expect(bodyText).toContain('Informations machine')
+      expect(bodyText).toContain('Noyau Système')
     })
 
     it('should switch sections when clicking navigation', async () => {

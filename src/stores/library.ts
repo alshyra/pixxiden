@@ -83,7 +83,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function installGame(gameId: string, installPath?: string) {
     try {
-      const game = games.value.find(g => g.id === gameId || g.appId === gameId)
+      const game = games.value.find(g => g.id === gameId || g.storeId === gameId)
       if (game) {
         game.downloading = true
         game.downloadProgress = 0
@@ -103,7 +103,7 @@ export const useLibraryStore = defineStore('library', () => {
       await api.uninstallGame(gameId)
       
       // Update game state
-      const game = games.value.find(g => g.id === gameId || g.appId === gameId)
+      const game = games.value.find(g => g.id === gameId || g.storeId === gameId)
       if (game) {
         game.installed = false
         game.installPath = ''

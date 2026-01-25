@@ -197,6 +197,176 @@
         </div>
       </div>
       
+      <!-- Clés API Section -->
+      <div v-if="activeSection === 'api-keys'" class="animate-fade-in">
+        <header class="mb-14">
+          <h2 class="text-6xl font-black text-white italic tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+            Clés API
+          </h2>
+          <p class="text-gray-500 text-lg italic font-medium">Configurez vos clés API pour enrichir les données de vos jeux.</p>
+        </header>
+        
+        <div v-if="loadingApiKeys" class="flex items-center justify-center gap-4 p-12 bg-[#0a0a0a] border border-[#1f1f1f] rounded-[10px]">
+          <div class="w-6 h-6 border-2 border-white/10 border-t-[#5e5ce6] rounded-full animate-spin"></div>
+          <span class="text-white/50">Chargement des clés API...</span>
+        </div>
+        
+        <div v-else class="flex flex-col gap-6">
+          <!-- SteamGridDB -->
+          <div class="bg-[#0a0a0a]/80 border border-white/8 rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  🎨 SteamGridDB
+                  <span 
+                    v-if="apiKeyTestResults.steamgriddb !== null"
+                    class="text-xs px-2 py-0.5 rounded-full"
+                    :class="apiKeyTestResults.steamgriddb ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+                  >
+                    {{ apiKeyTestResults.steamgriddb ? '✓ Valide' : '✗ Invalide' }}
+                  </span>
+                </h3>
+                <p class="text-xs text-white/50 mt-1">Covers, bannières et logos de haute qualité</p>
+              </div>
+              <a 
+                href="https://www.steamgriddb.com/profile/preferences/api" 
+                target="_blank"
+                class="text-xs text-[#5e5ce6] hover:text-[#7e7cff] transition-colors"
+              >
+                Obtenir une clé →
+              </a>
+            </div>
+            <input 
+              v-model="apiKeys.steamgriddbApiKey"
+              type="password"
+              placeholder="Clé API SteamGridDB"
+              class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#5e5ce6] focus:outline-none transition-colors"
+            />
+          </div>
+          
+          <!-- IGDB (Twitch) -->
+          <div class="bg-[#0a0a0a]/80 border border-white/8 rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  🎮 IGDB (Twitch)
+                  <span 
+                    v-if="apiKeyTestResults.igdb !== null"
+                    class="text-xs px-2 py-0.5 rounded-full"
+                    :class="apiKeyTestResults.igdb ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+                  >
+                    {{ apiKeyTestResults.igdb ? '✓ Valide' : '✗ Invalide' }}
+                  </span>
+                </h3>
+                <p class="text-xs text-white/50 mt-1">Base de données de jeux (descriptions, notes, genres)</p>
+              </div>
+              <a 
+                href="https://dev.twitch.tv/console/apps" 
+                target="_blank"
+                class="text-xs text-[#5e5ce6] hover:text-[#7e7cff] transition-colors"
+              >
+                Créer une application Twitch →
+              </a>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <input 
+                v-model="apiKeys.igdbClientId"
+                type="text"
+                placeholder="Client ID"
+                class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#5e5ce6] focus:outline-none transition-colors"
+              />
+              <input 
+                v-model="apiKeys.igdbClientSecret"
+                type="password"
+                placeholder="Client Secret"
+                class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#5e5ce6] focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+          
+          <!-- Steam Web API -->
+          <div class="bg-[#0a0a0a]/80 border border-white/8 rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  🎯 Steam Web API
+                  <span 
+                    v-if="apiKeyTestResults.steam !== null"
+                    class="text-xs px-2 py-0.5 rounded-full"
+                    :class="apiKeyTestResults.steam ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+                  >
+                    {{ apiKeyTestResults.steam ? '✓ Valide' : '✗ Invalide' }}
+                  </span>
+                </h3>
+                <p class="text-xs text-white/50 mt-1">Temps de jeu et statistiques Steam</p>
+              </div>
+              <a 
+                href="https://steamcommunity.com/dev/apikey" 
+                target="_blank"
+                class="text-xs text-[#5e5ce6] hover:text-[#7e7cff] transition-colors"
+              >
+                Obtenir une clé →
+              </a>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <input 
+                v-model="apiKeys.steamApiKey"
+                type="password"
+                placeholder="Clé API Steam"
+                class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#5e5ce6] focus:outline-none transition-colors"
+              />
+              <input 
+                v-model="apiKeys.steamId"
+                type="text"
+                placeholder="Steam ID (ex: 76561198...)"
+                class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#5e5ce6] focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+          
+          <!-- Info message -->
+          <div class="flex items-center gap-3 p-4 bg-[#5e5ce6]/10 border border-[#5e5ce6]/20 rounded-xl text-[0.85rem] text-white/70">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Ces clés sont stockées localement et jamais partagées. Elles enrichissent les données de vos jeux avec des images, descriptions et statistiques.</span>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="grid grid-cols-2 gap-4">
+            <Button 
+              variant="outline"
+              size="lg"
+              :loading="testingApiKeys"
+              :disabled="testingApiKeys"
+              @click="testApiKeys"
+            >
+              <template #icon>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </template>
+              {{ testingApiKeys ? 'TEST EN COURS...' : 'TESTER LES CLÉS' }}
+            </Button>
+            
+            <Button 
+              variant="primary"
+              size="lg"
+              :loading="savingApiKeys"
+              :disabled="savingApiKeys"
+              @click="saveApiKeys"
+            >
+              <template #icon>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </template>
+              {{ savingApiKeys ? 'SAUVEGARDE...' : 'SAUVEGARDER' }}
+            </Button>
+          </div>
+        </div>
+      </div>
+      
       <!-- Avancé Section -->
       <div v-if="activeSection === 'avance'" class="animate-fade-in">
         <header class="mb-14">
@@ -264,18 +434,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as api from '@/services/api'
 import type { SystemInfo, DiskInfo } from '@/services/api'
 import { PixxidenLogo, Select, Toggle, Button, type SelectOption } from '@/components/ui'
+import { useGamepad } from '@/composables/useGamepad'
 
 const router = useRouter()
+const { on: onGamepad } = useGamepad()
 
 const sections = [
-  { id: 'systeme', label: 'Système' },
-  { id: 'comptes', label: 'Comptes' },
-  { id: 'avance', label: 'Avancé' },
+  { id: 'systeme', label: 'Système', icon: '⚙️' },
+  { id: 'comptes', label: 'Comptes', icon: '👤' },
+  { id: 'api-keys', label: 'Clés API', icon: '🔑' },
+  { id: 'avance', label: 'Avancé', icon: '🛠️' },
 ]
 
 const activeSection = ref('systeme')
@@ -298,6 +471,27 @@ const stores = ref([
 // Settings state
 const protonVersion = ref('ge-proton-8-32')
 const mangoHudEnabled = ref(false)
+
+// API Keys state
+const apiKeys = ref({
+  steamgriddbApiKey: '',
+  igdbClientId: '',
+  igdbClientSecret: '',
+  steamApiKey: '',
+  steamId: '',
+})
+const loadingApiKeys = ref(false)
+const savingApiKeys = ref(false)
+const testingApiKeys = ref(false)
+const apiKeyTestResults = ref<{
+  steamgriddb: boolean | null,
+  igdb: boolean | null,
+  steam: boolean | null,
+}>({
+  steamgriddb: null,
+  igdb: null,
+  steam: null,
+})
 
 // Proton versions options
 const protonVersions: SelectOption[] = [
@@ -398,6 +592,57 @@ async function saveSettings() {
   }
 }
 
+// Load API keys
+async function loadApiKeys() {
+  loadingApiKeys.value = true
+  try {
+    const keys = await api.getApiKeys()
+    apiKeys.value = {
+      steamgriddbApiKey: keys.steamgriddbApiKey || '',
+      igdbClientId: keys.igdbClientId || '',
+      igdbClientSecret: keys.igdbClientSecret || '',
+      steamApiKey: keys.steamApiKey || '',
+      steamId: keys.steamId || '',
+    }
+  } catch (error) {
+    console.error('Failed to load API keys:', error)
+  } finally {
+    loadingApiKeys.value = false
+  }
+}
+
+// Save API keys
+async function saveApiKeys() {
+  savingApiKeys.value = true
+  try {
+    await api.saveApiKeys(apiKeys.value)
+    console.log('API keys saved')
+  } catch (error) {
+    console.error('Failed to save API keys:', error)
+  } finally {
+    savingApiKeys.value = false
+  }
+}
+
+// Test API keys
+async function testApiKeys() {
+  testingApiKeys.value = true
+  apiKeyTestResults.value = { steamgriddb: null, igdb: null, steam: null }
+  
+  try {
+    const results = await api.testApiKeys(apiKeys.value)
+    apiKeyTestResults.value = {
+      steamgriddb: results.steamgriddbValid ?? null,
+      igdb: results.igdbValid ?? null,
+      steam: results.steamValid ?? null,
+    }
+  } catch (error) {
+    console.error('Failed to test API keys:', error)
+  } finally {
+    testingApiKeys.value = false
+  }
+}
+
 // Format bytes
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -419,6 +664,29 @@ function handleKeyDown(e: KeyboardEvent) {
   }
 }
 
+// Navigation in settings sections
+function navigateSections(direction: 'up' | 'down') {
+  const sectionIds = sections.map(s => s.id)
+  const currentIdx = sectionIds.indexOf(activeSection.value)
+  
+  if (direction === 'up' && currentIdx > 0) {
+    activeSection.value = sectionIds[currentIdx - 1]
+  } else if (direction === 'down' && currentIdx < sectionIds.length - 1) {
+    activeSection.value = sectionIds[currentIdx + 1]
+  }
+}
+
+// Gamepad handlers
+onGamepad('back', () => {
+  closeSettings()
+})
+
+onGamepad('navigate', ({ direction }: { direction: string }) => {
+  if (direction === 'up' || direction === 'down') {
+    navigateSections(direction as 'up' | 'down')
+  }
+})
+
 onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)
   
@@ -428,11 +696,16 @@ onMounted(async () => {
       loadSystemInfo(),
       loadStoreStatus(),
       loadSettings(),
+      loadApiKeys(),
     ])
     console.log('✅ [SettingsView] All data loaded successfully')
   } catch (e) {
     console.warn('[SettingsView] Failed to load some data (expected in E2E tests):', e)
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
 })
 </script>
 

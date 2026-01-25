@@ -1,48 +1,28 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useGamepad, type ControllerType, buttonIcons } from './useGamepad'
 
-export type ControllerType = 'keyboard' | 'ps' | 'xbox'
+export type { ControllerType }
 
 export interface FooterButton {
-  key: 'A' | 'B' | 'S' | 'X' | 'Y'
+  key: 'A' | 'B' | 'S' | 'X' | 'Y' | 'LB' | 'RB'
   label: string
   action: string
 }
 
-const buttonIcons: Record<ControllerType, Record<string, string>> = {
-  keyboard: { A: 'A', B: 'B', S: 'S', X: 'X', Y: 'Y' },
-  ps: { A: '✕', B: '○', S: 'SELECT', X: '□', Y: '△' },
-  xbox: { A: 'A', B: 'B', S: 'BACK', X: 'X', Y: 'Y' }
+const footerButtonIcons: Record<ControllerType, Record<string, string>> = {
+  keyboard: { A: 'A', B: 'B', S: 'S', X: 'X', Y: 'Y', LB: 'Q', RB: 'E' },
+  ps: { A: '✕', B: '○', S: 'SHARE', X: '□', Y: '△', LB: 'L1', RB: 'R1' },
+  xbox: { A: 'A', B: 'B', S: 'BACK', X: 'X', Y: 'Y', LB: 'LB', RB: 'RB' }
 }
 
 export function useFooterControls() {
   const route = useRoute()
-  const controllerType = ref<ControllerType>('keyboard')
-  const isConnected = ref(true) // Assume connected by default
-
-  // Detect controller type based on connected gamepad
-  function detectController() {
-    const gamepads = navigator.getGamepads()
-    
-    for (const gamepad of gamepads) {
-      if (!gamepad) continue
-      
-      const id = gamepad.id.toLowerCase()
-      
-      if (id.includes('playstation') || id.includes('dualshock') || id.includes('dualsense') || id.includes('sony')) {
-        controllerType.value = 'ps'
-        return
-      }
-      
-      if (id.includes('xbox') || id.includes('microsoft')) {
-        controllerType.value = 'xbox'
-        return
-      }
-    }
-    
-    // Default to keyboard if no gamepad detected
-    controllerType.value = 'keyboard'
-  }
+  const { state: gamepadState } = useGamepad()
+  
+  // Reactive controller type from gamepad state
+  const controllerType = computed<ControllerType>(() => gamepadState.value.type)
+  const isConnected = computed(() => gamepadState.value.connected)
 
   // Dynamic buttons based on current route
   const buttons = computed<FooterButton[]>(() => {
@@ -52,9 +32,11 @@ export function useFooterControls() {
       case 'library':
       case 'library-grid':
         return [
+          { key: 'LB', label: 'Filtre ←', action: 'prev-filter' },
+          { key: 'RB', label: 'Filtre →', action: 'next-filter' },
           { key: 'A', label: 'Sélectionner', action: 'select' },
           { key: 'B', label: 'Retour', action: 'back' },
-          { key: 'S', label: 'Paramètres', action: 'settings' }
+          { key: 'X', label: 'Options', action: 'options' }
         ]
       
       case 'settings':
@@ -87,7 +69,7 @@ export function useFooterControls() {
 
   // Get the display icon for a button based on controller type
   function getButtonIcon(key: string): string {
-    const icons = buttonIcons[controllerType.value]
+    const icons = footerButtonIcons[controllerType.value]
     return icons[key] || key
   }
 
@@ -102,6 +84,8 @@ export function useFooterControls() {
         case 'S': return `${baseClass} btn-ps-select`
         case 'X': return `${baseClass} btn-ps-square`
         case 'Y': return `${baseClass} btn-ps-triangle`
+        case 'LB': return `${baseClass} btn-ps-l1`
+        case 'RB': return `${baseClass} btn-ps-r1`
         default: return baseClass
       }
     }
@@ -113,6 +97,8 @@ export function useFooterControls() {
         case 'S': return `${baseClass} btn-xbox-back`
         case 'X': return `${baseClass} btn-xbox-x`
         case 'Y': return `${baseClass} btn-xbox-y`
+        case 'LB': return `${baseClass} btn-xbox-lb`
+        case 'RB': return `${baseClass} btn-xbox-rb`
         default: return baseClass
       }
     }
@@ -120,63 +106,11 @@ export function useFooterControls() {
     return `${baseClass} btn-keyboard`
   }
 
-  let gamepadPollInterval: ReturnType<typeof setInterval> | null = null
-  let previousGamepadCount = 0
-
-  function onGamepadConnected() {
-    detectController()
-  }
-
-  function onGamepadDisconnected() {
-    // Re-check for remaining gamepads
-    const gamepads = navigator.getGamepads()
-    const connectedCount = gamepads.filter(g => g !== null).length
-    
-    if (connectedCount === 0) {
-      controllerType.value = 'keyboard'
-    } else {
-      detectController()
-    }
-  }
-
-  // Poll for gamepad changes (some browsers don't fire events)
-  function pollGamepads() {
-    const gamepads = navigator.getGamepads()
-    const connectedCount = gamepads.filter(g => g !== null).length
-    
-    if (connectedCount !== previousGamepadCount) {
-      previousGamepadCount = connectedCount
-      detectController()
-    }
-  }
-
-  onMounted(() => {
-    // Initial detection
-    detectController()
-    
-    // Listen for gamepad events
-    window.addEventListener('gamepadconnected', onGamepadConnected)
-    window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
-    
-    // Poll for changes every second (fallback)
-    gamepadPollInterval = setInterval(pollGamepads, 1000)
-  })
-
-  onUnmounted(() => {
-    window.removeEventListener('gamepadconnected', onGamepadConnected)
-    window.removeEventListener('gamepaddisconnected', onGamepadDisconnected)
-    
-    if (gamepadPollInterval) {
-      clearInterval(gamepadPollInterval)
-    }
-  })
-
   return {
     buttons,
     controllerType,
     isConnected,
     getButtonIcon,
-    getButtonClass,
-    detectController
+    getButtonClass
   }
 }
