@@ -1,6 +1,7 @@
 pub mod legendary;
 pub mod gogdl;
 pub mod nile;
+pub mod steam;
 
 use crate::database::Game;
 use async_trait::async_trait;

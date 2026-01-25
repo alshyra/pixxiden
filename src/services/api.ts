@@ -217,6 +217,7 @@ interface StoreStatus {
   available: boolean
   authenticated: boolean
   cli_tool: string
+  username?: string
 }
 
 interface SystemInfo {

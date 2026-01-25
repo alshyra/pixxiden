@@ -26,16 +26,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, computed, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, provide, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { GameOverlay } from '@/components/game'
 import { ConsoleFooter } from '@/components/layout'
 import { SetupWizard } from '@/components/ui'
+import { useGamepad } from '@/composables/useGamepad'
 import * as api from '@/services/api'
 
 const route = useRoute()
+const router = useRouter()
+const gamepad = useGamepad()
 const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null)
 const showSetupWizard = ref(false)
+
+// Track if a game is currently running (for PS/Guide button behavior)
+const isGameRunning = ref(false)
+provide('isGameRunning', isGameRunning)
+
+let unlistenGameLaunched: UnlistenFn | null = null
+let unlistenGameError: UnlistenFn | null = null
 
 // Check if setup wizard is needed on mount
 onMounted(async () => {
@@ -46,6 +57,43 @@ onMounted(async () => {
     console.error('Failed to check setup status:', error)
     // Don't show wizard on error - user can configure later in settings
   }
+  
+  // Listen for game launch events
+  try {
+    unlistenGameLaunched = await listen('game-launched', () => {
+      console.log('🎮 Game launched - PS button now controls game overlay')
+      isGameRunning.value = true
+    })
+    
+    unlistenGameError = await listen('game-launch-error', () => {
+      console.log('🎮 Game launch failed - resetting game state')
+      isGameRunning.value = false
+    })
+  } catch (e) {
+    console.warn('Failed to setup game event listeners:', e)
+  }
+  
+  // Handle PS/Guide button: toggle settings when no game is running
+  gamepad.on('guide', () => {
+    if (isSplashScreen.value || showSetupWizard.value) return
+    
+    if (isGameRunning.value) {
+      // When game is running, toggle game overlay
+      gameOverlay.value?.toggle()
+    } else {
+      // When no game is running, toggle settings
+      if (route.name === 'settings') {
+        router.back()
+      } else {
+        router.push('/settings')
+      }
+    }
+  })
+})
+
+onUnmounted(() => {
+  unlistenGameLaunched?.()
+  unlistenGameError?.()
 })
 
 function onSetupComplete() {

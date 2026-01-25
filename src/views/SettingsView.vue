@@ -27,7 +27,6 @@
               : 'text-gray-500 hover:text-gray-300'
           ]"
         >
-          <span class="text-base">{{ section.icon }}</span>
           <span 
             class="remix-nav-item relative"
             :class="{ 'active': activeSection === section.id }"
@@ -172,9 +171,11 @@
                 <h3 class="text-base font-bold text-white">{{ store.name }}</h3>
                 <p 
                   class="text-xs font-semibold mt-0.5"
-                  :class="store.authenticated ? 'text-green-500' : 'text-white/40'"
+                  :class="store.authenticated ? 'text-green-500' : (store.available ? 'text-yellow-500' : 'text-white/40')"
                 >
-                  {{ store.authenticated ? `CONNECTÉ — ${store.username}` : 'DÉCONNECTÉ' }}
+                  {{ store.authenticated 
+                    ? `CONNECTÉ${store.username ? ' — ' + store.username : ''}` 
+                    : (store.available ? 'DÉTECTÉ — NON CONNECTÉ' : 'NON DÉTECTÉ') }}
                 </p>
               </div>
             </div>
@@ -445,10 +446,10 @@ const router = useRouter()
 const { on: onGamepad } = useGamepad()
 
 const sections = [
-  { id: 'systeme', label: 'Système', icon: '⚙️' },
-  { id: 'comptes', label: 'Comptes', icon: '👤' },
-  { id: 'api-keys', label: 'Clés API', icon: '🔑' },
-  { id: 'avance', label: 'Avancé', icon: '🛠️' },
+  { id: 'systeme', label: 'Système' },
+  { id: 'comptes', label: 'Comptes' },
+  { id: 'api-keys', label: 'Clés API' },
+  { id: 'avance', label: 'Avancé' },
 ]
 
 const activeSection = ref('systeme')
@@ -528,8 +529,10 @@ async function loadStoreStatus() {
       if (store) {
         store.available = status.available
         store.authenticated = status.authenticated
+        store.username = status.username || ''
       }
     })
+    console.log('🏪 Store status loaded:', storeStatuses)
   } catch (error) {
     console.error('Failed to load store status:', error)
   }

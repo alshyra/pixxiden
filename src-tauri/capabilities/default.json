@@ -3,7 +3,9 @@
   "identifier": "default",
   "description": "Default capabilities for PixiDen",
   "windows": [
-    "main"
+    "main",
+    "splashscreen",
+    "game-overlay"
   ],
   "permissions": [
     "core:default",

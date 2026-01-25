@@ -16,10 +16,6 @@
       <!-- Titre Centré (position absolute) -->
       <div
         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center z-10">
-        <h1
-          class="text-[100px] font-black italic tracking-tighter text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] leading-none uppercase">
-          {{ (game?.title || 'GAME').toUpperCase() }}
-        </h1>
         <div class="flex gap-4 mt-2 opacity-30">
           <div class="w-12 h-[1px] bg-[#5e5ce6] shadow-[0_0_8px_#5e5ce6]"></div>
           <div class="w-12 h-[1px] bg-[#5e5ce6] shadow-[0_0_8px_#5e5ce6]"></div>
@@ -28,7 +24,7 @@
     </div>
 
     <!-- CONTENU PRINCIPAL -->
-    <div class="flex-1 max-w-[1500px] mx-auto px-10 -mt-24 relative z-20 w-full mb-6">
+    <div class="flex-1 max-w-[1500px] mx-auto px-10 -mt-2 relative z-20 w-full mb-6">
       <div class="grid grid-cols-12 gap-6 h-full items-start">
 
         <!-- COLONNE GAUCHE (4/12) -->
@@ -46,16 +42,20 @@
               </div>
               <div>
                 <h2 class="text-xl font-black italic tracking-tight text-white leading-tight">
-                  {{ game?.title?.toUpperCase() || 'HOLLOW KNIGHT' }}
+                  {{ game?.title?.toUpperCase() || 'N/A' }}
                 </h2>
                 <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
-                  {{ game?.developer || 'TEAM CHERRY' }} • 2017
+                  {{ game?.developer || 'N/A' }} • {{ game?.releaseDate ? new Date(game.releaseDate).getFullYear() : 'N/A' }}
                 </p>
                 <div class="flex gap-2 mt-2">
-                  <span
-                    class="bg-green-500/20 text-green-500 text-[9px] font-black px-1.5 py-0.5 rounded border border-green-500/20">93</span>
-                  <span
-                    class="bg-white/5 text-gray-400 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-widest">INDÉ</span>
+                  <span v-if="scoreBadge"
+                    class="bg-green-500/20 text-green-500 text-[9px] font-black px-1.5 py-0.5 rounded border border-green-500/20">{{ scoreBadge.score }}</span>
+                  <span v-else
+                    class="bg-white/5 text-gray-400 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/5">N/A</span>
+                  <span v-if="game?.genres?.length"
+                    class="bg-white/5 text-gray-400 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-widest">{{ game.genres[0] }}</span>
+                  <span v-else
+                    class="bg-white/5 text-gray-400 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-widest">N/A</span>
                 </div>
               </div>
             </div>
@@ -127,37 +127,10 @@
               </div>
             </div>
           </div>
-
-          <!-- Synopsis -->
-          <div class="px-2 overflow-hidden flex-shrink">
-            <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2 italic">Synopsis</h3>
-            <p class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80">
-              {{ game?.description || 'Missing description' }}
-            </p>
-          </div>
         </div>
 
         <!-- COLONNE DROITE (8/12) -->
         <div class="col-span-12 lg:col-span-8 space-y-6 h-full flex flex-col">
-          <!-- Gameplay Image/Video -->
-          <div
-            class="relative flex-1 rounded-3xl overflow-hidden border border-white/10 shadow-2xl group cursor-pointer max-h-[460px] bg-[#1a1a1e]">
-            <!-- Background Placeholder -->
-            <div
-              class="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-blue-900/30 to-cyan-900/20 transition-transform duration-700 group-hover:scale-105 opacity-80">
-            </div>
-
-            <!-- Play Button Overlay -->
-            <div
-              class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-              <div
-                class="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center transition-transform group-hover:scale-110 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                <div
-                  class="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white border-b-[10px] border-b-transparent ml-2">
-                </div>
-              </div>
-            </div>
-          </div>
 
           <!-- Stats Bottom -->
           <div class="grid grid-cols-4 gap-4 shrink-0 pb-2">
@@ -183,6 +156,13 @@
               </div>
             </div>
           </div>
+          <!-- Synopsis -->
+          <div class="px-2 overflow-hidden flex-shrink">
+            <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2 italic">Synopsis</h3>
+            <p class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80">
+              {{ game?.description || 'Missing description' }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -193,6 +173,17 @@
     <!-- Launch Overlay -->
     <LaunchOverlay :is-visible="isLaunching" :game-title="game?.title || 'Hollow Knight'" :runner="launchRunner"
       :error="launchError" @close="closeLaunchOverlay" />
+
+    <!-- Session Recap Modal -->
+    <SessionRecapModal
+      :is-open="showSessionRecap"
+      :game="game"
+      :session-duration="sessionDuration"
+      :session-start-time="sessionStartTime"
+      :session-end-time="sessionEndTime"
+      @close="closeSessionRecap"
+      @play-again="handlePlayAgain"
+    />
   </div>
 </template>
 
@@ -201,10 +192,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { useGamepad } from '@/composables/useGamepad'
-import { Button, Badge } from '@/components/ui'
-import GameSettingsModal from '@/components/game/GameSettingsModal.vue'
 import InstallModal from '@/components/game/InstallModal.vue'
 import LaunchOverlay from '@/components/game/LaunchOverlay.vue'
+import SessionRecapModal from '@/components/game/SessionRecapModal.vue'
 import type { Game } from '@/types'
 import { ProtonTierUtils } from '@/types'
 
@@ -249,11 +239,18 @@ const game = computed<Game | undefined>(() => libraryStore.getGame(gameId.value)
 const isDownloading = ref(false)
 const downloadProgress = ref(0)
 const downloadedSize = ref('0 MB')
-const totalSize = ref('9.2 GB')
+const totalSize = computed(() => game.value?.installSize || 'N/A')
 const downloadSpeed = ref('0 MB/s')
 
 const isLaunching = ref(false)
 const launchError = ref<string | null>(null)
+
+// Session tracking for recap modal
+const showSessionRecap = ref(false)
+const sessionStartTime = ref<Date | null>(null)
+const sessionEndTime = ref<Date | null>(null)
+const sessionDuration = ref(0) // in seconds
+
 const launchRunner = computed(() => {
   if (!game.value) return undefined
   switch (game.value.store) {
@@ -381,12 +378,19 @@ async function playGame() {
 
   launchError.value = null
   isLaunching.value = true
+  
+  // Start session tracking
+  sessionStartTime.value = new Date()
+  sessionEndTime.value = null
+  sessionDuration.value = 0
 
   try {
     await libraryStore.launchGame(game.value.id)
   } catch (error: any) {
     launchError.value = error?.message || error?.toString() || 'Unknown error'
     console.error('Failed to launch game:', error)
+    // Reset session on launch error
+    sessionStartTime.value = null
   }
 }
 
@@ -398,12 +402,35 @@ async function forceCloseGame() {
     // This is a fallback - ideally we'd track PIDs
     const { invoke } = await import('@tauri-apps/api/core')
     await invoke('force_close_game', { gameId: game.value.id })
+    
+    // End session and show recap
+    endSession()
   } catch (error) {
     console.error('Failed to force close game:', error)
   } finally {
     isLaunching.value = false
     launchError.value = null
   }
+}
+
+function endSession() {
+  if (!sessionStartTime.value) return
+  
+  sessionEndTime.value = new Date()
+  sessionDuration.value = Math.floor((sessionEndTime.value.getTime() - sessionStartTime.value.getTime()) / 1000)
+  showSessionRecap.value = true
+}
+
+function closeSessionRecap() {
+  showSessionRecap.value = false
+  sessionStartTime.value = null
+  sessionEndTime.value = null
+  sessionDuration.value = 0
+}
+
+function handlePlayAgain(_gameId: string) {
+  closeSessionRecap()
+  playGame()
 }
 
 function closeLaunchOverlay() {
@@ -521,7 +548,7 @@ onMounted(async () => {
       if (event.payload?.gameId === gameId.value) {
         downloadProgress.value = event.payload.progress || 0
         downloadedSize.value = event.payload.downloaded || '0 MB'
-        totalSize.value = event.payload.total || '9.2 GB'
+        // totalSize is computed from game.installSize
         downloadSpeed.value = event.payload.speed || '0 MB/s'
       }
     })

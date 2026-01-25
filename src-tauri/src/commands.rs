@@ -1,7 +1,7 @@
 use crate::database::{Database, Game};
 use crate::models::EnrichedGame;
 use crate::services::{GameEnricher, ApiKeysConfig, ApiKeysManager};
-use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileAdapter, StoreAdapter};
+use crate::store::{legendary::LegendaryAdapter, gogdl::GogdlAdapter, nile::NileAdapter, steam::SteamAdapter, StoreAdapter};
 use crate::system::{self, SystemInfo, DiskInfo, SettingsConfig};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
@@ -14,6 +14,7 @@ pub struct AppState {
     pub legendary: Arc<LegendaryAdapter>,
     pub gogdl: Arc<GogdlAdapter>,
     pub nile: Arc<NileAdapter>,
+    pub steam: Arc<SteamAdapter>,
     pub enricher: Arc<Mutex<GameEnricher>>,
 }
 
@@ -80,11 +81,22 @@ pub struct SyncResult {
     pub errors: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SplashProgressEvent {
+    pub store: String,
+    pub game_title: String,
+    pub current: usize,
+    pub total: usize,
+    pub message: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct StoreStatus {
     pub name: String,
     pub available: bool,
     pub authenticated: bool,
+    pub username: Option<String>,
 }
 
 // ===================== COMMANDS =====================
@@ -122,7 +134,7 @@ pub async fn get_game(id: String, state: State<'_, AppState>) -> Result<Option<G
 }
 
 #[tauri::command]
-pub async fn sync_games(state: State<'_, AppState>) -> Result<SyncResult, String> {
+pub async fn sync_games(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<SyncResult, String> {
     let mut result = SyncResult {
         total_games: 0,
         new_games: 0,
@@ -132,12 +144,33 @@ pub async fn sync_games(state: State<'_, AppState>) -> Result<SyncResult, String
     
     let db = state.db.lock().await;
     
+    // Helper to emit progress
+    let emit_progress = |app: &tauri::AppHandle, store: &str, title: &str, current: usize, total: usize| {
+        let _ = app.emit("splash-progress", SplashProgressEvent {
+            store: store.to_string(),
+            game_title: title.to_string(),
+            current,
+            total,
+            message: format!("Syncing {} - {}", store, title),
+        });
+    };
+    
     // Sync Epic Games via Legendary
     if state.legendary.is_available() && state.legendary.is_authenticated().await {
         log::info!("Syncing Epic Games...");
+        let _ = app.emit("splash-progress", SplashProgressEvent {
+            store: "Epic Games".to_string(),
+            game_title: String::new(),
+            current: 0,
+            total: 0,
+            message: "Scanning Epic Games library...".to_string(),
+        });
+        
         match state.legendary.list_games().await {
             Ok(games) => {
-                for game in games {
+                let total = games.len();
+                for (i, game) in games.into_iter().enumerate() {
+                    emit_progress(&app, "Epic Games", &game.title, i + 1, total);
                     result.total_games += 1;
                     if let Err(e) = db.upsert_game(&game).await {
                         result.errors.push(format!("Failed to save {}: {}", game.title, e));
@@ -160,9 +193,19 @@ pub async fn sync_games(state: State<'_, AppState>) -> Result<SyncResult, String
     // Sync GOG via gogdl
     if state.gogdl.is_available() && state.gogdl.is_authenticated().await {
         log::info!("Syncing GOG Games...");
+        let _ = app.emit("splash-progress", SplashProgressEvent {
+            store: "GOG".to_string(),
+            game_title: String::new(),
+            current: 0,
+            total: 0,
+            message: "Scanning GOG library...".to_string(),
+        });
+        
         match state.gogdl.list_games().await {
             Ok(games) => {
-                for game in games {
+                let total = games.len();
+                for (i, game) in games.into_iter().enumerate() {
+                    emit_progress(&app, "GOG", &game.title, i + 1, total);
                     result.total_games += 1;
                     if let Err(e) = db.upsert_game(&game).await {
                         result.errors.push(format!("Failed to save {}: {}", game.title, e));
@@ -178,6 +221,15 @@ pub async fn sync_games(state: State<'_, AppState>) -> Result<SyncResult, String
             }
         }
     }
+    
+    // Emit completion
+    let _ = app.emit("splash-progress", SplashProgressEvent {
+        store: String::new(),
+        game_title: String::new(),
+        current: result.total_games,
+        total: result.total_games,
+        message: format!("Synced {} games", result.total_games),
+    });
     
     Ok(result)
 }
@@ -308,18 +360,28 @@ pub async fn get_store_status(state: State<'_, AppState>) -> Result<Vec<StoreSta
         name: "epic".to_string(),
         available: state.legendary.is_available(),
         authenticated: state.legendary.is_authenticated().await,
+        username: None, // TODO: get Legendary username
     });
     
     statuses.push(StoreStatus {
         name: "gog".to_string(),
         available: state.gogdl.is_available(),
         authenticated: state.gogdl.is_authenticated().await,
+        username: None, // TODO: get GOG username
     });
     
     statuses.push(StoreStatus {
         name: "amazon".to_string(),
         available: state.nile.is_available(),
         authenticated: state.nile.is_authenticated().await,
+        username: None, // TODO: get Amazon username
+    });
+    
+    statuses.push(StoreStatus {
+        name: "steam".to_string(),
+        available: state.steam.is_available(),
+        authenticated: state.steam.is_authenticated().await,
+        username: state.steam.get_username().await,
     });
     
     Ok(statuses)

@@ -65,7 +65,7 @@ let lastNavigationTime = 0
 const navigationThreshold = 150 // ms between navigations
 
 // Event handlers registry
-type GamepadEventType = 'navigate' | 'confirm' | 'back' | 'options' | 'info' | 'lb' | 'rb' | 'lt' | 'rt' | 'start' | 'select'
+type GamepadEventType = 'navigate' | 'confirm' | 'back' | 'options' | 'info' | 'lb' | 'rb' | 'lt' | 'rt' | 'start' | 'select' | 'guide'
 const eventHandlers = new Map<GamepadEventType, Set<(data?: any) => void>>()
 
 function emit(event: GamepadEventType, data?: any) {
@@ -199,6 +199,7 @@ function processGamepadInput(router: ReturnType<typeof useRouter>) {
   // Center buttons
   const startPressed = gamepad.buttons[GAMEPAD_BUTTONS.START]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.START]
   const selectPressed = gamepad.buttons[GAMEPAD_BUTTONS.SELECT]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.SELECT]
+  const guidePressed = gamepad.buttons[GAMEPAD_BUTTONS.GUIDE]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.GUIDE]
   
   // Emit button events
   if (aPressed) {
@@ -227,6 +228,7 @@ function processGamepadInput(router: ReturnType<typeof useRouter>) {
   if (rtPressed) emit('rt')
   if (startPressed) emit('start')
   if (selectPressed) emit('select')
+  if (guidePressed) emit('guide')
   
   // Store previous states
   previousAxes = [...gamepad.axes]

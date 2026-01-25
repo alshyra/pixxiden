@@ -21,7 +21,7 @@ use commands::{
 use database::Database;
 use gamepad::GamepadMonitor;
 use services::GameEnricher;
-use store::{gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter};
+use store::{gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter, steam::SteamAdapter};
 use std::sync::Arc;
 use tauri::{Manager, Window};
 use tokio::sync::Mutex;
@@ -62,6 +62,7 @@ pub fn run() {
             let legendary = LegendaryAdapter::new();
             let gogdl = GogdlAdapter::new();
             let nile = NileAdapter::new();
+            let steam = SteamAdapter::new();
 
             // Create app state
             let state = AppState {
@@ -69,6 +70,7 @@ pub fn run() {
                 legendary: Arc::new(legendary),
                 gogdl: Arc::new(gogdl),
                 nile: Arc::new(nile),
+                steam: Arc::new(steam),
                 enricher: Arc::new(Mutex::new(enricher)),
             };
 

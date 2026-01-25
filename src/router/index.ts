@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LibraryFullscreen from '@/views/LibraryFullscreen.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import GameDetails from '@/views/GameDetails.vue'
+import GameOverlayWindow from '@/views/GameOverlayWindow.vue'
 
 const routes = [
   {
@@ -18,6 +19,11 @@ const routes = [
     path: '/game/:id',
     name: 'game-detail',
     component: GameDetails,
+  },
+  {
+    path: '/overlay',
+    name: 'game-overlay',
+    component: GameOverlayWindow,
   },
   // TODO implement the dowloads view later
   // should be accessible from notif or settings
