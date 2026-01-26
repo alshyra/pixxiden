@@ -14,10 +14,12 @@
     <div class="flex flex-col gap-6">
       <!-- Store Cards -->
       <Card
-        v-for="store in stores"
+        v-for="(store, index) in stores"
         :key="store.id"
         variant="glass"
         class="flex items-center justify-between !p-5"
+        :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === index }"
+        :data-focusable="index"
       >
         <div class="flex items-center gap-4">
           <!-- Store Icon -->
@@ -58,8 +60,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
 import { Card, Button } from "@/components/ui";
 import { Info } from "lucide-vue-next";
+import { useGamepad } from "@/composables/useGamepad";
 
 export interface StoreAccount {
   id: string;
@@ -69,13 +73,16 @@ export interface StoreAccount {
   username?: string;
 }
 
-defineProps<{
+const props = defineProps<{
   stores: StoreAccount[];
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   "toggle-connection": [store: StoreAccount];
 }>();
+
+const { on: onGamepad } = useGamepad();
+const focusedIndex = ref(0);
 
 function storeIconClass(storeId: string): string {
   const classes: Record<string, string> = {
@@ -100,4 +107,31 @@ function storeStatusText(store: StoreAccount): string {
   if (store.available) return "DÉTECTÉ — NON CONNECTÉ";
   return "NON DÉTECTÉ";
 }
+
+// Gamepad navigation
+const navigateHandler = ({ direction }: { direction: string }) => {
+  const maxIndex = props.stores.length - 1;
+
+  if (direction === "up" && focusedIndex.value > 0) {
+    focusedIndex.value--;
+  } else if (direction === "down" && focusedIndex.value < maxIndex) {
+    focusedIndex.value++;
+  }
+};
+
+const confirmHandler = () => {
+  const store = props.stores[focusedIndex.value];
+  if (store) {
+    emit("toggle-connection", store);
+  }
+};
+
+onMounted(() => {
+  onGamepad("navigate", navigateHandler);
+  onGamepad("confirm", confirmHandler);
+});
+
+onUnmounted(() => {
+  // Cleanup is handled automatically by useGamepad
+});
 </script>

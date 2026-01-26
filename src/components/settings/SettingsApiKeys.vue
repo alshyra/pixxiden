@@ -100,6 +100,7 @@
           size="lg"
           :loading="testing"
           :disabled="testing"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 0 }"
           @click="$emit('test')"
         >
           <template #icon>
@@ -113,6 +114,7 @@
           size="lg"
           :loading="saving"
           :disabled="saving"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
           @click="$emit('save')"
         >
           <template #icon>
@@ -126,9 +128,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from "vue";
 import { Button, Input } from "@/components/ui";
 import ApiKeyCard from "./ApiKeyCard.vue";
 import { Info, CheckCircle, Check } from "lucide-vue-next";
+import { useGamepad } from "@/composables/useGamepad";
 
 export interface ApiKeys {
   steamgriddbApiKey: string;
@@ -158,7 +162,29 @@ const emit = defineEmits<{
   save: [];
 }>();
 
+const { on: onGamepad } = useGamepad();
+const focusedIndex = ref(0);
+
 function updateKey(key: keyof ApiKeys, value: string) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
 }
+
+// Gamepad navigation
+onMounted(() => {
+  onGamepad("navigate", ({ direction }: { direction: string }) => {
+    if (direction === "left" && focusedIndex.value > 0) {
+      focusedIndex.value--;
+    } else if (direction === "right" && focusedIndex.value < 1) {
+      focusedIndex.value++;
+    }
+  });
+
+  onGamepad("confirm", () => {
+    if (focusedIndex.value === 0) {
+      emit("test");
+    } else if (focusedIndex.value === 1) {
+      emit("save");
+    }
+  });
+});
 </script>

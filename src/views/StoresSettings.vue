@@ -86,10 +86,10 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useFocusNavigation } from "@/composables/useFocusNavigation";
 import type { StoreType } from "@/types";
-import StoreCard from "@/components/settings/StoreCard.vue";
-import EpicAuthModal from "@/components/settings/EpicAuthModal.vue";
-import GOGAuthModal from "@/components/settings/GOGAuthModal.vue";
-import AmazonAuthModal from "@/components/settings/AmazonAuthModal.vue";
+import StoreCard from "@/components/settings/store/StoreCard.vue";
+import EpicAuthModal from "@/components/settings/storeModal/EpicAuthModal.vue";
+import GOGAuthModal from "@/components/settings/storeModal/GOGAuthModal.vue";
+import AmazonAuthModal from "@/components/settings/storeModal/AmazonAuthModal.vue";
 import Modal from "@/components/ui/Modal.vue";
 import Button from "@/components/ui/Button.vue";
 

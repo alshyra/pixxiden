@@ -79,6 +79,7 @@
           size="lg"
           :loading="checkingUpdates"
           :disabled="checkingUpdates"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 0 }"
           @click="$emit('check-updates')"
         >
           <template #icon>
@@ -87,7 +88,12 @@
           {{ checkingUpdates ? "VÉRIFICATION..." : "VÉRIFIER LES MISES À JOUR" }}
         </Button>
 
-        <Button variant="danger" size="lg" @click="$emit('shutdown')">
+        <Button
+          variant="danger"
+          size="lg"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
+          @click="$emit('shutdown')"
+        >
           <template #icon>
             <PowerIcon class="w-5 h-5" />
           </template>
@@ -99,8 +105,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from "vue";
 import { Card, Button, ProgressBar } from "@/components/ui";
 import { RefreshCw as RefreshIcon, Power as PowerIcon } from "lucide-vue-next";
+import { useGamepad } from "@/composables/useGamepad";
 
 interface SystemInfo {
   osName?: string;
@@ -122,10 +130,13 @@ defineProps<{
   diskInfo: DiskInfo[];
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   "check-updates": [];
   shutdown: [];
 }>();
+
+const { on: onGamepad } = useGamepad();
+const focusedIndex = ref(0);
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -134,4 +145,23 @@ function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
+
+// Gamepad navigation
+onMounted(() => {
+  onGamepad("navigate", ({ direction }: { direction: string }) => {
+    if (direction === "left" && focusedIndex.value > 0) {
+      focusedIndex.value--;
+    } else if (direction === "right" && focusedIndex.value < 1) {
+      focusedIndex.value++;
+    }
+  });
+
+  onGamepad("confirm", () => {
+    if (focusedIndex.value === 0) {
+      emit("check-updates");
+    } else if (focusedIndex.value === 1) {
+      emit("shutdown");
+    }
+  });
+});
 </script>
