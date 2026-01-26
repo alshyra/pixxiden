@@ -7,7 +7,7 @@ export interface Game {
   // Base info (from legendary/gogdl/nile)
   id: string
   title: string
-  store: 'epic' | 'gog' | 'amazon' | 'steam' | string
+  store: 'epic' | 'gog' | 'amazon' | 'steam'
   storeId: string
   installed: boolean
   installPath?: string
