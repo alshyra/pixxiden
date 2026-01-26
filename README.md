@@ -8,7 +8,8 @@
 
 ## 🌟 Features
 
-- **Multi-Store Support**: Seamlessly manage games from Epic Games Store, GOG, and Amazon Games
+- **🔐 Direct Store Authentication**: Connect to Epic, GOG, and Amazon Games directly from PixiDen (no Heroic required!)
+- **Multi-Store Support**: Seamlessly manage games from Epic Games Store, GOG, Amazon Games, and Steam
 - **Session Mode**: Run as a dedicated gaming session with Wayland/Gamescope (SteamOS-like experience)
 - **Controller Navigation**: Full gamepad support with haptic feedback
 - **Wine/Proton Integration**: Automatic runner detection and management
@@ -16,6 +17,7 @@
 - **Download Manager**: Queue management, bandwidth limiting, pause/resume support
 - **Play Time Tracking**: Monitor your gaming sessions
 - **Metadata Rich**: Automatic game info, covers, and screenshots
+- **Heroic Compatible**: Share authentication configs with Heroic Games Launcher
 
 ## 🏗️ Architecture
 
@@ -37,6 +39,20 @@ Pixxiden uses a modern, modular architecture:
 - **Node.js** 18 or higher
 - **Rust** (for Tauri)
 - **Wine-GE** or **Proton-GE** (optional, can be bundled)
+- **Store CLIs** (for authentication):
+  - `legendary-gl` (Epic Games)
+  - `gogdl` (GOG)
+  - `nile` (Amazon Games)
+
+### Install Store CLIs
+
+```bash
+# Install all store authentication CLIs
+pip install legendary-gl gogdl nile
+
+# Or check which ones are already installed
+./scripts/check-clis.sh
+```
 
 ### Setup
 
@@ -57,6 +73,7 @@ sudo apt install -y \
   librsvg2-dev \
   libudev-dev
 ```
+
 ```bash
 sudo pacman -S \
   webkit2gtk-4.1 \
@@ -76,7 +93,26 @@ npm run tauri dev
 
 ## 🎮 Usage
 
+### First Launch
 
+1. Launch PixiDen
+2. Go to **Settings → Comptes → Gérer les Stores**
+3. Connect your game stores:
+   - **Epic Games**: Click "Se connecter" → Browser opens → Login
+   - **GOG**: Click "Se connecter" → Copy/paste authentication code
+   - **Amazon Games**: Click "Se connecter" → Enter email/password (+ 2FA if enabled)
+4. Return to Library → Your games will sync automatically
+
+### Store Authentication
+
+PixiDen can authenticate directly with game stores, making Heroic Games Launcher optional. See [STORE_AUTH.md](STORE_AUTH.md) for detailed documentation.
+
+**Features**:
+
+- ✅ Independent authentication (no Heroic required)
+- ✅ Compatible with existing Heroic configs
+- ✅ Controller-optimized interface
+- ✅ Secure OAuth flows
 
 ## 📄 License
 

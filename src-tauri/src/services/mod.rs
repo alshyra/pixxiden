@@ -1,4 +1,5 @@
 pub mod api_keys;
+pub mod auth;
 pub mod cache_manager;
 pub mod steamgriddb;
 pub mod igdb;

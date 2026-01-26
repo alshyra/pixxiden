@@ -5,11 +5,13 @@ End-to-end tests for Pixxiden using Tauri WebDriver with real store binary integ
 ## Prerequisites
 
 1. **Tauri Driver** - Install with:
+
    ```bash
    cargo install tauri-driver
    ```
 
 2. **Built Application** - Build the release version:
+
    ```bash
    npm run tauri:build
    ```
@@ -29,16 +31,19 @@ End-to-end tests for Pixxiden using Tauri WebDriver with real store binary integ
 ## Running Tests
 
 ### Run all E2E tests
+
 ```bash
 npm run test:e2e
 ```
 
 ### Build and test (full pipeline)
+
 ```bash
 npm run test:build
 ```
 
 ### Run specific test file
+
 ```bash
 npx wdio run wdio.conf.ts --spec e2e/tests/02-store-loading.spec.ts
 ```
@@ -64,12 +69,14 @@ e2e/
 ## Test Suites
 
 ### 1. App Launch (`01-app-launch.spec.ts`)
+
 - Application launches successfully
 - Main container is displayed
 - Window title is correct
 - Library view is default route
 
 ### 2. Store Loading (`02-store-loading.spec.ts`)
+
 - Detects Legendary/GOGDL/Nile binary availability
 - Loads Epic Games library when Legendary is authenticated
 - Loads GOG library when GOGDL is authenticated
@@ -78,6 +85,7 @@ e2e/
 - Combined library from all stores
 
 ### 3. Library UI (`03-library-ui.spec.ts`)
+
 - Game grid displays correctly
 - Store filter buttons work
 - Game sorting (title, playtime, recent)
@@ -85,11 +93,13 @@ e2e/
 - Sync button functionality
 
 ### 4. Navigation (`04-navigation.spec.ts`)
+
 - Route navigation (Library, Downloads, Settings)
 - Settings sidebar sections
 - Browser history (back/forward)
 
 ### 5. Game Management (`05-game-management.spec.ts`)
+
 - Game detail view loads
 - Play button for installed games
 - Install button for uninstalled games
@@ -97,6 +107,7 @@ e2e/
 - Store-specific actions
 
 ### 6. Store Authentication (`06-store-authentication.spec.ts`)
+
 - Connection status display
 - Connect/disconnect buttons
 - Authentication state persistence
@@ -112,15 +123,19 @@ e2e/
 ## Debugging
 
 ### View test screenshots
+
 Screenshots are captured at the end of each test suite in `e2e/screenshots/`.
 
 ### Increase timeout
+
 Edit `wdio.conf.ts` to increase `waitforTimeout` or `connectionRetryTimeout`.
 
 ### Run with verbose logging
+
 ```bash
 DEBUG=wdio* npm run test:e2e
 ```
 
 ### Check tauri-driver logs
+
 The tauri-driver output is logged during test execution.

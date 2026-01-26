@@ -1,168 +1,165 @@
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from "vue";
 
 export interface FocusableElement {
-  id: string
-  element: HTMLElement
-  x: number
-  y: number
-  width: number
-  height: number
+  id: string;
+  element: HTMLElement;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface FocusNavigationOptions {
-  gridColumns?: number
-  wrapNavigation?: boolean
-  autoScroll?: boolean
-  scrollBehavior?: ScrollBehavior
-  initialIndex?: number
+  gridColumns?: number;
+  wrapNavigation?: boolean;
+  autoScroll?: boolean;
+  scrollBehavior?: ScrollBehavior;
+  initialIndex?: number;
 }
 
 const defaultOptions: FocusNavigationOptions = {
   gridColumns: 5,
   wrapNavigation: false,
   autoScroll: true,
-  scrollBehavior: 'smooth',
-  initialIndex: 0
-}
+  scrollBehavior: "smooth",
+  initialIndex: 0,
+};
 
-export function useFocusNavigation(
-  gridSelector: string, 
-  options: FocusNavigationOptions = {}
-) {
-  const opts = { ...defaultOptions, ...options }
-  
-  const focusedIndex = ref(opts.initialIndex || 0)
-  const focusables = ref<FocusableElement[]>([])
-  const gridColumns = ref(opts.gridColumns || 5)
-  
+export function useFocusNavigation(gridSelector: string, options: FocusNavigationOptions = {}) {
+  const opts = { ...defaultOptions, ...options };
+
+  const focusedIndex = ref(opts.initialIndex || 0);
+  const focusables = ref<FocusableElement[]>([]);
+  const gridColumns = ref(opts.gridColumns || 5);
+
   // Gamepad state to prevent rapid-fire navigation
-  let lastNavigationTime = 0
-  const navigationThreshold = 150 // ms between navigations
-  let gamepadPollInterval: ReturnType<typeof setInterval> | null = null
-  let previousAxes: number[] = [0, 0, 0, 0]
-  let buttonStates: boolean[] = []
+  let lastNavigationTime = 0;
+  const navigationThreshold = 150; // ms between navigations
+  let gamepadPollInterval: ReturnType<typeof setInterval> | null = null;
+  let previousAxes: number[] = [0, 0, 0, 0];
+  let buttonStates: boolean[] = [];
 
   // Calculate focusable elements from the DOM
   function updateFocusables() {
-    const elements = document.querySelectorAll(gridSelector)
+    const elements = document.querySelectorAll(gridSelector);
     focusables.value = Array.from(elements).map((el, index) => {
-      const rect = el.getBoundingClientRect()
+      const rect = el.getBoundingClientRect();
       return {
-        id: el.getAttribute('data-id') || `item-${index}`,
+        id: el.getAttribute("data-id") || `item-${index}`,
         element: el as HTMLElement,
         x: rect.left,
         y: rect.top,
         width: rect.width,
-        height: rect.height
-      }
-    })
+        height: rect.height,
+      };
+    });
   }
 
   // Get the currently focused element
   const focusedElement = computed(() => {
-    return focusables.value[focusedIndex.value] || null
-  })
+    return focusables.value[focusedIndex.value] || null;
+  });
 
   // Get the ID of the focused element
   const focusedId = computed(() => {
-    return focusedElement.value?.id || null
-  })
+    return focusedElement.value?.id || null;
+  });
 
   // Navigate in a direction
-  function navigate(direction: 'up' | 'down' | 'left' | 'right') {
-    const current = focusedIndex.value
-    const total = focusables.value.length
-    const cols = gridColumns.value
-    
-    if (total === 0) return
-    
-    let next = current
-    
+  function navigate(direction: "up" | "down" | "left" | "right") {
+    const current = focusedIndex.value;
+    const total = focusables.value.length;
+    const cols = gridColumns.value;
+
+    if (total === 0) return;
+
+    let next = current;
+
     switch (direction) {
-      case 'left':
+      case "left":
         if (current % cols > 0) {
-          next = current - 1
+          next = current - 1;
         } else if (opts.wrapNavigation && current > 0) {
-          next = current - 1
+          next = current - 1;
         }
-        break
-        
-      case 'right':
+        break;
+
+      case "right":
         if ((current + 1) % cols !== 0 && current < total - 1) {
-          next = current + 1
+          next = current + 1;
         } else if (opts.wrapNavigation && current < total - 1) {
-          next = current + 1
+          next = current + 1;
         }
-        break
-        
-      case 'up':
+        break;
+
+      case "up":
         if (current >= cols) {
-          next = current - cols
+          next = current - cols;
         } else if (opts.wrapNavigation) {
           // Wrap to last row, same column
-          const lastRowStart = Math.floor((total - 1) / cols) * cols
-          const targetInLastRow = lastRowStart + (current % cols)
-          next = Math.min(targetInLastRow, total - 1)
+          const lastRowStart = Math.floor((total - 1) / cols) * cols;
+          const targetInLastRow = lastRowStart + (current % cols);
+          next = Math.min(targetInLastRow, total - 1);
         }
-        break
-        
-      case 'down':
+        break;
+
+      case "down":
         if (current + cols < total) {
-          next = current + cols
+          next = current + cols;
         } else if (opts.wrapNavigation) {
           // Wrap to first row, same column
-          next = current % cols
+          next = current % cols;
         }
-        break
+        break;
     }
-    
+
     if (next !== current && next >= 0 && next < total) {
-      focusedIndex.value = next
-      
+      focusedIndex.value = next;
+
       if (opts.autoScroll) {
-        scrollToFocused()
+        scrollToFocused();
       }
-      
-      playFocusSound()
+
+      playFocusSound();
     }
   }
 
   // Scroll the focused element into view
   function scrollToFocused() {
-    const focused = focusables.value[focusedIndex.value]
+    const focused = focusables.value[focusedIndex.value];
     if (focused?.element) {
       focused.element.scrollIntoView({
         behavior: opts.scrollBehavior,
-        block: 'center',
-        inline: 'center'
-      })
+        block: "center",
+        inline: "center",
+      });
     }
   }
 
   // Focus a specific index
   function focusIndex(index: number) {
     if (index >= 0 && index < focusables.value.length) {
-      focusedIndex.value = index
+      focusedIndex.value = index;
       if (opts.autoScroll) {
-        scrollToFocused()
+        scrollToFocused();
       }
     }
   }
 
   // Focus by ID
   function focusById(id: string) {
-    const index = focusables.value.findIndex((f: FocusableElement) => f.id === id)
+    const index = focusables.value.findIndex((f: FocusableElement) => f.id === id);
     if (index !== -1) {
-      focusIndex(index)
+      focusIndex(index);
     }
   }
 
   // Select/click the currently focused element
   function select() {
-    const focused = focusables.value[focusedIndex.value]
+    const focused = focusables.value[focusedIndex.value];
     if (focused?.element) {
-      focused.element.click()
-      playSelectSound()
+      focused.element.click();
+      playSelectSound();
     }
   }
 
@@ -178,137 +175,137 @@ export function useFocusNavigation(
 
   // Keyboard handler
   function handleKeyDown(e: KeyboardEvent) {
-    const keyMap: Record<string, 'up' | 'down' | 'left' | 'right'> = {
-      'ArrowLeft': 'left',
-      'ArrowRight': 'right',
-      'ArrowUp': 'up',
-      'ArrowDown': 'down'
-    }
-    
-    const direction = keyMap[e.key]
-    
+    const keyMap: Record<string, "up" | "down" | "left" | "right"> = {
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      ArrowUp: "up",
+      ArrowDown: "down",
+    };
+
+    const direction = keyMap[e.key];
+
     if (direction) {
-      e.preventDefault()
-      navigate(direction)
-      return
+      e.preventDefault();
+      navigate(direction);
+      return;
     }
-    
+
     // Enter or Space to select
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      select()
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      select();
     }
   }
 
   // Gamepad handler with threshold to prevent rapid-fire
   function handleGamepadInput() {
-    const now = Date.now()
+    const now = Date.now();
     if (now - lastNavigationTime < navigationThreshold) {
-      return
+      return;
     }
-    
-    const gamepads = navigator.getGamepads()
-    const gamepad = gamepads[0]
-    
-    if (!gamepad) return
-    
-    const threshold = 0.5
-    
+
+    const gamepads = navigator.getGamepads();
+    const gamepad = gamepads[0];
+
+    if (!gamepad) return;
+
+    const threshold = 0.5;
+
     // Left stick / D-pad axes
-    const leftX = gamepad.axes[0] || 0
-    const leftY = gamepad.axes[1] || 0
-    
+    const leftX = gamepad.axes[0] || 0;
+    const leftY = gamepad.axes[1] || 0;
+
     // Check for axis movement beyond deadzone
-    const moveLeft = leftX < -threshold && Math.abs(previousAxes[0]) < threshold
-    const moveRight = leftX > threshold && Math.abs(previousAxes[0]) < threshold
-    const moveUp = leftY < -threshold && Math.abs(previousAxes[1]) < threshold
-    const moveDown = leftY > threshold && Math.abs(previousAxes[1]) < threshold
-    
+    const moveLeft = leftX < -threshold && Math.abs(previousAxes[0]) < threshold;
+    const moveRight = leftX > threshold && Math.abs(previousAxes[0]) < threshold;
+    const moveUp = leftY < -threshold && Math.abs(previousAxes[1]) < threshold;
+    const moveDown = leftY > threshold && Math.abs(previousAxes[1]) < threshold;
+
     if (moveLeft) {
-      navigate('left')
-      lastNavigationTime = now
+      navigate("left");
+      lastNavigationTime = now;
     } else if (moveRight) {
-      navigate('right')
-      lastNavigationTime = now
+      navigate("right");
+      lastNavigationTime = now;
     } else if (moveUp) {
-      navigate('up')
-      lastNavigationTime = now
+      navigate("up");
+      lastNavigationTime = now;
     } else if (moveDown) {
-      navigate('down')
-      lastNavigationTime = now
+      navigate("down");
+      lastNavigationTime = now;
     }
-    
+
     // D-pad buttons (indices vary by controller, these are common)
     // Up: 12, Down: 13, Left: 14, Right: 15
-    const dpadUp = gamepad.buttons[12]?.pressed
-    const dpadDown = gamepad.buttons[13]?.pressed
-    const dpadLeft = gamepad.buttons[14]?.pressed
-    const dpadRight = gamepad.buttons[15]?.pressed
-    
+    const dpadUp = gamepad.buttons[12]?.pressed;
+    const dpadDown = gamepad.buttons[13]?.pressed;
+    const dpadLeft = gamepad.buttons[14]?.pressed;
+    const dpadRight = gamepad.buttons[15]?.pressed;
+
     if (dpadUp && !buttonStates[12]) {
-      navigate('up')
-      lastNavigationTime = now
+      navigate("up");
+      lastNavigationTime = now;
     }
     if (dpadDown && !buttonStates[13]) {
-      navigate('down')
-      lastNavigationTime = now
+      navigate("down");
+      lastNavigationTime = now;
     }
     if (dpadLeft && !buttonStates[14]) {
-      navigate('left')
-      lastNavigationTime = now
+      navigate("left");
+      lastNavigationTime = now;
     }
     if (dpadRight && !buttonStates[15]) {
-      navigate('right')
-      lastNavigationTime = now
+      navigate("right");
+      lastNavigationTime = now;
     }
-    
+
     // A/X button to select (button 0 on most controllers)
-    const aButton = gamepad.buttons[0]?.pressed
+    const aButton = gamepad.buttons[0]?.pressed;
     if (aButton && !buttonStates[0]) {
-      select()
-      lastNavigationTime = now
+      select();
+      lastNavigationTime = now;
     }
-    
+
     // Store previous states
-    previousAxes = [...gamepad.axes]
-    buttonStates = gamepad.buttons.map(b => b.pressed)
+    previousAxes = [...gamepad.axes];
+    buttonStates = gamepad.buttons.map((b) => b.pressed);
   }
 
   // Update grid columns dynamically
   function setGridColumns(cols: number) {
-    gridColumns.value = cols
+    gridColumns.value = cols;
   }
 
   // Lifecycle
   onMounted(() => {
     // Initial scan
-    updateFocusables()
-    
+    updateFocusables();
+
     // Add keyboard listener
-    window.addEventListener('keydown', handleKeyDown)
-    
+    window.addEventListener("keydown", handleKeyDown);
+
     // Start gamepad polling at ~60fps
-    gamepadPollInterval = setInterval(handleGamepadInput, 16)
-    
+    gamepadPollInterval = setInterval(handleGamepadInput, 16);
+
     // Observe DOM changes to update focusables
     const observer = new MutationObserver(() => {
-      updateFocusables()
-    })
-    
+      updateFocusables();
+    });
+
     // Find the parent container and observe it
-    const container = document.querySelector(gridSelector)?.parentElement
+    const container = document.querySelector(gridSelector)?.parentElement;
     if (container) {
-      observer.observe(container, { childList: true, subtree: true })
+      observer.observe(container, { childList: true, subtree: true });
     }
-  })
+  });
 
   onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeyDown)
-    
+    window.removeEventListener("keydown", handleKeyDown);
+
     if (gamepadPollInterval) {
-      clearInterval(gamepadPollInterval)
+      clearInterval(gamepadPollInterval);
     }
-  })
+  });
 
   return {
     focusedIndex,
@@ -322,6 +319,6 @@ export function useFocusNavigation(
     focusById,
     updateFocusables,
     setGridColumns,
-    scrollToFocused
-  }
+    scrollToFocused,
+  };
 }

@@ -7,8 +7,9 @@ Le mode mock permet de tester et développer l'application avec des données fic
 ### 1. Via localStorage (développement)
 
 Ouvrir la console du navigateur (F12) et exécuter :
+
 ```javascript
-localStorage.setItem('PIXXIDEN_MOCK_MODE', 'true')
+localStorage.setItem("PIXXIDEN_MOCK_MODE", "true");
 ```
 
 Puis recharger l'application.
@@ -16,6 +17,7 @@ Puis recharger l'application.
 ### 2. Via paramètre URL
 
 Lancer l'application avec le paramètre `?mock` :
+
 ```
 http://localhost:5173/?mock
 ```
@@ -31,6 +33,7 @@ Aucune configuration supplémentaire n'est nécessaire.
 Les données mock sont définies dans [`e2e/fixtures/mockGames.ts`](../e2e/fixtures/mockGames.ts).
 
 Ce fichier contient :
+
 - **15 jeux fictifs** avec des données réalistes
 - Des jeux de différents stores (GOG, Epic, Amazon)
 - Des jeux installés et non installés
@@ -40,15 +43,15 @@ Ce fichier contient :
 ### Fonctions utilitaires
 
 ```typescript
-import { 
-  mockGames,           // Tous les jeux
-  getGamesByStore,     // Filtrer par store
-  getInstalledGames,   // Jeux installés
-  getNotInstalledGames,// Jeux non installés
-  getGameById,         // Trouver un jeu par ID
+import {
+  mockGames, // Tous les jeux
+  getGamesByStore, // Filtrer par store
+  getInstalledGames, // Jeux installés
+  getNotInstalledGames, // Jeux non installés
+  getGameById, // Trouver un jeu par ID
   getRecentlyPlayedGames, // Jeux récents (30 jours)
-  storeStats          // Statistiques
-} from '@/e2e/fixtures/mockGames'
+  storeStats, // Statistiques
+} from "@/e2e/fixtures/mockGames";
 ```
 
 ## API affectées en mode mock
@@ -66,8 +69,9 @@ Quand le mode mock est activé, les fonctions suivantes retournent des données 
 ## Désactivation du mode mock
 
 ### En développement
+
 ```javascript
-localStorage.removeItem('PIXXIDEN_MOCK_MODE')
+localStorage.removeItem("PIXXIDEN_MOCK_MODE");
 ```
 
 Puis recharger l'application.
@@ -92,19 +96,19 @@ Pour ajouter des jeux mock, éditer [`e2e/fixtures/mockGames.ts`](../e2e/fixture
 export const mockGames: Game[] = [
   // ... jeux existants
   {
-    id: '16',
-    title: 'Nouveau Jeu',
-    store: 'epic',
-    storeId: 'epic',
-    appId: 'nouveau-jeu-epic',
+    id: "16",
+    title: "Nouveau Jeu",
+    store: "epic",
+    storeId: "epic",
+    appId: "nouveau-jeu-epic",
     installed: true,
-    installPath: '/games/nouveaujeu',
-    executablePath: '/games/nouveaujeu/game.exe',
+    installPath: "/games/nouveaujeu",
+    executablePath: "/games/nouveaujeu/game.exe",
     playTime: 1200,
-    lastPlayed: '2025-01-20',
-    backgroundUrl: 'https://example.com/image.webp'
-  }
-]
+    lastPlayed: "2025-01-20",
+    backgroundUrl: "https://example.com/image.webp",
+  },
+];
 ```
 
 ## Logs et Débogage

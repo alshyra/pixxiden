@@ -1,3 +1,5 @@
+pub mod auth;
+
 use crate::database::{Database, Game};
 use crate::models::EnrichedGame;
 use crate::services::{GameEnricher, ApiKeysConfig, ApiKeysManager};

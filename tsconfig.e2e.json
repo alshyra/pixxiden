@@ -12,24 +12,11 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
-    "typeRoots": [
-      "./node_modules/@types",
-      "./e2e/types"
-    ],
-    "types": [
-      "node",
-      "mocha"
-    ]
+    "typeRoots": ["./node_modules/@types", "./e2e/types"],
+    "types": ["node", "mocha"]
   },
-  "include": [
-    "e2e/**/*.ts",
-    "wdio.conf.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["e2e/**/*.ts", "wdio.conf.ts"],
+  "exclude": ["node_modules"]
 }

@@ -1,13 +1,13 @@
 /**
  * Pixxiden E2E Test Selectors
- * 
+ *
  * Centralized selectors for all UI elements tested.
  * Use data-testid attributes for reliable test selection.
  */
 
 export const Selectors = {
   // App Shell
-  app: '#app',
+  app: "#app",
   mainContent: '[data-testid="main-content"]',
   loadingSpinner: '[data-testid="loading-spinner"]',
 
@@ -84,12 +84,12 @@ export const Selectors = {
     container: '[data-testid="settings-view"]',
     sidebar: '[data-testid="settings-sidebar"]',
     content: '[data-testid="settings-content"]',
-    
+
     // Settings Sections
     sectionStores: '[data-testid="settings-section-stores"]',
     sectionGeneral: '[data-testid="settings-section-general"]',
     sectionAppearance: '[data-testid="settings-section-appearance"]',
-    
+
     // Store Settings
     stores: {
       legendary: {
@@ -134,6 +134,6 @@ export const Selectors = {
     error: '[data-testid="toast-error"]',
     info: '[data-testid="toast-info"]',
   },
-}
+};
 
-export default Selectors
+export default Selectors;

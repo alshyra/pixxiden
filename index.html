@@ -1,179 +1,204 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pixxiden</title>
-  
-  <style>
-    /* Global minimal */
-    html, body {
-      background-color: #0A0A0B;
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-    }
-    
-    body.splash {
-      background-color: transparent;
-    }
-    
-    /* Splash isolé - sera supprimé du DOM */
-    .tmp-splash {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #0a0a0c;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    
-    .tmp-splash .logo {
-      position: relative;
-      margin-bottom: 3rem;
-    }
-    
-    .tmp-splash .glow {
-      position: absolute;
-      inset: 0;
-      background: #3b82f6;
-      filter: blur(60px);
-      opacity: 0.25;
-      animation: splash-pulse 2s ease-in-out infinite;
-    }
-    
-    .tmp-splash svg {
-      position: relative;
-      z-index: 10;
-    }
-    
-    .tmp-splash .logo-path {
-      animation: splash-dash 4s ease-in-out infinite;
-      stroke-dasharray: 320;
-      stroke-dashoffset: 320;
-    }
-    
-    .tmp-splash h1 {
-      font-size: 2.5rem;
-      font-weight: 900;
-      letter-spacing: 0.4em;
-      margin-bottom: 2.5rem;
-      background: linear-gradient(to right, white, #bfdbfe, #9ca3af);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-style: italic;
-    }
-    
-    .tmp-splash .spinner {
-      position: relative;
-      width: 48px;
-      height: 48px;
-      margin-bottom: 2rem;
-    }
-    
-    .tmp-splash .spinner-ring {
-      position: absolute;
-      inset: 0;
-      border: 3px solid rgba(255,255,255,0.05);
-      border-radius: 50%;
-    }
-    
-    .tmp-splash .spinner-active {
-      position: absolute;
-      inset: 0;
-      border: 3px solid transparent;
-      border-top-color: #3b82f6;
-      border-radius: 50%;
-      animation: splash-spin 1s linear infinite;
-    }
-    
-    .tmp-splash .status {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.3em;
-      color: #60a5fa;
-      font-weight: bold;
-      animation: splash-pulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes splash-spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    @keyframes splash-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    
-    @keyframes splash-dash {
-      0% { stroke-dashoffset: 320; }
-      50% { stroke-dashoffset: 0; }
-      100% { stroke-dashoffset: -320; }
-    }
-    
-    /* Transition */
-    .tmp-splash.fade-out {
-      opacity: 0;
-      transition: opacity 300ms ease-out;
-    }
-    
-    /* Quand tmp-splash existe, cacher #app en dessous */
-    body:has(.tmp-splash:not(.fade-out)) #app {
-      opacity: 0;
-    }
-    
-    #app {
-      width: 100%;
-      height: 100%;
-      transition: opacity 300ms ease-in;
-    }
-  </style>
-  
-  <script>
-    if (window.location.search.includes('splash')) {
-      document.documentElement.classList.add('splash');
-      document.body.classList.add('splash');
-    }
-  </script>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixxiden</title>
 
-<body>
-  <!-- Splash temporaire (supprimé après) -->
-  <div class="tmp-splash">
-    <div class="logo">
-      <div class="glow"></div>
-      <svg width="140" height="140" viewBox="0 0 100 100">
-        <defs>
-          <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#3b82f6" />
-            <stop offset="100%" stop-color="#8b5cf6" />
-          </linearGradient>
-        </defs>
-        <path 
-          class="logo-path"
-          d="M50 5 L90 25 L90 75 L50 95 L10 75 L10 25 Z" 
-          fill="none" 
-          stroke="url(#logo-grad)" 
-          stroke-width="3"
-        />
-        <text x="50" y="62" text-anchor="middle" font-size="30" font-weight="900" fill="white" font-family="monospace">
-          PX
-        </text>
-      </svg>
+    <style>
+      /* Global minimal */
+      html,
+      body {
+        background-color: #0a0a0b;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      body.splash {
+        background-color: transparent;
+      }
+
+      /* Splash isolé - sera supprimé du DOM */
+      .tmp-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #0a0a0c;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      .tmp-splash .logo {
+        position: relative;
+        margin-bottom: 3rem;
+      }
+
+      .tmp-splash .glow {
+        position: absolute;
+        inset: 0;
+        background: #3b82f6;
+        filter: blur(60px);
+        opacity: 0.25;
+        animation: splash-pulse 2s ease-in-out infinite;
+      }
+
+      .tmp-splash svg {
+        position: relative;
+        z-index: 10;
+      }
+
+      .tmp-splash .logo-path {
+        animation: splash-dash 4s ease-in-out infinite;
+        stroke-dasharray: 320;
+        stroke-dashoffset: 320;
+      }
+
+      .tmp-splash h1 {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: 0.4em;
+        margin-bottom: 2.5rem;
+        background: linear-gradient(to right, white, #bfdbfe, #9ca3af);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-style: italic;
+      }
+
+      .tmp-splash .spinner {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 2rem;
+      }
+
+      .tmp-splash .spinner-ring {
+        position: absolute;
+        inset: 0;
+        border: 3px solid rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+      }
+
+      .tmp-splash .spinner-active {
+        position: absolute;
+        inset: 0;
+        border: 3px solid transparent;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: splash-spin 1s linear infinite;
+      }
+
+      .tmp-splash .status {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        color: #60a5fa;
+        font-weight: bold;
+        animation: splash-pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes splash-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes splash-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @keyframes splash-dash {
+        0% {
+          stroke-dashoffset: 320;
+        }
+        50% {
+          stroke-dashoffset: 0;
+        }
+        100% {
+          stroke-dashoffset: -320;
+        }
+      }
+
+      /* Transition */
+      .tmp-splash.fade-out {
+        opacity: 0;
+        transition: opacity 300ms ease-out;
+      }
+
+      /* Quand tmp-splash existe, cacher #app en dessous */
+      body:has(.tmp-splash:not(.fade-out)) #app {
+        opacity: 0;
+      }
+
+      #app {
+        width: 100%;
+        height: 100%;
+        transition: opacity 300ms ease-in;
+      }
+    </style>
+
+    <script>
+      if (window.location.search.includes("splash")) {
+        document.documentElement.classList.add("splash");
+        document.body.classList.add("splash");
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Splash temporaire (supprimé après) -->
+    <div class="tmp-splash">
+      <div class="logo">
+        <div class="glow"></div>
+        <svg width="140" height="140" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#8b5cf6" />
+            </linearGradient>
+          </defs>
+          <path
+            class="logo-path"
+            d="M50 5 L90 25 L90 75 L50 95 L10 75 L10 25 Z"
+            fill="none"
+            stroke="url(#logo-grad)"
+            stroke-width="3"
+          />
+          <text
+            x="50"
+            y="62"
+            text-anchor="middle"
+            font-size="30"
+            font-weight="900"
+            fill="white"
+            font-family="monospace"
+          >
+            PX
+          </text>
+        </svg>
+      </div>
+
+      <h1>PIXXIDEN</h1>
     </div>
-    
-    <h1>PIXXIDEN</h1>
-  </div>
 
-  <!-- App Vue -->
-  <div id="app"></div>
-  
-  <script type="module" src="/src/main.ts"></script>
-</body>
+    <!-- App Vue -->
+    <div id="app"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

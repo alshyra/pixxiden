@@ -1,12 +1,13 @@
 <template>
-  <div class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
+  <div
+    class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col"
+  >
     <!-- Hero Section (Smart Component) -->
     <GameHeroSection />
 
     <!-- Main Content -->
     <div class="flex-1 max-w-[1500px] mx-auto px-10 -mt-2 relative z-20 w-full mb-6">
       <div class="grid grid-cols-12 gap-6 h-full items-start">
-
         <!-- Left Column: Game Info Card (Smart Component) -->
         <div class="col-span-12 lg:col-span-4 space-y-4 h-full flex flex-col">
           <GameInfoCard />
@@ -23,7 +24,7 @@
               Synopsis
             </h3>
             <p class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80">
-              {{ game?.description || 'Missing description' }}
+              {{ game?.description || "Missing description" }}
             </p>
           </section>
         </div>
@@ -31,32 +32,27 @@
     </div>
 
     <!-- Launch Overlay -->
-    <LaunchOverlay 
-      :is-visible="isLaunching" 
-      :game-title="game?.title || 'Game'" 
+    <LaunchOverlay
+      :is-visible="isLaunching"
+      :game-title="game?.title || 'Game'"
       :runner="launchRunner"
-      :error="launchError" 
-      @close="closeLaunchOverlay" 
+      :error="launchError"
+      @close="closeLaunchOverlay"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useLibraryStore } from '@/stores/library'
-import { useGamepad } from '@/composables/useGamepad'
-import { useCurrentGame } from '@/composables/useCurrentGame'
-import {
-  GameHeroSection,
-  GameInfoCard,
-  GameStatsGrid,
-  LaunchOverlay,
-} from '@/components/game'
+import { onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { useLibraryStore } from "@/stores/library";
+import { useGamepad } from "@/composables/useGamepad";
+import { useCurrentGame } from "@/composables/useCurrentGame";
+import { GameHeroSection, GameInfoCard, GameStatsGrid, LaunchOverlay } from "@/components/game";
 
 /**
  * GameDetails - Page détail d'un jeu
- * 
+ *
  * Architecture "Smart Components":
  * - Les composants enfants (GameHeroSection, GameInfoCard, GameStatsGrid, GameActions)
  *   récupèrent eux-mêmes leurs données via le composable useCurrentGame
@@ -65,9 +61,9 @@ import {
  */
 
 // === STORE & COMPOSABLES ===
-const router = useRouter()
-const libraryStore = useLibraryStore()
-const { on: onGamepad } = useGamepad()
+const router = useRouter();
+const libraryStore = useLibraryStore();
+const { on: onGamepad } = useGamepad();
 
 // useCurrentGame centralise l'accès aux données du jeu courant
 const {
@@ -79,44 +75,44 @@ const {
   closeLaunchOverlay,
   setupEventListeners,
   cleanup,
-} = useCurrentGame()
+} = useCurrentGame();
 
 // === INPUT HANDLERS ===
 function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
-    e.preventDefault()
-    router.back()
-    return
+  if (e.key === "Escape" || e.key === "b" || e.key === "B") {
+    e.preventDefault();
+    router.back();
+    return;
   }
 
-  if (e.key === 'a' || e.key === 'A' || e.key === 'Enter') {
-    e.preventDefault()
+  if (e.key === "a" || e.key === "A" || e.key === "Enter") {
+    e.preventDefault();
     // Install modal est maintenant géré par GameActions (Smart Component)
     if (game.value?.installed) {
-      playGame()
+      playGame();
     }
-    return
+    return;
   }
 }
 
-onGamepad('back', () => router.back())
-onGamepad('confirm', () => game.value?.installed && playGame())
+onGamepad("back", () => router.back());
+onGamepad("confirm", () => game.value?.installed && playGame());
 
 // === LIFECYCLE ===
 onMounted(async () => {
   // Setup Tauri event listeners (download progress, launch events, etc.)
-  await setupEventListeners()
+  await setupEventListeners();
 
   // Fetch games si pas encore chargés
   if (libraryStore.games.length === 0) {
-    await libraryStore.fetchGames()
+    await libraryStore.fetchGames();
   }
 
-  window.addEventListener('keydown', handleKeyDown)
-})
+  window.addEventListener("keydown", handleKeyDown);
+});
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyDown)
-  cleanup()
-})
+  window.removeEventListener("keydown", handleKeyDown);
+  cleanup();
+});
 </script>

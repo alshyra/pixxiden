@@ -4,19 +4,37 @@
     <template v-if="type === 'ps'">
       <!-- Cross (X) -->
       <svg v-if="button === 'A'" viewBox="0 0 24 24" class="ps-cross">
-        <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7a.996.996 0 10-1.41 1.41L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" fill="currentColor"/>
+        <path
+          d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7a.996.996 0 10-1.41 1.41L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"
+          fill="currentColor"
+        />
       </svg>
       <!-- Circle (O) -->
       <svg v-else-if="button === 'B'" viewBox="0 0 24 24" class="ps-circle">
-        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.5" />
       </svg>
       <!-- Square -->
       <svg v-else-if="button === 'X'" viewBox="0 0 24 24" class="ps-square">
-        <rect x="5" y="5" width="14" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <rect
+          x="5"
+          y="5"
+          width="14"
+          height="14"
+          rx="1.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        />
       </svg>
       <!-- Triangle -->
       <svg v-else-if="button === 'Y'" viewBox="0 0 24 24" class="ps-triangle">
-        <path d="M12 4L3 20h18L12 4z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        <path
+          d="M12 4L3 20h18L12 4z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+        />
       </svg>
       <!-- L1 -->
       <div v-else-if="button === 'LB'" class="bumper-btn l1">L1</div>
@@ -25,7 +43,7 @@
       <!-- Share/Options -->
       <div v-else-if="button === 'S'" class="option-btn">OPTIONS</div>
     </template>
-    
+
     <!-- Xbox Buttons -->
     <template v-else-if="type === 'xbox'">
       <!-- A -->
@@ -43,7 +61,7 @@
       <!-- Back -->
       <div v-else-if="button === 'S'" class="option-btn">MENU</div>
     </template>
-    
+
     <!-- Keyboard -->
     <template v-else>
       <div class="keyboard-key">{{ keyboardKey }}</div>
@@ -52,28 +70,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 const props = defineProps<{
-  button: 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'S'
-  type: 'ps' | 'xbox' | 'keyboard'
-  size?: 'sm' | 'md' | 'lg'
-}>()
+  button: "A" | "B" | "X" | "Y" | "LB" | "RB" | "S";
+  type: "ps" | "xbox" | "keyboard";
+  size?: "sm" | "md" | "lg";
+}>();
 
 const keyboardKeys: Record<string, string> = {
-  A: 'A',
-  B: 'B',
-  X: 'X',
-  Y: 'Y',
-  LB: 'Q',
-  RB: 'E',
-  S: 'ESC'
-}
+  A: "A",
+  B: "B",
+  X: "X",
+  Y: "Y",
+  LB: "Q",
+  RB: "E",
+  S: "ESC",
+};
 
-const keyboardKey = computed(() => keyboardKeys[props.button] || props.button)
+const keyboardKey = computed(() => keyboardKeys[props.button] || props.button);
 
-const typeClass = computed(() => `type-${props.type}`)
-const sizeClass = computed(() => `size-${props.size || 'md'}`)
+const typeClass = computed(() => `type-${props.type}`);
+const sizeClass = computed(() => `size-${props.size || "md"}`);
 </script>
 
 <style scoped>
@@ -165,22 +183,30 @@ const sizeClass = computed(() => `size-${props.size || 'md'}`)
 
 .xbox-a {
   background: linear-gradient(180deg, #3cb54a 0%, #2a9d38 100%);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .xbox-b {
   background: linear-gradient(180deg, #e54b4b 0%, #c93c3c 100%);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .xbox-x {
   background: linear-gradient(180deg, #3b8eea 0%, #2d72c2 100%);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .xbox-y {
   background: linear-gradient(180deg, #f5c242 0%, #daa520 100%);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* Xbox bumper buttons */

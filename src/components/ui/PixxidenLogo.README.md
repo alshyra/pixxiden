@@ -6,16 +6,16 @@ Logo animé Pixxiden avec hexagone et effet de lueur.
 
 ```vue
 <script setup>
-import { PixxidenLogo } from '@/components/ui'
+import { PixxidenLogo } from "@/components/ui";
 </script>
 
 <template>
   <!-- Logo par défaut (100px avec glow) -->
   <PixxidenLogo />
-  
+
   <!-- Logo personnalisé -->
   <PixxidenLogo :size="80" :glow="false" />
-  
+
   <!-- Logo avec taille en string -->
   <PixxidenLogo size="5rem" :glow="true" />
 </template>
@@ -23,10 +23,10 @@ import { PixxidenLogo } from '@/components/ui'
 
 ## Props
 
-| Prop   | Type              | Défaut | Description                              |
-|--------|-------------------|--------|------------------------------------------|
-| `size` | `number \| string` | `100`  | Taille du logo (en px si number)         |
-| `glow` | `boolean`         | `true` | Active/désactive l'effet de lueur arrière |
+| Prop   | Type               | Défaut | Description                               |
+| ------ | ------------------ | ------ | ----------------------------------------- |
+| `size` | `number \| string` | `100`  | Taille du logo (en px si number)          |
+| `glow` | `boolean`          | `true` | Active/désactive l'effet de lueur arrière |
 
 ## Caractéristiques
 
@@ -45,6 +45,7 @@ import { PixxidenLogo } from '@/components/ui'
 ## Style
 
 Le logo respecte le design system ReMiX avec :
+
 - Palette indigo néon (#5e5ce6)
 - Animations smooth avec cubic-bezier(0.2, 0.8, 0.2, 1)
 - Typographie monospace pour "PX"

@@ -9,8 +9,8 @@ Ce document explique comment utiliser les composants de la bibliothèque UI Pixi
 ## 📦 Import
 
 ```typescript
-import { Button, Select, Toggle, Modal, Tabs, Dropdown, Badge } from '@/components/ui'
-import type { SelectOption, TabItem, DropdownItem } from '@/components/ui'
+import { Button, Select, Toggle, Modal, Tabs, Dropdown, Badge } from "@/components/ui";
+import type { SelectOption, TabItem, DropdownItem } from "@/components/ui";
 ```
 
 ## 🔘 Button
@@ -18,12 +18,14 @@ import type { SelectOption, TabItem, DropdownItem } from '@/components/ui'
 **Remplace** : `<button>`
 
 ### Variants disponibles
+
 - `primary` - Bouton principal (indigo avec glow)
 - `danger` - Actions destructives (rouge)
 - `ghost` - Bouton transparent
 - `outline` - Bordure uniquement
 
 ### Sizes
+
 - `sm` - Petit (px-3 py-2)
 - `md` - Moyen (px-5 py-3) [default]
 - `lg` - Grand (px-6 py-4)
@@ -32,10 +34,7 @@ import type { SelectOption, TabItem, DropdownItem } from '@/components/ui'
 
 ```vue
 <!-- ❌ Avant (ne PAS faire) -->
-<button 
-  @click="save"
-  class="px-5 py-3 bg-[#5e5ce6] rounded-xl text-white hover:bg-[#7c7ae8]"
->
+<button @click="save" class="px-5 py-3 bg-[#5e5ce6] rounded-xl text-white hover:bg-[#7c7ae8]">
   Sauvegarder
 </button>
 
@@ -75,19 +74,15 @@ import type { SelectOption, TabItem, DropdownItem } from '@/components/ui'
 </select>
 
 <!-- ✅ Après -->
-<Select 
-  v-model="protonVersion" 
-  :options="protonVersions"
-  placeholder="Sélectionner une version"
-/>
+<Select v-model="protonVersion" :options="protonVersions" placeholder="Sélectionner une version" />
 
 <script setup lang="ts">
-import type { SelectOption } from '@/components/ui'
+import type { SelectOption } from "@/components/ui";
 
 const protonVersions: SelectOption[] = [
-  { value: 'v1', label: 'Version 1' },
-  { value: 'v2', label: 'Version 2' },
-]
+  { value: "v1", label: "Version 1" },
+  { value: "v2", label: "Version 2" },
+];
 </script>
 ```
 
@@ -99,7 +94,7 @@ const protonVersions: SelectOption[] = [
 
 ```vue
 <!-- ❌ Avant -->
-<button 
+<button
   @click="enabled = !enabled"
   class="relative w-[52px] h-7 rounded-full"
   :class="enabled ? 'bg-[#5e5ce6]' : 'bg-white/10'"
@@ -108,10 +103,7 @@ const protonVersions: SelectOption[] = [
 </button>
 
 <!-- ✅ Après -->
-<Toggle 
-  v-model="enabled"
-  label="Activer MangoHud"
-/>
+<Toggle v-model="enabled" label="Activer MangoHud" />
 ```
 
 ## 🪟 Modal
@@ -123,15 +115,15 @@ const protonVersions: SelectOption[] = [
 ```vue
 <template>
   <Button @click="showModal = true">Ouvrir</Button>
-  
-  <Modal 
-    v-model="showModal" 
+
+  <Modal
+    v-model="showModal"
     title="Confirmer l'action"
     description="Cette action est irréversible"
     size="md"
   >
     <p>Êtes-vous sûr de vouloir continuer ?</p>
-    
+
     <template #footer>
       <Button variant="ghost" @click="showModal = false">Annuler</Button>
       <Button variant="danger" @click="confirm">Confirmer</Button>
@@ -159,14 +151,14 @@ const protonVersions: SelectOption[] = [
 </template>
 
 <script setup lang="ts">
-import type { TabItem } from '@/components/ui'
+import type { TabItem } from "@/components/ui";
 
 const sections: TabItem[] = [
-  { id: 'systeme', label: 'Système', icon: '⚙️' },
-  { id: 'comptes', label: 'Comptes', icon: '👤' },
-]
+  { id: "systeme", label: "Système", icon: "⚙️" },
+  { id: "comptes", label: "Comptes", icon: "👤" },
+];
 
-const activeTab = ref('systeme')
+const activeTab = ref("systeme");
 </script>
 ```
 
@@ -186,13 +178,13 @@ const activeTab = ref('systeme')
 </template>
 
 <script setup lang="ts">
-import type { DropdownItem } from '@/components/ui'
+import type { DropdownItem } from "@/components/ui";
 
 const actions: DropdownItem[] = [
-  { label: 'Lancer', action: () => launch(), iconString: '▶️' },
-  { label: 'Paramètres', action: () => settings(), iconString: '⚙️' },
-  { label: 'Désinstaller', action: () => uninstall(), danger: true, iconString: '🗑️' },
-]
+  { label: "Lancer", action: () => launch(), iconString: "▶️" },
+  { label: "Paramètres", action: () => settings(), iconString: "⚙️" },
+  { label: "Désinstaller", action: () => uninstall(), danger: true, iconString: "🗑️" },
+];
 </script>
 ```
 
@@ -201,6 +193,7 @@ const actions: DropdownItem[] = [
 **Remplace** : Spans avec classes customisées pour labels
 
 ### Variants
+
 - `steam`, `epic`, `gog`, `amazon` - Store badges
 - `installed` - Statut installé
 - `success`, `error` - Statuts généraux
@@ -226,8 +219,8 @@ const actions: DropdownItem[] = [
 Tous les composants acceptent des classes Tailwind supplémentaires :
 
 ```vue
-<Button 
-  variant="primary" 
+<Button
+  variant="primary"
   class="w-full mb-4"  <!-- Classes supplémentaires -->
   @click="action"
 >
@@ -250,6 +243,7 @@ Quand vous créez ou modifiez un composant :
 ## 📍 Fichiers déjà migrés
 
 ✅ Fichiers utilisant les composants UI :
+
 - `src/views/SettingsView.vue` - Select, Toggle, Button
 - `src/components/game/GameOverlay.vue` - Button
 - `src/views/LibraryFullscreen.vue` - Button

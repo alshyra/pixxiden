@@ -1,85 +1,85 @@
 /**
  * Pixxiden E2E Tests - Splash Screen
- * 
+ *
  * Tests that the splash screen appears on startup and transitions correctly to the main window.
  */
 
-import { takeScreenshot } from '../helpers'
+import { takeScreenshot } from "../helpers";
 
-describe('Splash Screen', () => {
-  it('should show splash screen on application startup', async () => {
+describe("Splash Screen", () => {
+  it("should show splash screen on application startup", async () => {
     // The splash screen should be visible immediately
     // Note: This test assumes the app just launched and splash is still visible
     // In reality, the splash might be gone by the time WebDriver connects
-    
+
     // Try to detect if we can see splash screen elements
-    const splashTitle = await $('h1.app-title')
-    
+    const splashTitle = await $("h1.app-title");
+
     // If splash is still visible, verify it
     if (await splashTitle.isExisting()) {
-      expect(await splashTitle.getText()).toBe('Pixxiden')
-      await takeScreenshot('splash-screen-visible')
+      expect(await splashTitle.getText()).toBe("Pixxiden");
+      await takeScreenshot("splash-screen-visible");
     }
-  })
+  });
 
-  it('should transition to main window after initialization', async () => {
+  it("should transition to main window after initialization", async () => {
     // Wait for the main app to be loaded (splash should be gone)
     await browser.waitUntil(
       async () => {
-        const app = await $('#app')
-        const isDisplayed = await app.isDisplayed()
-        
+        const app = await $("#app");
+        const isDisplayed = await app.isDisplayed();
+
         // Check if we're in the main app (not splash)
         if (isDisplayed) {
-          const splashContainer = await $('.splash-container')
-          const hasSplash = await splashContainer.isExisting()
-          return !hasSplash // Main app should not have splash container
+          const splashContainer = await $(".splash-container");
+          const hasSplash = await splashContainer.isExisting();
+          return !hasSplash; // Main app should not have splash container
         }
-        return false
+        return false;
       },
-      { 
-        timeout: 3000, 
-        timeoutMsg: 'Main window did not appear after splash screen' 
-      }
-    )
+      {
+        timeout: 3000,
+        timeoutMsg: "Main window did not appear after splash screen",
+      },
+    );
 
     // Verify main app is displayed
-    const app = await $('#app')
-    expect(await app.isDisplayed()).toBe(true)
-    
-    await takeScreenshot('main-window-after-splash')
-  })
+    const app = await $("#app");
+    expect(await app.isDisplayed()).toBe(true);
 
-  it('should have loaded the main window with proper title', async () => {
-    const title = await browser.getTitle()
-    expect(title).toContain('Pixxiden')
-  })
+    await takeScreenshot("main-window-after-splash");
+  });
 
-  it('should have rendered the main app content', async () => {
+  it("should have loaded the main window with proper title", async () => {
+    const title = await browser.getTitle();
+    expect(title).toContain("Pixxiden");
+  });
+
+  it("should have rendered the main app content", async () => {
     // Wait for main content to be visible - LibraryFullscreen uses BottomFilters
     await browser.waitUntil(
       async () => {
-        const bodyText = await $('body').getText()
+        const bodyText = await $("body").getText();
         // BottomFilters component shows "tous" filter (French for "all")
-        return bodyText.includes('tous') || bodyText.includes('installés')
+        return bodyText.includes("tous") || bodyText.includes("installés");
       },
-      { timeout: 1000, timeoutMsg: 'Main app content not rendered' }
-    )
+      { timeout: 1000, timeoutMsg: "Main app content not rendered" },
+    );
 
     // Verify we're in the main app, not splash screen
-    const splashContainer = await $('.splash-container')
-    expect(await splashContainer.isExisting()).toBe(false)
-  })
+    const splashContainer = await $(".splash-container");
+    expect(await splashContainer.isExisting()).toBe(false);
+  });
 
-  it('should not have any splash screen elements in main window', async () => {
-    const loader = await $('.loader')
-    const splashContent = await $('.splash-content')
-    
-    expect(await loader.isExisting()).toBe(false)
-    expect(await splashContent.isExisting()).toBe(false)
-  })
+  it("should not have any splash screen elements in main window", async () => {
+    const loader = await $(".loader");
+    const splashContent = await $(".splash-content");
+
+    expect(await loader.isExisting()).toBe(false);
+    expect(await splashContent.isExisting()).toBe(false);
+  });
 
   after(async () => {
-    await takeScreenshot('splash-test-final')
-  })
-})
+    await takeScreenshot("splash-test-final");
+  });
+});

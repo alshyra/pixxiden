@@ -17,6 +17,13 @@ use commands::{
     get_api_keys, needs_setup, save_api_keys, skip_setup, test_api_keys,
     update_game_custom_executable, force_close_game,
     AppState,
+    auth::{
+        AuthState,
+        get_stores_auth_status,
+        epic_start_auth, epic_is_authenticated, epic_logout,
+        gog_get_auth_url, gog_login_with_code, gog_is_authenticated, gog_logout,
+        amazon_login, amazon_login_with_2fa, amazon_is_authenticated, amazon_logout,
+    },
 };
 use database::Database;
 use gamepad::GamepadMonitor;
@@ -76,6 +83,10 @@ pub fn run() {
 
             app.manage(state);
             
+            // Initialize auth state
+            let auth_state = AuthState::new();
+            app.manage(auth_state);
+            
             // Initialize gamepad monitor
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
             app.manage(gamepad_monitor);
@@ -116,6 +127,19 @@ pub fn run() {
             update_game_custom_executable,
             // Game control
             force_close_game,
+            // Store Authentication
+            get_stores_auth_status,
+            epic_start_auth,
+            epic_is_authenticated,
+            epic_logout,
+            gog_get_auth_url,
+            gog_login_with_code,
+            gog_is_authenticated,
+            gog_logout,
+            amazon_login,
+            amazon_login_with_2fa,
+            amazon_is_authenticated,
+            amazon_logout,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

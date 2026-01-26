@@ -22,8 +22,9 @@ e2e/
 - **6 non installés** : Call of Duty, Splitgate 2, Battlefield 3, Hogwarts Legacy, Luigi's Mansion 3
 
 **Distribution par store:**
+
 - Epic Games: 8 jeux
-- GOG: 6 jeux  
+- GOG: 6 jeux
 - Amazon: 3 jeux
 
 ## 🔧 API
@@ -32,25 +33,25 @@ e2e/
 
 ```typescript
 // Setup dans before()
-await setupMockTauriCommands()  // Mock commandes Tauri
-await injectMockGames()         // Injecter les données
+await setupMockTauriCommands(); // Mock commandes Tauri
+await injectMockGames(); // Injecter les données
 
 // Accès aux données
-import { 
-  mockGames,              // Game[] - tous les jeux
-  getInstalledGames,      // () => Game[]
-  getNotInstalledGames,   // () => Game[]
-  getGamesByStore,        // (store: string) => Game[]
-  getGameById,            // (id: string) => Game | undefined
-  getMockGameStats,       // () => Stats
-  storeStats              // { epic: 8, gog: 6, ... }
-} from '../helpers'
+import {
+  mockGames, // Game[] - tous les jeux
+  getInstalledGames, // () => Game[]
+  getNotInstalledGames, // () => Game[]
+  getGamesByStore, // (store: string) => Game[]
+  getGameById, // (id: string) => Game | undefined
+  getMockGameStats, // () => Stats
+  storeStats, // { epic: 8, gog: 6, ... }
+} from "../helpers";
 ```
 
 ### Statistiques
 
 ```typescript
-const stats = getMockGameStats()
+const stats = getMockGameStats();
 // {
 //   total: 15,
 //   installed: 9,
@@ -64,42 +65,42 @@ const stats = getMockGameStats()
 ### Test avant (avec backend réel)
 
 ```typescript
-describe('Library UI', () => {
-  let games: Game[] = []
+describe("Library UI", () => {
+  let games: Game[] = [];
 
   before(async () => {
-    await waitForAppReady()
-    await invokeTauriCommand('sync_games') // ❌ Backend requis
-    games = await invokeTauriCommand('get_games')
-  })
+    await waitForAppReady();
+    await invokeTauriCommand("sync_games"); // ❌ Backend requis
+    games = await invokeTauriCommand("get_games");
+  });
 
-  it('should display games', async function() {
-    if (games.length === 0) this.skip() // ❌ Tests flaky
+  it("should display games", async function () {
+    if (games.length === 0) this.skip(); // ❌ Tests flaky
     // ...
-  })
-})
+  });
+});
 ```
 
 ### Test après (avec mocks)
 
 ```typescript
-import { setupMockTauriCommands, mockGames, getMockGameStats } from '../helpers'
+import { setupMockTauriCommands, mockGames, getMockGameStats } from "../helpers";
 
-describe('Library UI', () => {
-  const stats = getMockGameStats()
+describe("Library UI", () => {
+  const stats = getMockGameStats();
 
   before(async () => {
-    await waitForAppReady()
-    await setupMockTauriCommands() // ✅ Pas de backend
-    await injectMockGames()
-  })
+    await waitForAppReady();
+    await setupMockTauriCommands(); // ✅ Pas de backend
+    await injectMockGames();
+  });
 
-  it('should display games', async () => {
-    expect(stats.total).toBe(15) // ✅ Déterministe
-    const cards = await $$('.game-card')
-    expect(cards.length).toBe(15)
-  })
-})
+  it("should display games", async () => {
+    expect(stats.total).toBe(15); // ✅ Déterministe
+    const cards = await $$(".game-card");
+    expect(cards.length).toBe(15);
+  });
+});
 ```
 
 ## ✅ Avantages
@@ -156,13 +157,13 @@ Test setup: 15 mock games loaded
 
 ## 📊 Jeux disponibles
 
-| ID | Titre | Store | Installé | Play Time |
-|----|-------|-------|----------|-----------|
-| 1 | DREDGE | GOG | ✅ | 37h |
-| 2 | Call of Duty | Epic | ❌ | 0h |
-| 3 | Fortnite | Epic | ✅ | 80h |
-| 4 | Sea of Thieves | Amazon | ✅ | 20h |
-| 7 | Red Dead 2 | Epic | ✅ | 140h |
-| 9 | Black Myth Wukong | Epic | ✅ | 60h |
-| 12 | Kerbal Space | GOG | ✅ | 200h |
-| ... | ... | ... | ... | ... |
+| ID  | Titre             | Store  | Installé | Play Time |
+| --- | ----------------- | ------ | -------- | --------- |
+| 1   | DREDGE            | GOG    | ✅       | 37h       |
+| 2   | Call of Duty      | Epic   | ❌       | 0h        |
+| 3   | Fortnite          | Epic   | ✅       | 80h       |
+| 4   | Sea of Thieves    | Amazon | ✅       | 20h       |
+| 7   | Red Dead 2        | Epic   | ✅       | 140h      |
+| 9   | Black Myth Wukong | Epic   | ✅       | 60h       |
+| 12  | Kerbal Space      | GOG    | ✅       | 200h      |
+| ... | ...               | ...    | ...      | ...       |

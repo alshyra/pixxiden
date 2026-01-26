@@ -29,7 +29,7 @@
             <DialogPanel
               :class="[
                 'w-full transform overflow-hidden rounded-2xl bg-remix-bg-content border border-white/10 p-8 text-left align-middle shadow-glow-strong transition-all',
-                sizeClasses[size]
+                sizeClasses[size],
               ]"
             >
               <!-- Title with Glow Effect -->
@@ -41,13 +41,12 @@
                   >
                     {{ title }}
                   </DialogTitle>
-                  <div class="absolute top-[60%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-remix-accent blur-[50px] opacity-30 -z-10"></div>
+                  <div
+                    class="absolute top-[60%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-remix-accent blur-[50px] opacity-30 -z-10"
+                  ></div>
                 </div>
-                
-                <DialogDescription
-                  v-if="description"
-                  class="mt-2 text-sm text-white/50"
-                >
+
+                <DialogDescription v-if="description" class="mt-2 text-sm text-white/50">
                   {{ description }}
                 </DialogDescription>
               </div>
@@ -70,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 import {
   TransitionRoot,
   TransitionChild,
@@ -78,15 +77,15 @@ import {
   DialogPanel,
   DialogTitle,
   DialogDescription,
-} from '@headlessui/vue'
+} from "@headlessui/vue";
 
 /**
  * Modal/Dialog component using Headless UI Dialog
- * 
+ *
  * @example
  * <Modal v-model="showConfirm" title="Confirmer la suppression" :close-on-backdrop="true">
  *   <p>Êtes-vous sûr de vouloir désinstaller ce jeu ?</p>
- *   
+ *
  *   <template #footer>
  *     <Button variant="ghost" @click="showConfirm = false">Annuler</Button>
  *     <Button variant="danger" @click="confirmDelete">Supprimer</Button>
@@ -97,41 +96,41 @@ import {
 const props = withDefaults(
   defineProps<{
     /** Control modal visibility */
-    modelValue: boolean
+    modelValue: boolean;
     /** Modal title */
-    title: string
+    title: string;
     /** Optional description below title */
-    description?: string
+    description?: string;
     /** Allow closing by clicking backdrop */
-    closeOnBackdrop?: boolean
+    closeOnBackdrop?: boolean;
     /** Modal size */
-    size?: 'sm' | 'md' | 'lg' | 'xl'
+    size?: "sm" | "md" | "lg" | "xl";
   }>(),
   {
     closeOnBackdrop: true,
-    size: 'md',
-  }
-)
+    size: "md",
+  },
+);
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+  "update:modelValue": [value: boolean];
+}>();
 
 const isOpen = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
-})
+  set: (value) => emit("update:modelValue", value),
+});
 
 const handleClose = () => {
   if (props.closeOnBackdrop) {
-    isOpen.value = false
+    isOpen.value = false;
   }
-}
+};
 
 const sizeClasses = {
-  sm: 'max-w-md',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
-}
+  sm: "max-w-md",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
+};
 </script>

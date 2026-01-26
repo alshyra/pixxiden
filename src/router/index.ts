@@ -1,23 +1,24 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import LibraryFullscreen from '@/views/LibraryFullscreen.vue'
-import SettingsView from '@/views/SettingsView.vue'
-import GameDetails from '@/views/GameDetails.vue'
-import GameOverlayWindow from '@/views/GameOverlayWindow.vue'
+import { createRouter, createWebHistory } from "vue-router";
+import LibraryFullscreen from "@/views/LibraryFullscreen.vue";
+import SettingsView from "@/views/SettingsView.vue";
+import StoresSettings from "@/views/StoresSettings.vue";
+import GameDetails from "@/views/GameDetails.vue";
+import GameOverlayWindow from "@/views/GameOverlayWindow.vue";
 
 const routes = [
   {
-    path: '/',
-    name: 'library',
+    path: "/",
+    name: "library",
     component: LibraryFullscreen,
   },
   {
-    path: '/game/:id',
-    name: 'game-detail',
+    path: "/game/:id",
+    name: "game-detail",
     component: GameDetails,
   },
   {
-    path: '/overlay',
-    name: 'game-overlay',
+    path: "/overlay",
+    name: "game-overlay",
     component: GameOverlayWindow,
   },
   // TODO implement the dowloads view later
@@ -28,15 +29,20 @@ const routes = [
   //   component: () => import('@/views/DownloadsView.vue'),
   // },
   {
-    path: '/settings',
-    name: 'settings',
+    path: "/settings",
+    name: "settings",
     component: SettingsView,
   },
-]
+  {
+    path: "/settings/stores",
+    name: "stores-settings",
+    component: StoresSettings,
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
+});
 
-export default router
+export default router;

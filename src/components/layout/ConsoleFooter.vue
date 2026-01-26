@@ -4,10 +4,10 @@
       <!-- Status indicator -->
       <div class="status-section">
         <div class="status-indicator">
-          <div class="status-dot" :class="{ 'connected': isConnected }"></div>
+          <div class="status-dot" :class="{ connected: isConnected }"></div>
           <span class="status-text">{{ statusText }}</span>
         </div>
-        
+
         <!-- Controller type badge -->
         <div class="controller-badge" v-if="controllerType !== 'keyboard'">
           <span class="badge-icon">🎮</span>
@@ -16,16 +16,8 @@
       </div>
       <!-- Control hints -->
       <div class="control-hints">
-        <div 
-          v-for="btn in buttons" 
-          :key="btn.key" 
-          class="control-hint"
-        >
-          <ControllerButton 
-            :button="btn.key" 
-            :type="controllerType" 
-            size="md"
-          />
+        <div v-for="btn in buttons" :key="btn.key" class="control-hint">
+          <ControllerButton :button="btn.key" :type="controllerType" size="md" />
           <span class="control-label">{{ btn.label }}</span>
         </div>
       </div>
@@ -34,27 +26,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useFooterControls } from '@/composables/useFooterControls'
-import { ControllerButton } from '@/components/ui'
+import { computed } from "vue";
+import { useFooterControls } from "@/composables/useFooterControls";
+import { ControllerButton } from "@/components/ui";
 
-const { 
-  buttons, 
-  controllerType, 
-  isConnected
-} = useFooterControls()
+const { buttons, controllerType, isConnected } = useFooterControls();
 
 const statusText = computed(() => {
-  return isConnected.value ? 'Connecté' : 'Déconnecté'
-})
+  return isConnected.value ? "Connecté" : "Déconnecté";
+});
 
 const controllerLabel = computed(() => {
   switch (controllerType.value) {
-    case 'ps': return 'PlayStation'
-    case 'xbox': return 'Xbox'
-    default: return 'Clavier'
+    case "ps":
+      return "PlayStation";
+    case "xbox":
+      return "Xbox";
+    default:
+      return "Clavier";
   }
-})
+});
 </script>
 
 <style scoped>

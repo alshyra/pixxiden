@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -8,14 +8,15 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-  background-color: #0A0A0B;
+  background-color: #0a0a0b;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -31,25 +32,26 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1A1A1D;
+  background: #1a1a1d;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2A2A2F;
+  background: #2a2a2f;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3A3A3F;
+  background: #3a3a3f;
 }
 
 /* Focus outline for accessibility */
 :focus-visible {
-  outline: 2px solid #6366F1;
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
 
 /* Smooth transitions */
-a, button {
+a,
+button {
   transition: all 0.2s ease-in-out;
 }

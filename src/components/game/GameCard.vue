@@ -1,8 +1,13 @@
 <template>
-  <div class="game-card" :class="{
-    'focused': focused,
-    'selected': selected
-  }" :style="cardStyle" :data-id="game.id">
+  <div
+    class="game-card"
+    :class="{
+      focused: focused,
+      selected: selected,
+    }"
+    :style="cardStyle"
+    :data-id="game.id"
+  >
     <!-- Placeholder background when no image -->
     <div v-if="!game.backgroundUrl && !game.backgroundUrl" class="placeholder-bg">
       <PixxidenLogo :size="80" :glow="false" />
@@ -40,42 +45,47 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { Game } from '@/types'
-import { PixxidenLogo } from '@/components/ui'
-import { Check } from 'lucide-vue-next'
+import { computed } from "vue";
+import type { Game } from "@/types";
+import { PixxidenLogo } from "@/components/ui";
+import { Check } from "lucide-vue-next";
 
 interface Props {
-  game: Game
-  focused?: boolean
-  selected?: boolean
-  playing?: boolean
+  game: Game;
+  focused?: boolean;
+  selected?: boolean;
+  playing?: boolean;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 // Use backgroundUrl or coverUrl for the card background
 const cardStyle = computed(() => {
-  const imageUrl = props.game.backgroundUrl || props.game.coverUrl
+  const imageUrl = props.game.backgroundUrl || props.game.coverUrl;
   if (imageUrl) {
     return {
-      backgroundImage: `url(${imageUrl})`
-    }
+      backgroundImage: `url(${imageUrl})`,
+    };
   }
-  return {}
-})
+  return {};
+});
 
 // Store badge text
 const storeBadgeText = computed(() => {
-  const store = props.game.store?.toLowerCase()
+  const store = props.game.store?.toLowerCase();
   switch (store) {
-    case 'steam': return 'STEAM'
-    case 'epic': return 'EPIC'
-    case 'gog': return 'GOG'
-    case 'amazon': return 'PRIME'
-    default: return store?.toUpperCase() || 'N/A'
+    case "steam":
+      return "STEAM";
+    case "epic":
+      return "EPIC";
+    case "gog":
+      return "GOG";
+    case "amazon":
+      return "PRIME";
+    default:
+      return store?.toUpperCase() || "N/A";
   }
-})
+});
 </script>
 
 <style scoped>
@@ -130,10 +140,12 @@ const storeBadgeText = computed(() => {
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top,
-      rgba(0, 0, 0, 0.95) 0%,
-      rgba(0, 0, 0, 0.5) 30%,
-      transparent 60%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.5) 30%,
+    transparent 60%
+  );
   pointer-events: none;
 }
 
@@ -223,7 +235,6 @@ const storeBadgeText = computed(() => {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;

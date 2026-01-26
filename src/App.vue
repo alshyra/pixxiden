@@ -1,133 +1,129 @@
 <template>
   <div id="app" class="min-h-screen bg-black text-white">
     <!-- Setup Wizard (first-run) -->
-    <SetupWizard 
-      v-if="showSetupWizard" 
-      @complete="onSetupComplete"
-      @skip="onSetupSkip"
-    />
-    
+    <SetupWizard v-if="showSetupWizard" @complete="onSetupComplete" @skip="onSetupSkip" />
+
     <!-- Main router view - no transitions for E2E compatibility -->
     <router-view v-slot="{ Component, route }">
-      <component 
+      <component
         v-if="Component"
-        :is="Component" 
-        :key="route.path" 
+        :is="Component"
+        :key="route.path"
         :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }"
       />
     </router-view>
-    
+
     <!-- Console Footer (persistent) -->
     <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
-    
+
     <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
     <GameOverlay ref="gameOverlay" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, provide, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { GameOverlay } from '@/components/game'
-import { ConsoleFooter } from '@/components/layout'
-import { SetupWizard } from '@/components/ui'
-import { useGamepad } from '@/composables/useGamepad'
-import * as api from '@/services/api'
+import { ref, provide, computed, watch, onMounted, onUnmounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { GameOverlay } from "@/components/game";
+import { ConsoleFooter } from "@/components/layout";
+import { SetupWizard } from "@/components/ui";
+import { useGamepad } from "@/composables/useGamepad";
+import * as api from "@/services/api";
 
-const route = useRoute()
-const router = useRouter()
-const gamepad = useGamepad()
-const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null)
-const showSetupWizard = ref(false)
+const route = useRoute();
+const router = useRouter();
+const gamepad = useGamepad();
+const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null);
+const showSetupWizard = ref(false);
 
 // Track if a game is currently running (for PS/Guide button behavior)
-const isGameRunning = ref(false)
-provide('isGameRunning', isGameRunning)
+const isGameRunning = ref(false);
+provide("isGameRunning", isGameRunning);
 
-let unlistenGameLaunched: UnlistenFn | null = null
-let unlistenGameError: UnlistenFn | null = null
+let unlistenGameLaunched: UnlistenFn | null = null;
+let unlistenGameError: UnlistenFn | null = null;
 
 // Check if setup wizard is needed on mount
 onMounted(async () => {
   try {
-    const needsSetup = await api.needsSetup()
-    showSetupWizard.value = needsSetup
+    const needsSetup = await api.needsSetup();
+    showSetupWizard.value = needsSetup;
   } catch (error) {
-    console.error('Failed to check setup status:', error)
+    console.error("Failed to check setup status:", error);
     // Don't show wizard on error - user can configure later in settings
   }
-  
+
   // Listen for game launch events
   try {
-    unlistenGameLaunched = await listen('game-launched', () => {
-      console.log('🎮 Game launched - PS button now controls game overlay')
-      isGameRunning.value = true
-    })
-    
-    unlistenGameError = await listen('game-launch-error', () => {
-      console.log('🎮 Game launch failed - resetting game state')
-      isGameRunning.value = false
-    })
+    unlistenGameLaunched = await listen("game-launched", () => {
+      console.log("🎮 Game launched - PS button now controls game overlay");
+      isGameRunning.value = true;
+    });
+
+    unlistenGameError = await listen("game-launch-error", () => {
+      console.log("🎮 Game launch failed - resetting game state");
+      isGameRunning.value = false;
+    });
   } catch (e) {
-    console.warn('Failed to setup game event listeners:', e)
+    console.warn("Failed to setup game event listeners:", e);
   }
-  
+
   // Handle PS/Guide button: toggle settings when no game is running
-  gamepad.on('guide', () => {
-    if (isSplashScreen.value || showSetupWizard.value) return
-    
+  gamepad.on("guide", () => {
+    if (isSplashScreen.value || showSetupWizard.value) return;
+
     if (isGameRunning.value) {
       // When game is running, toggle game overlay
-      gameOverlay.value?.toggle()
+      gameOverlay.value?.toggle();
     } else {
       // When no game is running, toggle settings
-      if (route.name === 'settings') {
-        router.back()
+      if (route.name === "settings") {
+        router.back();
       } else {
-        router.push('/settings')
+        router.push("/settings");
       }
     }
-  })
-})
+  });
+});
 
 onUnmounted(() => {
-  unlistenGameLaunched?.()
-  unlistenGameError?.()
-})
+  unlistenGameLaunched?.();
+  unlistenGameError?.();
+});
 
 function onSetupComplete() {
-  showSetupWizard.value = false
+  showSetupWizard.value = false;
 }
 
 function onSetupSkip() {
-  showSetupWizard.value = false
+  showSetupWizard.value = false;
 }
 
 // Provide overlay control to child components
-provide('gameOverlay', gameOverlay)
+provide("gameOverlay", gameOverlay);
 
 // Check if we're on splash screen (hide footer)
 const isSplashScreen = computed(() => {
-  return route.path === '/splash' || route.name === 'splash'
-})
+  return route.path === "/splash" || route.name === "splash";
+});
 
 // Check if settings overlay is open
 const isSettingsOpen = computed(() => {
-  return route.name === 'settings'
-})
+  return route.name === "settings";
+});
 
 // Provide settings state for child components
-provide('isSettingsOpen', isSettingsOpen)
+provide("isSettingsOpen", isSettingsOpen);
 
 // Get the appropriate transition name based on route
 function getTransitionName(targetRoute: typeof route): string {
   // Settings opens as overlay
-  if (targetRoute.name === 'settings') {
-    return 'settings-overlay'
+  if (targetRoute.name === "settings") {
+    return "settings-overlay";
   }
   // Default fade for other views
-  return 'fade'
+  return "fade";
 }
 
 function onEnter(el: Element) {
@@ -136,12 +132,12 @@ function onEnter(el: Element) {
 
 function onLeave(el: Element, done: () => void) {
   // Animation leave callback if needed
-  done()
+  done();
 }
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap");
 
 * {
   box-sizing: border-box;
@@ -149,10 +145,11 @@ function onLeave(el: Element, done: () => void) {
   padding: 0;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: #000;
@@ -242,4 +239,3 @@ html, body {
   padding-bottom: 64px;
 }
 </style>
-

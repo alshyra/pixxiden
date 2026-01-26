@@ -14,17 +14,19 @@ Thank you for your interest in contributing to Pixxiden! 🎮
 
 1. Fork the repository
 2. Clone your fork:
+
    ```bash
    git clone https://github.com/YOUR-USERNAME/Pixxiden.git
    cd Pixxiden
    ```
 
 3. Install dependencies:
+
    ```bash
    # Backend
    cd backend
    go mod download
-   
+
    # Frontend
    cd ../frontend
    npm install
@@ -52,28 +54,33 @@ Pixxiden/
 ## Code Style
 
 ### Go
+
 - Use `gofmt` for formatting
 - Run `golangci-lint run` before committing
 - Write tests for new features
 
 ### TypeScript/Vue
+
 - Use ESLint + Prettier
 - Follow Vue 3 Composition API patterns
 - Write component tests when possible
 
 ### Rust
+
 - Use `rustfmt`
 - Follow Tauri best practices
 
 ## Testing
 
 ### Backend Tests
+
 ```bash
 cd backend
 go test -v ./...
 ```
 
 ### Frontend Tests
+
 ```bash
 cd frontend
 npm run test
@@ -92,6 +99,7 @@ We use conventional commits:
 - `chore:` Maintenance tasks
 
 Example:
+
 ```
 feat: add GOG store adapter
 fix: resolve Wine prefix creation issue

@@ -20,7 +20,7 @@ binaries:
     fallback:
       type: "python-wrapper"
       package: "legendary-gl"
-    
+
   gogdl:
     enabled: true
     version: "1.2.0"
@@ -43,7 +43,7 @@ binaries:
     fallback:
       type: "python-wrapper"
       package: "heroic-gogdl"
-  
+
   nile:
     enabled: true
     version: "1.1.2"
