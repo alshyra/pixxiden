@@ -1,0 +1,59 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": [
+        "typescript",
+        "import"
+    ],
+    "env": {
+        "browser": true,
+        "es2024": true,
+        "node": true
+    },
+    "rules": {
+        "no-unused-vars": [
+            "warn",
+            {
+                "caughtErrors": "none",
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "no-console": "off",
+        "eqeqeq": "warn",
+        "no-var": "error",
+        "prefer-const": "warn",
+        "no-debugger": "warn",
+        "no-empty": "warn",
+        "no-extra-boolean-cast": "warn",
+        "no-constant-condition": "warn",
+        "no-dupe-keys": "error",
+        "no-duplicate-case": "error",
+        "no-empty-pattern": "warn",
+        "no-func-assign": "error",
+        "no-inner-declarations": "warn",
+        "no-invalid-regexp": "error",
+        "no-irregular-whitespace": "warn",
+        "no-sparse-arrays": "warn",
+        "no-unreachable": "error",
+        "use-isnan": "error",
+        "valid-typeof": "error",
+        "no-fallthrough": "warn",
+        "no-redeclare": "error",
+        "no-self-assign": "warn",
+        "no-self-compare": "warn",
+        "no-useless-catch": "warn",
+        "no-useless-escape": "warn",
+        "no-with": "error",
+        "no-delete-var": "error",
+        "no-shadow-restricted-names": "error",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-non-null-assertion": "off",
+        "import/no-duplicates": "warn"
+    },
+    "ignorePatterns": [
+        "node_modules",
+        "dist",
+        "src-tauri/target",
+        "*.config.js",
+        "*.config.ts"
+    ]
+}

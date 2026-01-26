@@ -378,8 +378,9 @@ export async function launchGame(gameId: string): Promise<void> {
   }
 }
 
-export async function installGame(gameId: string, installPath?: string): Promise<void> {
+export async function installGame(gameId: string, _installPath?: string): Promise<void> {
   try {
+    // TODO: Use _installPath when backend supports custom install paths
     await invoke('install_game', { id: gameId })
   } catch (error) {
     console.error('Failed to install game:', error)

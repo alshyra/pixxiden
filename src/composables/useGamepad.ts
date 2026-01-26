@@ -126,7 +126,7 @@ function updateGamepadState() {
       }
       return
     }
-  } catch (e) {
+  } catch {
     // Ignore errors (e.g., in test environment)
   }
   
@@ -233,7 +233,7 @@ function processGamepadInput(router: ReturnType<typeof useRouter>) {
   // Store previous states
   previousAxes = [...gamepad.axes]
   previousButtonStates = gamepad.buttons.map(b => b.pressed)
-  } catch (e) {
+  } catch {
     // Ignore errors in test environment
   }
 }
@@ -263,13 +263,14 @@ function startGlobalListener(router: ReturnType<typeof useRouter>) {
     gamepadPollInterval = setInterval(() => {
       processGamepadInput(router)
     }, 16)
-  } catch (e) {
-    console.warn('Failed to setup gamepad listener:', e)
+  } catch {
+    console.warn('Failed to setup gamepad listener')
     isGlobalListenerRegistered = false
   }
 }
 
-function stopGlobalListener() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _stopGlobalListener() {
   if (gamepadPollInterval) {
     clearInterval(gamepadPollInterval)
     gamepadPollInterval = null

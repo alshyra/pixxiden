@@ -11,11 +11,6 @@ const routes = [
     component: LibraryFullscreen,
   },
   {
-    path: '/library/grid',
-    name: 'library-grid',
-    component: () => import('@/views/LibraryGrid.vue'),
-  },
-  {
     path: '/game/:id',
     name: 'game-detail',
     component: GameDetails,

@@ -1,32 +1,24 @@
 <template>
-  <button
-    :class="[
-      'inline-flex items-center justify-center gap-2 font-bold tracking-wide rounded-[14px] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-remix-accent/50 focus:ring-offset-2 focus:ring-offset-remix-black disabled:opacity-60 disabled:cursor-not-allowed',
-      sizeClasses,
-      variantClasses.base,
-      !disabled && !loading && variantClasses.hover,
-      loading && 'pointer-events-none'
-    ]"
-    :disabled="disabled || loading"
-    v-bind="$attrs"
-  >
+  <button :class="[
+    'inline-flex items-center justify-center font-bold tracking-wide transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-remix-accent/50 focus:ring-offset-2 focus:ring-offset-remix-black disabled:opacity-60 disabled:cursor-not-allowed',
+    iconOnly ? iconSizeClasses : ['gap-2', sizeClasses, 'rounded-[14px]'],
+    variantClasses.base,
+    !disabled && !loading && variantClasses.hover,
+    loading && 'pointer-events-none'
+  ]" :disabled="disabled || loading" v-bind="$attrs">
     <!-- Loading Spinner -->
-    <svg 
-      v-if="loading" 
-      class="animate-spin"
-      :class="sizeIconClasses"
-      fill="none" 
-      viewBox="0 0 24 24"
-    >
+    <svg v-if="loading" class="animate-spin" :class="sizeIconClasses" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      <path class="opacity-75" fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+      </path>
     </svg>
-    
+
     <!-- Icon Slot -->
     <slot v-else name="icon" />
-    
-    <!-- Content -->
-    <slot />
+
+    <!-- Content (hidden if icon-only) -->
+    <slot v-if="!iconOnly" />
   </button>
 </template>
 
@@ -41,24 +33,32 @@ import { computed } from 'vue'
  *   <template #icon><CheckIcon /></template>
  *   SAUVEGARDER
  * </Button>
+ * 
+ * @example Icon-only button
+ * <Button variant="ghost" icon-only @click="close">
+ *   <template #icon><XIcon /></template>
+ * </Button>
  */
 
 const props = withDefaults(
   defineProps<{
     /** Button style variant */
-    variant?: 'primary' | 'danger' | 'ghost' | 'outline'
+    variant?: 'primary' | 'success' | 'danger' | 'ghost' | 'outline'
     /** Button size */
     size?: 'sm' | 'md' | 'lg'
     /** Show loading spinner */
     loading?: boolean
     /** Disable the button */
     disabled?: boolean
+    /** Icon-only mode (circular button) */
+    iconOnly?: boolean
   }>(),
   {
     variant: 'primary',
     size: 'md',
     loading: false,
     disabled: false,
+    iconOnly: false,
   }
 )
 
@@ -67,9 +67,13 @@ const variantStyles = {
     base: 'bg-remix-accent text-white shadow-glow',
     hover: 'hover:bg-remix-accent-hover hover:shadow-glow-strong hover:-translate-y-0.5',
   },
+  success: {
+    base: 'bg-green-500 text-white shadow-[0_10px_30px_rgba(34,197,94,0.3)]',
+    hover: 'hover:bg-green-600 hover:shadow-[0_15px_40px_rgba(34,197,94,0.4)] hover:-translate-y-0.5',
+  },
   danger: {
-    base: 'bg-remix-bg-card border border-remix-error/30 text-remix-error',
-    hover: 'hover:border-remix-error/60 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]',
+    base: 'bg-red-500 text-white shadow-[0_10px_30px_rgba(239,68,68,0.3)]',
+    hover: 'hover:bg-red-600 hover:shadow-[0_15px_40px_rgba(239,68,68,0.4)] hover:-translate-y-0.5',
   },
   ghost: {
     base: 'bg-transparent text-white/70',
@@ -82,12 +86,13 @@ const variantStyles = {
 }
 
 const sizeStyles = {
-  sm: { classes: 'px-3 py-2 text-xs', icon: 'w-3.5 h-3.5' },
-  md: { classes: 'px-5 py-3 text-sm', icon: 'w-4 h-4' },
-  lg: { classes: 'px-6 py-4 text-base', icon: 'w-5 h-5' },
+  sm: { classes: 'px-3 py-2 text-xs', icon: 'w-3.5 h-3.5', iconOnly: 'w-8 h-8 rounded-full' },
+  md: { classes: 'px-5 py-3 text-sm', icon: 'w-4 h-4', iconOnly: 'w-10 h-10 rounded-full' },
+  lg: { classes: 'px-6 py-4 text-base', icon: 'w-5 h-5', iconOnly: 'w-12 h-12 rounded-full' },
 }
 
 const sizeClasses = computed(() => sizeStyles[props.size].classes)
 const sizeIconClasses = computed(() => sizeStyles[props.size].icon)
+const iconSizeClasses = computed(() => sizeStyles[props.size].iconOnly)
 const variantClasses = computed(() => variantStyles[props.variant])
 </script>

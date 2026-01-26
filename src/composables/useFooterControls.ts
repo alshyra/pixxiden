@@ -1,6 +1,6 @@
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useGamepad, type ControllerType, buttonIcons } from './useGamepad'
+import { useGamepad, type ControllerType } from './useGamepad'
 
 export type { ControllerType }
 
@@ -30,7 +30,6 @@ export function useFooterControls() {
     
     switch (routeName) {
       case 'library':
-      case 'library-grid':
         return [
           { key: 'LB', label: 'Filtre ←', action: 'prev-filter' },
           { key: 'RB', label: 'Filtre →', action: 'next-filter' },

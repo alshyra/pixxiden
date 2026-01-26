@@ -57,9 +57,7 @@
         class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
       >
         <div class="mb-6 opacity-50">
-          <svg class="w-24 h-24 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
+          <Package class="w-24 h-24 text-white/30" />
         </div>
         
         <h2 class="text-2xl font-bold text-white mb-2">
@@ -73,23 +71,19 @@
           }}
         </p>
         
-        <button 
+        <Button 
           v-if="currentFilter === 'all'"
-          @click="syncLibrary"
+          variant="primary"
+          size="lg"
+          :loading="syncing"
           :disabled="syncing"
-          class="flex items-center gap-2 px-6 py-3 bg-remix-accent text-white font-semibold text-sm rounded-xl shadow-glow hover:bg-remix-accent-hover hover:-translate-y-0.5 hover:shadow-glow-strong transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+          @click="syncLibrary"
         >
-          <svg 
-            class="w-5 h-5" 
-            :class="{ 'animate-spin': syncing }"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          <span>{{ syncing ? 'Synchronisation...' : 'Synchroniser les bibliothèques' }}</span>
-        </button>
+          <template #icon>
+            <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': syncing }" />
+          </template>
+          {{ syncing ? 'Synchronisation...' : 'Synchroniser les bibliothèques' }}
+        </Button>
       </div>
     </Transition>
     
@@ -117,6 +111,8 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/library'
 import { useGamepad } from '@/composables/useGamepad'
+import { Button } from '@/components/ui'
+import { RefreshCw, Package } from 'lucide-vue-next'
 import type { Game } from '@/types'
 import GameCarousel from '@/components/game/GameCarousel.vue'
 import { HeroBanner } from '@/components/game'

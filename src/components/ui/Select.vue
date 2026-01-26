@@ -7,14 +7,7 @@
         <span v-if="selectedOption" class="block truncate">{{ selectedOption.label }}</span>
         <span v-else class="block truncate text-white/50">{{ placeholder }}</span>
         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-          <svg 
-            class="w-4 h-4 text-white/50 transition-transform ui-open:rotate-180" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown class="w-4 h-4 text-white/50 transition-transform ui-open:rotate-180" />
         </span>
       </ListboxButton>
 
@@ -49,9 +42,7 @@
                 v-if="selected"
                 class="absolute inset-y-0 left-0 flex items-center pl-3 text-white"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
+                <Check class="w-5 h-5" />
               </span>
             </li>
           </ListboxOption>
@@ -64,6 +55,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
+import { ChevronDown, Check } from 'lucide-vue-next'
 
 /**
  * Custom Select component using Headless UI Listbox

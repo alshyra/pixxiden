@@ -115,9 +115,7 @@
               @click="checkUpdates"
             >
               <template #icon>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <RefreshCw class="w-5 h-5" />
               </template>
               {{ checkingUpdates ? 'VÉRIFICATION...' : 'VÉRIFIER LES MISES À JOUR' }}
             </Button>
@@ -128,9 +126,7 @@
               @click="shutdown"
             >
               <template #icon>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
+                <Power class="w-5 h-5" />
               </template>
               ÉTEINDRE LA MACHINE
             </Button>
@@ -190,9 +186,7 @@
           
           <!-- Info message -->
           <div class="flex items-center gap-3 p-4 bg-[#5e5ce6]/10 border border-[#5e5ce6]/20 rounded-xl text-[0.85rem] text-white/70">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Info class="w-5 h-5 flex-shrink-0" />
             <span>La connexion aux stores utilise les outils Legendary, GOGdl et Nile.</span>
           </div>
         </div>
@@ -327,9 +321,7 @@
           
           <!-- Info message -->
           <div class="flex items-center gap-3 p-4 bg-[#5e5ce6]/10 border border-[#5e5ce6]/20 rounded-xl text-[0.85rem] text-white/70">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Info class="w-5 h-5 flex-shrink-0" />
             <span>Ces clés sont stockées localement et jamais partagées. Elles enrichissent les données de vos jeux avec des images, descriptions et statistiques.</span>
           </div>
           
@@ -343,9 +335,7 @@
               @click="testApiKeys"
             >
               <template #icon>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <CheckCircle class="w-5 h-5" />
               </template>
               {{ testingApiKeys ? 'TEST EN COURS...' : 'TESTER LES CLÉS' }}
             </Button>
@@ -358,9 +348,7 @@
               @click="saveApiKeys"
             >
               <template #icon>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
+                <Check class="w-5 h-5" />
               </template>
               {{ savingApiKeys ? 'SAUVEGARDE...' : 'SAUVEGARDER' }}
             </Button>
@@ -422,9 +410,7 @@
             @click="saveSettings"
           >
             <template #icon>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
+              <Check class="w-5 h-5" />
             </template>
             SAUVEGARDER LES PARAMÈTRES
           </Button>
@@ -441,6 +427,7 @@ import * as api from '@/services/api'
 import type { SystemInfo, DiskInfo } from '@/services/api'
 import { PixxidenLogo, Select, Toggle, Button, type SelectOption } from '@/components/ui'
 import { useGamepad } from '@/composables/useGamepad'
+import { RefreshCw, Power, Info, CheckCircle, Check } from 'lucide-vue-next'
 
 const router = useRouter()
 const { on: onGamepad } = useGamepad()

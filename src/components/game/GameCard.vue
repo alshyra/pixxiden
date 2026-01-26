@@ -24,9 +24,7 @@
     
     <!-- Installed indicator -->
     <div v-if="game.installed" class="installed-badge">
-      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-      </svg>
+      <Check class="w-3 h-3" />
       <span>Installé</span>
     </div>
     
@@ -50,6 +48,7 @@
 import { computed } from 'vue'
 import type { Game } from '@/types'
 import { PixxidenLogo } from '@/components/ui'
+import { Check } from 'lucide-vue-next'
 
 interface Props {
   game: Game
@@ -62,7 +61,7 @@ const props = defineProps<Props>()
 
 // Use backgroundUrl or coverUrl for the card background
 const cardStyle = computed(() => {
-  const imageUrl = props.game.backgroundUrl || props.game.backgroundUrl
+  const imageUrl = props.game.backgroundUrl || props.game.coverUrl
   if (imageUrl) {
     return {
       backgroundImage: `url(${imageUrl})`

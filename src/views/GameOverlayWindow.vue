@@ -24,65 +24,68 @@
           </div>
         </div>
         
-        <button
-          class="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+        <Button
+          variant="ghost"
+          icon-only
           @click="closeOverlay"
         >
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <template #icon>
+            <X class="w-6 h-6" />
+          </template>
+        </Button>
       </div>
       
       <!-- Actions Grid -->
       <div class="grid grid-cols-2 gap-4 mb-6">
         <!-- Resume Game -->
-        <button
+        <OverlayActionCard
           ref="resumeButton"
-          class="p-6 bg-green-600 hover:bg-green-500 rounded-xl transition-colors flex flex-col items-center gap-3 focus:ring-2 focus:ring-white/20"
+          variant="success"
+          title="Resume Game"
+          subtitle="Press B or Guide"
           @click="resumeGame"
         >
-          <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
-          </svg>
-          <span class="font-semibold text-white">Resume Game</span>
-          <span class="text-xs text-white/70">Press B or Guide</span>
-        </button>
+          <template #icon>
+            <Play class="w-8 h-8" />
+          </template>
+        </OverlayActionCard>
         
         <!-- Achievements (placeholder) -->
-        <button
+        <OverlayActionCard
+          variant="ghost"
+          title="Achievements"
+          subtitle="Bientôt"
+          class="!bg-gray-800 hover:!bg-gray-700"
           @click="showAchievements"
-          class="p-6 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors flex flex-col items-center gap-3 focus:ring-2 focus:ring-white/20"
         >
-          <svg class="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clip-rule="evenodd"/>
-          </svg>
-          <span class="font-semibold text-white">Achievements</span>
-          <span class="text-xs text-white/60">Bientôt</span>
-        </button>
+          <template #icon>
+            <Trophy class="w-8 h-8 text-yellow-500" />
+          </template>
+        </OverlayActionCard>
         
         <!-- Screenshot (placeholder) -->
-        <button 
+        <OverlayActionCard
+          variant="ghost"
+          title="Screenshot"
+          subtitle="Bientôt"
+          class="!bg-gray-800 hover:!bg-gray-700"
           @click="takeScreenshot"
-          class="p-6 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors flex flex-col items-center gap-3 focus:ring-2 focus:ring-white/20"
         >
-          <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-          </svg>
-          <span class="font-semibold text-white">Screenshot</span>
-          <span class="text-xs text-white/60">Bientôt</span>
-        </button>
+          <template #icon>
+            <Camera class="w-8 h-8 text-blue-400" />
+          </template>
+        </OverlayActionCard>
         
         <!-- Quit Game -->
-        <button 
-          class="p-6 bg-red-600 hover:bg-red-500 rounded-xl transition-colors flex flex-col items-center gap-3 focus:ring-2 focus:ring-white/20"
+        <OverlayActionCard
+          variant="danger"
+          title="Quit Game"
           @click="quitGame"
         >
-          <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-          </svg>
-          <span class="font-semibold text-white">Quit Game</span>
-        </button>
+          <template #icon>
+            <XCircle class="w-8 h-8" />
+          </template>
+        </OverlayActionCard>
       </div>
       
       <!-- Stats -->
@@ -113,6 +116,9 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { Button } from '@/components/ui'
+import { OverlayActionCard } from '@/components/game'
+import { X, Play, Trophy, Camera, XCircle } from 'lucide-vue-next'
 import type { Game } from '@/types'
 
 const currentGame = ref<Game | null>(null)

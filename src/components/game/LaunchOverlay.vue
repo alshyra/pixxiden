@@ -19,9 +19,7 @@
               <div class="absolute inset-0 border-4 border-transparent border-t-green-500 rounded-full animate-spin"></div>
               <!-- Game icon placeholder -->
               <div class="absolute inset-3 bg-gray-800 rounded-full flex items-center justify-center">
-                <svg class="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
-                </svg>
+                <Play class="w-8 h-8 text-green-500" />
               </div>
             </div>
             
@@ -30,9 +28,7 @@
               v-else 
               class="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center"
             >
-              <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <AlertCircle class="w-10 h-10 text-red-500" />
             </div>
             
             <!-- Game Info -->
@@ -70,13 +66,14 @@
             </div>
             
             <!-- Close Button (only on error) -->
-            <button 
+            <Button 
               v-if="error"
+              variant="ghost"
+              class="!bg-white/10 hover:!bg-white/20"
               @click="close"
-              class="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-medium text-white transition-colors"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -87,6 +84,8 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { Button } from '@/components/ui'
+import { Play, AlertCircle } from 'lucide-vue-next'
 
 interface Props {
   isVisible: boolean

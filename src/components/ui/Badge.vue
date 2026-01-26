@@ -1,10 +1,8 @@
 <template>
-  <span 
-    :class="[
-      'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wide transition-all',
-      variantClasses
-    ]"
-  >
+  <span :class="[
+    'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wide transition-all',
+    variantClasses
+  ]">
     <slot>{{ label }}</slot>
   </span>
 </template>
@@ -23,7 +21,7 @@ import { computed } from 'vue'
 const props = withDefaults(
   defineProps<{
     /** Badge style variant */
-    variant?: 'steam' | 'epic' | 'gog' | 'amazon' | 'installed' | 'success' | 'error' | 'default'
+    variant?: 'steam' | 'epic' | 'gog' | 'amazon' | 'installed' | 'success' | 'error' | 'default' | 'muted'
     /** Optional text label */
     label?: string
   }>(),
@@ -40,6 +38,7 @@ const variantClasses = computed(() => ({
   installed: 'bg-remix-success/20 border border-remix-success/50 text-remix-success shadow-[0_0_10px_rgba(16,185,129,0.3)]',
   success: 'bg-remix-success/20 border border-remix-success/50 text-remix-success',
   error: 'bg-remix-error/20 border border-remix-error/50 text-remix-error',
+  muted: 'bg-white/5 text-white/50 border border-white/10',
   default: 'bg-white/10 text-white/80 border border-white/20',
 }[props.variant]))
 </script>

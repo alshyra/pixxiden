@@ -82,29 +82,33 @@
             
             <!-- Action Buttons -->
             <div class="grid grid-cols-2 gap-4">
-              <button
+              <Button
                 ref="playAgainBtn"
-                @click="playAgain"
-                class="flex items-center justify-center gap-3 p-4 bg-green-600 hover:bg-green-500 rounded-xl font-bold text-white transition-colors focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-[#0f0f12] focus:outline-none"
+                variant="success"
+                size="lg"
+                class="!rounded-xl"
                 :class="{ 'ring-2 ring-green-400 ring-offset-2 ring-offset-[#0f0f12]': focusedButton === 'playAgain' }"
+                @click="playAgain"
               >
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
-                </svg>
-                <span>Rejouer</span>
-              </button>
+                <template #icon>
+                  <Play class="w-6 h-6" />
+                </template>
+                Rejouer
+              </Button>
               
-              <button
+              <Button
                 ref="closeBtn"
-                @click="close"
-                class="flex items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-colors focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-[#0f0f12] focus:outline-none"
+                variant="ghost"
+                size="lg"
+                class="!rounded-xl !bg-white/10 hover:!bg-white/20"
                 :class="{ 'ring-2 ring-white/40 ring-offset-2 ring-offset-[#0f0f12]': focusedButton === 'close' }"
+                @click="close"
               >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span>Retour à la bibliothèque</span>
-              </button>
+                <template #icon>
+                  <Home class="w-6 h-6" />
+                </template>
+                Retour à la bibliothèque
+              </Button>
             </div>
             
             <!-- Controller Hint -->
@@ -125,6 +129,8 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { useGamepad } from '@/composables/useGamepad'
+import { Button } from '@/components/ui'
+import { Play, Home } from 'lucide-vue-next'
 import type { Game } from '@/types'
 
 interface Props {

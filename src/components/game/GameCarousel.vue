@@ -21,31 +21,37 @@
     </div>
     
     <!-- Navigation Arrows -->
-    <button 
+    <Button 
       v-if="canScrollLeft"
-      class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 
-             bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center
-             text-white transition-all"
+      variant="ghost"
+      icon-only
+      class="absolute left-2 top-1/2 -translate-y-1/2 !bg-black/60 hover:!bg-black/80"
       @click="scrollLeft"
     >
-      ‹
-    </button>
+      <template #icon>
+        <ChevronLeft class="w-5 h-5" />
+      </template>
+    </Button>
     
-    <button 
+    <Button 
       v-if="canScrollRight"
-      class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 
-             bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center
-             text-white transition-all"
+      variant="ghost"
+      icon-only
+      class="absolute right-2 top-1/2 -translate-y-1/2 !bg-black/60 hover:!bg-black/80"
       @click="scrollRight"
     >
-      ›
-    </button>
+      <template #icon>
+        <ChevronRight class="w-5 h-5" />
+      </template>
+    </Button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import type { Game } from '@/types'
+import { Button } from '@/components/ui'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import GameCard from './GameCard.vue'
 
 const props = defineProps<{
