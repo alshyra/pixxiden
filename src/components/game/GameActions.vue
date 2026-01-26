@@ -1,15 +1,16 @@
 <template>
     <div class="space-y-2">
         <!-- Install Button -->
-        <Button v-if="!installed && !downloading" variant="primary" size="lg" class="w-full" @click="$emit('install')">
+        <Button v-if="!game?.installed && !isDownloading" variant="primary" size="lg" class="w-full"
+            @click="showInstallModal = true">
             <template #icon>
-                <span class="text-lg">↓</span>
+                <Download class="w-5 h-5" />
             </template>
             Installer
         </Button>
 
         <!-- Download Progress -->
-        <div v-if="downloading" class="space-y-3">
+        <div v-if="isDownloading" class="space-y-3">
             <ProgressBar :value="downloadProgress ?? 0" label="Téléchargement..." variant="gradient" :glow="true"
                 bordered show-value>
                 <template #subtitle>
@@ -24,44 +25,56 @@
         </div>
 
         <!-- Play Button -->
-        <Button v-if="installed && !launching" variant="success" size="lg" class="w-full" @click="$emit('play')">
+        <Button v-if="game?.installed && !isLaunching" variant="success" size="lg" class="w-full" @click="playGame">
             <template #icon>
-                <span class="text-lg">▶</span>
+                <Play class="w-5 h-5" />
             </template>
             Lancer le jeu
         </Button>
 
         <!-- Force Close Button -->
-        <Button v-if="launching" variant="danger" size="lg" class="w-full" @click="$emit('force-close')">
+        <Button v-if="isLaunching" variant="danger" size="lg" class="w-full" @click="forceCloseGame">
             <template #icon>
-                <span class="text-lg">■</span>
+                <Square class="w-5 h-5" />
             </template>
             Forcer la fermeture
         </Button>
+
+        <!-- Install Modal -->
+        <InstallModal v-if="game" v-model="showInstallModal" :game="game" @install-started="handleInstallStarted" />
     </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Button, ProgressBar } from '@/components/ui'
+import { Download, Play, Square } from 'lucide-vue-next'
+import { useCurrentGame } from '@/composables/useCurrentGame'
+import InstallModal from './InstallModal.vue'
 
 /**
- * GameActions - Boutons d'action du jeu (Install/Play/Stop)
- * Avec gestion du téléchargement en cours
+ * GameActions - Smart Component autonome
+ * Gère les actions du jeu (Install/Play/Stop) via le composable useCurrentGame
+ * Ne reçoit aucune prop, récupère tout depuis le store
  */
 
-defineProps<{
-    installed: boolean
-    downloading: boolean
-    launching: boolean
-    downloadProgress?: number
-    downloadSpeed?: string
-    downloadedSize?: string
-    totalSize?: string
-}>()
+const {
+    game,
+    isDownloading,
+    downloadProgress,
+    downloadedSize,
+    downloadSpeed,
+    totalSize,
+    isLaunching,
+    playGame,
+    forceCloseGame,
+    startInstallation,
+} = useCurrentGame()
 
-defineEmits<{
-    install: []
-    play: []
-    'force-close': []
-}>()
+const showInstallModal = ref(false)
+
+function handleInstallStarted(config: { installPath: string }) {
+    showInstallModal.value = false
+    startInstallation(config.installPath)
+}
 </script>

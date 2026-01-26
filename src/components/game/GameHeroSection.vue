@@ -2,7 +2,7 @@
     <div class="relative h-[45vh] w-full overflow-hidden shrink-0 bg-[#0a0a0a]">
         <!-- Background Image -->
         <div class="absolute inset-0 bg-cover bg-center opacity-50 transition-opacity duration-1000">
-            <img v-if="imageUrl" :src="imageUrl" :alt="title" class="w-full h-full object-cover" />
+            <img v-if="heroImage" :src="heroImage" :alt="game?.title" class="w-full h-full object-cover" />
             <div v-else class="w-full h-full bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-black" />
         </div>
 
@@ -24,13 +24,13 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrentGame } from '@/composables/useCurrentGame'
+
 /**
- * GameHeroSection - Section hero avec image de fond
- * Pour les pages détail de jeu
+ * GameHeroSection - Smart Component autonome
+ * Section hero avec image de fond pour les pages détail de jeu
+ * Récupère l'image hero via useCurrentGame
  */
 
-defineProps<{
-    imageUrl?: string
-    title?: string
-}>()
+const { game, heroImage } = useCurrentGame()
 </script>

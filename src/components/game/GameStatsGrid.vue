@@ -1,12 +1,12 @@
 <template>
     <div class="grid grid-cols-4 gap-4">
-        <StatCard label="Taille" :value="installSize" color="cyan" />
-        <StatCard label="Durée" :value="duration" color="pink" />
+        <StatCard label="Taille" :value="game?.installSize" color="cyan" />
+        <StatCard label="Durée" :value="gameDuration" color="pink" />
         <StatCard label="Note" :color="scoreColor">
             {{ scoreDisplay }}
         </StatCard>
         <StatCard label="ProtonDB" :color="protonColor">
-            {{ protonTier }}
+            {{ game?.protonTier || '--' }}
         </StatCard>
     </div>
 </template>
@@ -14,25 +14,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { StatCard } from '@/components/ui'
+import { useCurrentGame } from '@/composables/useCurrentGame'
 
 /**
- * GameStatsGrid - Grille de stats du jeu
- * Affiche: taille, durée HLTB, note, ProtonDB
+ * GameStatsGrid - Smart Component autonome
+ * Grille de stats du jeu (taille, durée HLTB, note, ProtonDB)
+ * Récupère toutes ses données via useCurrentGame
  */
 
-const props = defineProps<{
-    installSize?: string
-    duration?: string
-    score?: number
-    protonTier?: string
-}>()
+const { game, score, gameDuration } = useCurrentGame()
 
-const scoreDisplay = computed(() => props.score ? `${props.score}/100` : '--')
+const scoreDisplay = computed(() => score.value ? `${score.value}/100` : '--')
 
 const scoreColor = computed(() => {
-    if (!props.score) return 'gray'
-    if (props.score >= 75) return 'green'
-    if (props.score >= 50) return 'yellow'
+    if (!score.value) return 'gray'
+    if (score.value >= 75) return 'green'
+    if (score.value >= 50) return 'yellow'
     return 'red'
 })
 
@@ -46,6 +43,6 @@ const protonColor = computed(() => {
         pending: 'gray',
         borked: 'red',
     }
-    return colors[props.protonTier || ''] || 'gray'
+    return colors[game.value?.protonTier || ''] || 'gray'
 })
 </script>
