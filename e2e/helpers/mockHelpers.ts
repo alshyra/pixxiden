@@ -28,12 +28,12 @@ export async function setupMockTauriCommands() {
     if (!window.__TAURI_INTERNALS__) {
       // @ts-ignore
       window.__TAURI_INTERNALS__ = {
-        transformCallback: (callback: Function, once?: boolean) => {
+        transformCallback: (_callback: Function, _once?: boolean) => {
           const id = Math.random().toString(36).substr(2, 9);
           return id;
         },
-        unregisterCallback: (id: string) => {},
-        convertFileSrc: (filePath: string, protocol?: string) => filePath,
+        unregisterCallback: (_id: string) => {},
+        convertFileSrc: (filePath: string, _protocol?: string) => filePath,
       };
     }
 

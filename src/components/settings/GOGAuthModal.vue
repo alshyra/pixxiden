@@ -1,46 +1,49 @@
 <template>
   <Modal v-model="show" :title="'Connexion GOG'" size="md">
-    <div class="space-y-6">
-      <!-- Opening State -->
-      <div v-if="step === 'opening'" class="text-center py-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 mb-4">
-          <div
-            class="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"
-          ></div>
+    <div class="space-y-6 min-h-[200px] flex items-center justify-center">
+      <Transition name="fade" mode="out-in">
+        <!-- Opening State -->
+        <div v-if="step === 'opening'" key="opening" class="text-center py-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 mb-4">
+            <div
+              class="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"
+            ></div>
+          </div>
+          <p class="text-lg font-semibold text-white">🌐 Ouverture de la page GOG...</p>
         </div>
-        <p class="text-lg font-semibold text-white">🌐 Ouverture de la page GOG...</p>
-      </div>
 
-      <!-- Code Input State -->
-      <div v-else-if="step === 'code-input'" class="space-y-4">
-        <p class="text-sm text-white/80 text-center leading-relaxed">
-          Collez le code d'authentification affiché sur le site GOG :
-        </p>
-        <Input
-          v-model="authCode"
-          placeholder="Entrez le code..."
-          :disabled="loading"
-          :error="error || undefined"
-          ref="codeInputRef"
-          @keyup.enter="handleSubmit"
-          class="font-mono text-center"
-        />
-      </div>
-
-      <!-- Submitting State -->
-      <div v-else-if="step === 'submitting'" class="text-center py-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 mb-4">
-          <div
-            class="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"
-          ></div>
+        <!-- Code Input State -->
+        <div v-else-if="step === 'code-input'" key="code-input" class="space-y-4 w-full">
+          <p class="text-sm text-white/80 text-center leading-relaxed">
+            Collez le code d'authentification affiché sur le site GOG :
+          </p>
+          <Input
+            v-model="authCode"
+            placeholder="Entrez le code..."
+            :disabled="loading"
+            :error="error || undefined"
+            ref="codeInputRef"
+            @keyup.enter="handleSubmit"
+            class="font-mono text-center"
+          />
         </div>
-        <p class="text-lg font-semibold text-white">Authentification en cours...</p>
-      </div>
 
-      <!-- Success State -->
-      <div v-else-if="step === 'success'" class="text-center py-8">
-        <p class="text-lg font-semibold text-green-400">✓ GOG connecté avec succès!</p>
-      </div>
+        <!-- Submitting State -->
+        <div v-else-if="step === 'submitting'" key="submitting" class="text-center py-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 mb-4">
+            <div
+              class="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"
+            ></div>
+          </div>
+          <p class="text-lg font-semibold text-white">Authentification en cours...</p>
+        </div>
+
+        <!-- Success State -->
+        <div v-else-if="step === 'success'" key="success" class="text-center py-8">
+          <div class="text-6xl mb-4 animate-bounce">✓</div>
+          <p class="text-lg font-semibold text-green-400">GOG connecté avec succès!</p>
+        </div>
+      </Transition>
     </div>
 
     <template #footer>
@@ -155,3 +158,20 @@ const handleSubmit = async () => {
   }
 };
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

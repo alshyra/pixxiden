@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-import { promises as fs } from "fs";
-import { createWriteStream } from "fs";
+import { promises as fs, createWriteStream } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
@@ -48,7 +47,6 @@ async function parseYaml(filePath) {
 
     // Target mappings
     if (line.startsWith("target_mappings:")) {
-      let inMappings = true;
       continue;
     }
 
@@ -187,7 +185,9 @@ async function createPythonWrapper(name, packageName, rustTarget) {
 
     log("green", `✅ ${name} wrapper created from system installation`);
     return true;
-  } catch {}
+  } catch {
+    // Not found, continue to check Python package
+  }
 
   // Check if Python package is installed
   try {
@@ -209,7 +209,9 @@ sys.exit(runpy.run_module('${safePackage}', run_name='__main__'))
 
     log("green", `✅ ${name} wrapper created`);
     return true;
-  } catch {}
+  } catch {
+    //
+  }
 
   log("yellow", `⚠️  Python package '${packageName}' not found`);
   console.log("");
@@ -352,7 +354,9 @@ async function main() {
         console.log(`  ${file} (${size} MB)`);
       }
     }
-  } catch {}
+  } catch {
+    // Ignore
+  }
 
   console.log("");
 

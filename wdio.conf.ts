@@ -160,7 +160,7 @@ export const config: Options.Testrunner = {
     );
   },
 
-  afterTest: async function (test, context, { error, result, duration, passed, retries }) {
+  afterTest: async function (test, context, { _error, _result, _duration, passed, _retries }) {
     if (!passed) {
       console.log(`❌ Test failed: ${test.title}`);
     }

@@ -15,13 +15,7 @@
  * - Cache is cleared before tests (see wdio.conf.ts onPrepare)
  */
 
-import {
-  waitForAppReady,
-  takeScreenshot,
-  navigateTo,
-  verifyViewContent,
-  assertViewNotBlackScreen,
-} from "../helpers";
+import { waitForAppReady, takeScreenshot, navigateTo, assertViewNotBlackScreen } from "../helpers";
 
 describe("User Journey: Complete Application Flow", () => {
   /**

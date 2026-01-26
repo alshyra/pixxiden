@@ -13,7 +13,6 @@
 
 import {
   waitForAppReady,
-  takeScreenshot,
   setupMockTauriCommands,
   injectMockGames,
   refreshLibrary,
@@ -22,34 +21,6 @@ import {
 // Filter order as defined in the components
 const FILTER_ORDER = ["all", "installed", "epic", "gog", "amazon", "steam"];
 const FILTER_LABELS = ["tous", "installés", "Epic", "GOG", "Amazon", "Steam"];
-
-/**
- * Helper to get current active filter
- */
-async function getCurrentFilter(): Promise<string> {
-  return await browser.execute(() => {
-    // Get the active filter button (has specific active styling)
-    const filterButtons = document.querySelectorAll('nav button, nav [role="button"]');
-    for (const btn of filterButtons) {
-      // Check if this button appears active (usually has different styling)
-      const text = btn.textContent?.toLowerCase() || "";
-      const isActive =
-        btn.classList.contains("text-white") ||
-        btn.classList.contains("active") ||
-        btn.getAttribute("aria-pressed") === "true";
-      if (isActive && text) {
-        return text.trim();
-      }
-    }
-    // Fallback: check Vue state
-    const app = (window as any).__VUE_APP__;
-    if (app) {
-      const router = app.config.globalProperties.$router;
-      return router?.currentRoute?.value?.query?.filter || "all";
-    }
-    return "unknown";
-  });
-}
 
 /**
  * Helper to click on a specific filter

@@ -132,7 +132,7 @@ describe("SettingsView", () => {
 
   describe("Système Section", () => {
     it("should load system information on mount", async () => {
-      const wrapper = mount(SettingsView);
+      mount(SettingsView);
       await flushPromises();
 
       expect(api.getSystemInfo).toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe("SettingsView", () => {
 
   describe("Comptes Section", () => {
     it("should load store status on mount", async () => {
-      const wrapper = mount(SettingsView);
+      mount(SettingsView);
       await flushPromises();
 
       expect(api.getStoreStatus).toHaveBeenCalled();
@@ -220,7 +220,7 @@ describe("SettingsView", () => {
 
   describe("Avancé Section", () => {
     it("should load settings on mount", async () => {
-      const wrapper = mount(SettingsView);
+      mount(SettingsView);
       await flushPromises();
 
       expect(api.getSettings).toHaveBeenCalled();

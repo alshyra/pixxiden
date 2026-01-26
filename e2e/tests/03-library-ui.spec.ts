@@ -9,7 +9,6 @@
 
 import {
   waitForAppReady,
-  takeScreenshot,
   setupMockTauriCommands,
   injectMockGames,
   getMockGameStats,
@@ -23,7 +22,7 @@ import { mockGames } from "../fixtures/mockGames";
 async function dismissSetupWizard() {
   const wizardDismissed = await browser.execute(() => {
     // Check if setup wizard is visible
-    const skipButton = document.querySelector("button");
+    document.querySelector("button");
     for (const btn of document.querySelectorAll("button")) {
       if (btn.textContent?.includes("Passer")) {
         (btn as HTMLElement).click();
@@ -185,20 +184,20 @@ describe("Library UI", () => {
       expect(hasAllFilter || hasInstalledFilter).toBe(true);
     });
 
-    it('should filter installed games when \"installés\" filter is clicked', async () => {
+    it('should filter installed games when "installés" filter is clicked', async () => {
       // Click \"installés\" filter using JavaScript to avoid WebDriver issues
       const clicked = await clickFilter("installés");
       console.log(`Clicked installés filter: ${clicked}`);
       await browser.pause(500);
 
       const gameCards = await $$(".game-card");
-      console.log(`\"installés\" filter: ${gameCards.length} games displayed`);
+      console.log(`"installés" filter: ${gameCards.length} games displayed`);
 
       // Number should be less than or equal to total (only installed games)
       expect(gameCards.length).toBeLessThanOrEqual(stats.total);
     });
 
-    it('should show all games when \"tous\" filter is selected', async () => {
+    it('should show all games when "tous" filter is selected', async () => {
       // Click \"tous\" filter using JavaScript
       const clicked = await clickFilter("tous");
       console.log(`Clicked tous filter: ${clicked}`);
@@ -206,7 +205,7 @@ describe("Library UI", () => {
 
       // Count displayed game cards
       const gameCards = await $$(".game-card");
-      console.log(`\"tous\" filter: ${gameCards.length} games displayed`);
+      console.log(`"tous" filter: ${gameCards.length} games displayed`);
 
       expect(gameCards.length).toBeGreaterThan(0);
     });

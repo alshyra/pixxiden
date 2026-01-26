@@ -37,6 +37,7 @@
         v-if="!authenticated && store !== 'steam'"
         variant="primary"
         class="flex-1"
+        :data-testid="`${store}-connect-button`"
         @click.stop="handleConnect"
         :disabled="loading"
         :loading="loading"
@@ -47,6 +48,7 @@
         v-else-if="authenticated && store !== 'steam'"
         variant="danger"
         class="flex-1"
+        :data-testid="`${store}-disconnect-button`"
         @click.stop="handleDisconnect"
         :disabled="loading"
       >
@@ -103,12 +105,11 @@ const storeName = computed(() => {
 });
 
 const storeLogo = computed(() => {
-  // TODO: Replace with actual logo paths
   const logos: Record<StoreType, string> = {
-    epic: "/assets/logos/epic.svg",
-    gog: "/assets/logos/gog.svg",
-    amazon: "/assets/logos/amazon.svg",
-    steam: "/assets/logos/steam.svg",
+    epic: "/assets/logos/epic.png",
+    gog: "/assets/logos/gog.png",
+    amazon: "/assets/logos/amazon.png",
+    steam: "/assets/logos/steam.png",
   };
   return logos[props.store];
 });

@@ -19,9 +19,7 @@ import {
   getInstalledGames,
   getNotInstalledGames,
   mockGames,
-  getGamesByStore,
   verifyViewContent,
-  assertViewNotBlackScreen,
 } from "../helpers";
 
 // Define types locally for tests
@@ -274,7 +272,7 @@ describe("Game Management", () => {
       await browser.pause(1000);
 
       // The play time should be displayed somewhere
-      const bodyText = await $("body").getText();
+      await $("body").getText();
 
       // Game should have play time data
       expect(game.playTime).toBeGreaterThan(0);

@@ -8,6 +8,41 @@ interface AuthState {
   error: string | null;
 }
 
+/**
+ * Helper function to format error messages with context
+ */
+function formatAuthError(store: string, action: string, error: any): string {
+  const baseMessage = error?.message || error?.toString() || "Unknown error";
+
+  // Common error patterns
+  if (baseMessage.includes("timeout")) {
+    return `⏱️ ${store} authentication timeout. Please check your internet connection.`;
+  }
+
+  if (baseMessage.includes("network") || baseMessage.includes("connection")) {
+    return `🌐 Cannot reach ${store} servers. Please verify your network connection.`;
+  }
+
+  if (baseMessage.includes("invalid") && baseMessage.includes("credentials")) {
+    return `🔐 Invalid credentials for ${store}. Please check your email and password.`;
+  }
+
+  if (baseMessage.includes("code") && baseMessage.includes("invalid")) {
+    return `❌ Invalid ${store} authentication code. Please verify and try again.`;
+  }
+
+  if (baseMessage.includes("browser")) {
+    return `🌐 Failed to open browser for ${store}. Please try opening manually.`;
+  }
+
+  if (baseMessage.includes("CLI not found") || baseMessage.includes("command not found")) {
+    return `⚠️ ${store} CLI tool not installed. Please run: npm run install:clis`;
+  }
+
+  // Fallback with action context
+  return `❌ ${store} ${action} failed: ${baseMessage}`;
+}
+
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
     stores: {
@@ -84,7 +119,8 @@ export const useAuthStore = defineStore("auth", {
         await invoke("epic_start_auth");
         await this.fetchAuthStatus(); // Refresh status after auth
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Epic authentication failed";
+        this.error = formatAuthError("Epic Games", "login", error);
+        console.error("Failed to login to Epic:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -102,7 +138,8 @@ export const useAuthStore = defineStore("auth", {
         await invoke("epic_logout");
         await this.fetchAuthStatus();
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Epic logout failed";
+        this.error = formatAuthError("Epic Games", "logout", error);
+        console.error("Failed to logout from Epic:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -118,7 +155,8 @@ export const useAuthStore = defineStore("auth", {
       try {
         return await invoke<string>("gog_get_auth_url");
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to get GOG auth URL";
+        this.error = formatAuthError("GOG", "URL generation", error);
+        console.error("Failed to get GOG auth URL:", error);
         throw error;
       }
     },
@@ -134,7 +172,8 @@ export const useAuthStore = defineStore("auth", {
         await invoke("gog_login_with_code", { code });
         await this.fetchAuthStatus();
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "GOG authentication failed";
+        this.error = formatAuthError("GOG", "authentication", error);
+        console.error("Failed to login to GOG:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -152,7 +191,8 @@ export const useAuthStore = defineStore("auth", {
         await invoke("gog_logout");
         await this.fetchAuthStatus();
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "GOG logout failed";
+        this.error = formatAuthError("GOG", "logout", error);
+        console.error("Failed to logout from GOG:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -175,10 +215,12 @@ export const useAuthStore = defineStore("auth", {
       } catch (error: any) {
         // Check if error is an AuthErrorResponse
         if (error?.errorType === "two_factor_required") {
+          this.error = "🔒 Two-factor authentication required. Please enter your 2FA code.";
           throw error; // Re-throw to let UI handle 2FA flow
         }
 
-        this.error = error?.message || "Amazon authentication failed";
+        this.error = formatAuthError("Amazon Games", "authentication", error);
+        console.error("Failed to login to Amazon:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -196,7 +238,8 @@ export const useAuthStore = defineStore("auth", {
         await invoke("amazon_login_with_2fa", { email, password, code });
         await this.fetchAuthStatus();
       } catch (error: any) {
-        this.error = error?.message || "Amazon 2FA authentication failed";
+        this.error = formatAuthError("Amazon Games", "2FA verification", error);
+        console.error("Failed to complete Amazon 2FA:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -214,7 +257,8 @@ export const useAuthStore = defineStore("auth", {
         await invoke("amazon_logout");
         await this.fetchAuthStatus();
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Amazon logout failed";
+        this.error = formatAuthError("Amazon Games", "logout", error);
+        console.error("Failed to logout from Amazon:", error);
         throw error;
       } finally {
         this.loading = false;

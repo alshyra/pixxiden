@@ -99,7 +99,7 @@ describe("New Features E2E Tests", () => {
         return app !== null;
       });
 
-      expect(hasOverlay).to.be.true;
+      expect(hasOverlay).to.be.true; // eslint-disable-line no-unused-expressions
     });
   });
 
