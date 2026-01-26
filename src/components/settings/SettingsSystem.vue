@@ -72,27 +72,18 @@
         </div>
       </Card>
 
-      <!-- Action Buttons -->
-      <div class="grid grid-cols-2 gap-4">
-        <Button
-          variant="outline"
-          size="lg"
-          :loading="checkingUpdates"
-          :disabled="checkingUpdates"
-          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 0 }"
-          @click="$emit('check-updates')"
-        >
-          <template #icon>
-            <RefreshIcon class="w-5 h-5" />
-          </template>
-          {{ checkingUpdates ? "VÉRIFICATION..." : "VÉRIFIER LES MISES À JOUR" }}
-        </Button>
+      <!-- System Updates Card -->
+      <Card variant="glass">
+        <SystemUpdates />
+      </Card>
 
+      <!-- Action Button -->
+      <div class="flex justify-end">
         <Button
           variant="danger"
           size="lg"
-          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
-          @click="$emit('shutdown')"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 0 }"
+          @click="shutdown"
         >
           <template #icon>
             <PowerIcon class="w-5 h-5" />
@@ -107,8 +98,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { Card, Button, ProgressBar } from "@/components/ui";
-import { RefreshCw as RefreshIcon, Power as PowerIcon } from "lucide-vue-next";
+import { Power as PowerIcon } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
+import SystemUpdates from "./SystemUpdates.vue";
+import * as api from "@/services/api";
 
 interface SystemInfo {
   osName?: string;
@@ -125,18 +118,23 @@ interface DiskInfo {
 
 defineProps<{
   loading: boolean;
-  checkingUpdates: boolean;
   systemInfo: SystemInfo | null;
   diskInfo: DiskInfo[];
 }>();
 
-const emit = defineEmits<{
-  "check-updates": [];
-  shutdown: [];
-}>();
-
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+
+// Shutdown system
+async function shutdown() {
+  if (confirm("Êtes-vous sûr de vouloir éteindre la machine ?")) {
+    try {
+      await api.shutdownSystem();
+    } catch (error) {
+      console.error("Failed to shutdown:", error);
+    }
+  }
+}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -149,18 +147,12 @@ function formatBytes(bytes: number): string {
 // Gamepad navigation
 onMounted(() => {
   onGamepad("navigate", ({ direction }: { direction: string }) => {
-    if (direction === "left" && focusedIndex.value > 0) {
-      focusedIndex.value--;
-    } else if (direction === "right" && focusedIndex.value < 1) {
-      focusedIndex.value++;
-    }
+    // Navigation will be handled by SystemUpdates component
   });
 
   onGamepad("confirm", () => {
     if (focusedIndex.value === 0) {
-      emit("check-updates");
-    } else if (focusedIndex.value === 1) {
-      emit("shutdown");
+      shutdown();
     }
   });
 });

@@ -42,7 +42,7 @@
         <Button
           :variant="store.authenticated ? 'outline' : 'primary'"
           size="sm"
-          @click="$emit('toggle-connection', store)"
+          @click="toggleConnection(store)"
         >
           {{ store.authenticated ? "DÉCONNEXION" : "CONNEXION" }}
         </Button>
@@ -77,12 +77,15 @@ const props = defineProps<{
   stores: StoreAccount[];
 }>();
 
-const emit = defineEmits<{
-  "toggle-connection": [store: StoreAccount];
-}>();
-
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+
+// Toggle store connection
+function toggleConnection(store: StoreAccount) {
+  console.log("Toggle connection for:", store.name);
+  // TODO: Implement store connection/disconnection logic
+  // This will be implemented when store authentication is ready
+}
 
 function storeIconClass(storeId: string): string {
   const classes: Record<string, string> = {
@@ -122,7 +125,7 @@ const navigateHandler = ({ direction }: { direction: string }) => {
 const confirmHandler = () => {
   const store = props.stores[focusedIndex.value];
   if (store) {
-    emit("toggle-connection", store);
+    toggleConnection(store);
   }
 };
 

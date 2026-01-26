@@ -2,6 +2,9 @@ import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useLibraryStore } from "@/stores/library";
 import type { Game } from "@/types";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 type UnlistenFn = () => void;
 
@@ -31,21 +34,10 @@ export function useCurrentGame() {
   const launchError = ref<string | null>(null);
 
   // === TAURI HELPERS ===
-  let convertFileSrc: ((path: string) => string) | null = null;
   const listeners: UnlistenFn[] = [];
-
-  const loadConvertFileSrc = async () => {
-    try {
-      const { convertFileSrc: fn } = await import("@tauri-apps/api/core");
-      convertFileSrc = fn;
-    } catch {
-      convertFileSrc = (path: string) => path;
-    }
-  };
 
   const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
     try {
-      const { listen } = await import("@tauri-apps/api/event");
       const unlisten = await listen(event, handler);
       listeners.push(unlisten);
       return unlisten;
@@ -57,8 +49,12 @@ export function useCurrentGame() {
   // === COMPUTED PROPERTIES ===
   const heroImage = computed(() => {
     if (!game.value) return "";
-    if (game.value.heroPath && convertFileSrc) {
-      return convertFileSrc(game.value.heroPath);
+    if (game.value.heroPath) {
+      try {
+        return convertFileSrc(game.value.heroPath);
+      } catch {
+        return game.value.backgroundUrl || "";
+      }
     }
     return game.value.backgroundUrl || "";
   });
@@ -148,7 +144,6 @@ export function useCurrentGame() {
     if (!game.value) return;
 
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
       await invoke("force_close_game", { gameId: game.value.id });
     } catch (error) {
       console.error("Failed to force close game:", error);
@@ -179,8 +174,6 @@ export function useCurrentGame() {
 
   // === TAURI EVENT SETUP ===
   async function setupEventListeners() {
-    await loadConvertFileSrc();
-
     await safeListen("game-launching", (event: any) => {
       if (event.payload?.gameId === gameId.value) {
         isLaunching.value = true;

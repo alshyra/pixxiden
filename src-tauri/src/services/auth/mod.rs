@@ -4,6 +4,6 @@ pub mod amazon;
 pub mod store_manager;
 
 pub use epic::EpicAuth;
-pub use gog::GOGAuth;
+pub use gog::GOGAuthService;
 pub use amazon::{AmazonAuth, AuthError};
-pub use store_manager::{StoreManager, AuthStatus, ConfigSource, Store};
+pub use store_manager::{StoreManager, AuthStatus};

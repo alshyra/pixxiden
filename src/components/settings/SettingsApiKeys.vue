@@ -101,7 +101,7 @@
           :loading="testing"
           :disabled="testing"
           :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 0 }"
-          @click="$emit('test')"
+          @click="testApiKeys"
         >
           <template #icon>
             <CheckCircle class="w-5 h-5" />
@@ -115,7 +115,7 @@
           :loading="saving"
           :disabled="saving"
           :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
-          @click="$emit('save')"
+          @click="saveApiKeys"
         >
           <template #icon>
             <Check class="w-5 h-5" />
@@ -133,6 +133,7 @@ import { Button, Input } from "@/components/ui";
 import ApiKeyCard from "./ApiKeyCard.vue";
 import { Info, CheckCircle, Check } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
+import * as api from "@/services/api";
 
 export interface ApiKeys {
   steamgriddbApiKey: string;
@@ -151,22 +152,56 @@ export interface ApiKeyTestResults {
 const props = defineProps<{
   modelValue: ApiKeys;
   loading: boolean;
-  saving: boolean;
-  testing: boolean;
-  testResults: ApiKeyTestResults;
 }>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: ApiKeys];
-  test: [];
-  save: [];
 }>();
 
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+const saving = ref(false);
+const testing = ref(false);
+const testResults = ref<ApiKeyTestResults>({
+  steamgriddb: null,
+  igdb: null,
+  steam: null,
+});
 
 function updateKey(key: keyof ApiKeys, value: string) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
+}
+
+// Save API keys
+async function saveApiKeys() {
+  saving.value = true;
+  try {
+    await api.saveApiKeys(props.modelValue);
+    console.log("API keys saved");
+  } catch (error) {
+    console.error("Failed to save API keys:", error);
+  } finally {
+    saving.value = false;
+  }
+}
+
+// Test API keys
+async function testApiKeys() {
+  testing.value = true;
+  testResults.value = { steamgriddb: null, igdb: null, steam: null };
+
+  try {
+    const results = await api.testApiKeys(props.modelValue);
+    testResults.value = {
+      steamgriddb: results.steamgriddbValid ?? null,
+      igdb: results.igdbValid ?? null,
+      steam: results.steamValid ?? null,
+    };
+  } catch (error) {
+    console.error("Failed to test API keys:", error);
+  } finally {
+    testing.value = false;
+  }
 }
 
 // Gamepad navigation
@@ -181,9 +216,9 @@ onMounted(() => {
 
   onGamepad("confirm", () => {
     if (focusedIndex.value === 0) {
-      emit("test");
+      testApiKeys();
     } else if (focusedIndex.value === 1) {
-      emit("save");
+      saveApiKeys();
     }
   });
 });

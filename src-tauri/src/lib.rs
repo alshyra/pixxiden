@@ -4,7 +4,9 @@ mod gamepad;
 mod models;
 mod services;
 mod store;
+mod sudoers;
 mod system;
+mod system_updates;
 
 #[cfg(test)]
 mod tests;
@@ -16,6 +18,9 @@ use commands::{
     get_settings, save_settings, clear_game_cache, clear_all_cache, get_cache_stats,
     get_api_keys, needs_setup, save_api_keys, skip_setup, test_api_keys,
     update_game_custom_executable, force_close_game,
+    // System Updates
+    get_distro, is_sudoers_configured, configure_sudoers, check_system_updates,
+    install_system_updates, requires_system_reboot, reboot_system,
     AppState,
     auth::{
         AuthState,
@@ -140,6 +145,14 @@ pub fn run() {
             amazon_login_with_2fa,
             amazon_is_authenticated,
             amazon_logout,
+            // System Updates
+            get_distro,
+            is_sudoers_configured,
+            configure_sudoers,
+            check_system_updates,
+            install_system_updates,
+            requires_system_reboot,
+            reboot_system,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
