@@ -1,45 +1,23 @@
 <template>
   <div class="game-carousel relative">
     <!-- Carousel Container -->
-    <div 
-      ref="carouselRef"
-      class="flex gap-4 overflow-x-auto scrollbar-hide px-12 py-6 scroll-smooth"
-      @scroll="updateScrollState"
-      @wheel="handleWheel"
-    >
-      <GameCard
-        v-for="(game, index) in games"
-        :key="game.id"
-        :ref="el => setCardRef(index, el)"
-        :game="game"
-        :selected="selectedId === game.id"
-        :playing="playingId === game.id"
-        class="flex-shrink-0 w-36 md:w-44"
-        @mouseenter="emit('select', game)"
-        @click="emit('open', game)"
-      />
+    <div ref="carouselRef" class="flex gap-4 overflow-x-auto scrollbar-hide px-12 py-6 scroll-smooth"
+      @scroll="updateScrollState" @wheel="handleWheel">
+      <GameCard v-for="(game, index) in games" :key="game.id" :ref="el => setCardRef(index, el)" :game="game"
+        :selected="selectedId === game.id" :playing="playingId === game.id" class="flex-shrink-0 w-36 md:w-44"
+        @mouseenter="emit('select', game)" @click="emit('open', game)" />
     </div>
-    
+
     <!-- Navigation Arrows -->
-    <Button 
-      v-if="canScrollLeft"
-      variant="ghost"
-      icon-only
-      class="absolute left-2 top-1/2 -translate-y-1/2 !bg-black/60 hover:!bg-black/80"
-      @click="scrollLeft"
-    >
+    <Button v-if="canScrollLeft" variant="ghost" icon-only
+      class="absolute left-2 top-1/2 -translate-y-1/2 !bg-black/60 hover:!bg-black/80" @click="scrollLeft">
       <template #icon>
         <ChevronLeft class="w-5 h-5" />
       </template>
     </Button>
-    
-    <Button 
-      v-if="canScrollRight"
-      variant="ghost"
-      icon-only
-      class="absolute right-2 top-1/2 -translate-y-1/2 !bg-black/60 hover:!bg-black/80"
-      @click="scrollRight"
-    >
+
+    <Button v-if="canScrollRight" variant="ghost" icon-only
+      class="absolute right-2 top-1/2 -translate-y-1/2 !bg-black/60 hover:!bg-black/80" @click="scrollRight">
       <template #icon>
         <ChevronRight class="w-5 h-5" />
       </template>
@@ -105,10 +83,10 @@ function handleWheel(e: WheelEvent) {
 // Scroll selected item into view
 function scrollToSelected() {
   if (!props.selectedId || !carouselRef.value) return
-  
+
   const selectedIndex = props.games.findIndex(g => g.id === props.selectedId)
   if (selectedIndex === -1) return
-  
+
   const cardEl = cardRefs.value.get(selectedIndex)
   if (cardEl) {
     cardEl.scrollIntoView({
@@ -144,6 +122,7 @@ onMounted(() => {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

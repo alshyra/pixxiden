@@ -1,15 +1,9 @@
 <template>
-  <Modal 
-    v-model="showInstallModal" 
-    title="Installer le jeu"
-    size="lg"
-  >
+  <Modal v-model="showInstallModal" title="Installer le jeu" size="lg">
     <!-- Game Info Header -->
     <div class="flex items-center gap-4 pb-6 border-b border-white/10">
-      <div 
-        class="w-20 h-20 rounded-xl bg-cover bg-center"
-        :style="{ backgroundImage: `url(${game.backgroundUrl || '/placeholder.png'})` }"
-      ></div>
+      <div class="w-20 h-20 rounded-xl bg-cover bg-center"
+        :style="{ backgroundImage: `url(${game.backgroundUrl || '/placeholder.png'})` }"></div>
       <div class="flex-1">
         <h3 class="text-xl font-bold text-white">{{ game.title }}</h3>
         <div class="flex items-center gap-2 mt-1">
@@ -18,23 +12,17 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Installation Path -->
     <div class="mt-6">
       <label class="block text-sm font-semibold text-white mb-2">
         📁 Dossier d'installation
       </label>
       <div class="flex gap-2">
-        <input 
-          v-model="installPath"
-          type="text"
+        <input v-model="installPath" type="text"
           class="flex-1 px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-sm font-medium text-white focus:outline-none focus:border-remix-accent/50 focus:shadow-glow-subtle transition-all"
-          placeholder="~/Games/Epic/Cyberpunk 2077"
-        />
-        <Button 
-          variant="outline"
-          @click="browseInstallPath"
-        >
+          placeholder="~/Games/Epic/Cyberpunk 2077" />
+        <Button variant="outline" @click="browseInstallPath">
           📂 Parcourir
         </Button>
       </div>
@@ -42,92 +30,65 @@
         Le jeu sera installé dans ce dossier
       </p>
     </div>
-    
+
     <!-- Disk Space Info -->
     <div class="mt-6 p-4 bg-remix-bg-card/80 border border-white/8 rounded-xl">
       <div class="flex justify-between items-center mb-3">
         <span class="text-sm text-white/70">Taille du jeu</span>
         <span class="text-sm font-bold text-white">{{ formatSize(gameSize) }}</span>
       </div>
-      
+
       <div class="flex justify-between items-center mb-3">
         <span class="text-sm text-white/70">Espace disponible</span>
-        <span 
-          class="text-sm font-bold"
-          :class="hasEnoughSpace ? 'text-remix-success' : 'text-remix-error'"
-        >
+        <span class="text-sm font-bold" :class="hasEnoughSpace ? 'text-remix-success' : 'text-remix-error'">
           {{ formatSize(availableSpace) }}
         </span>
       </div>
-      
+
       <!-- Progress Bar -->
       <div class="h-2 bg-white/10 rounded-full overflow-hidden">
-        <div 
-          class="h-full rounded-full transition-all"
+        <div class="h-full rounded-full transition-all"
           :class="diskUsagePercent > 90 ? 'bg-remix-error' : 'bg-remix-accent'"
-          :style="{ width: `${Math.min(diskUsagePercent, 100)}%` }"
-        ></div>
+          :style="{ width: `${Math.min(diskUsagePercent, 100)}%` }"></div>
       </div>
-      
-      <p 
-        v-if="!hasEnoughSpace" 
-        class="flex items-center gap-2 mt-3 text-xs text-remix-error"
-      >
+
+      <p v-if="!hasEnoughSpace" class="flex items-center gap-2 mt-3 text-xs text-remix-error">
         <AlertTriangle class="w-4 h-4" />
         Espace disque insuffisant pour installer ce jeu
       </p>
     </div>
-    
+
     <!-- Wine/Proton Options (Windows games only) -->
     <div v-if="needsWine" class="mt-6">
       <label class="block text-sm font-semibold text-white mb-2">
         🍷 Couche de compatibilité
       </label>
-      <Select 
-        v-model="selectedRunner"
-        :options="runnerOptions"
-        placeholder="Sélectionner Proton/Wine"
-      />
+      <Select v-model="selectedRunner" :options="runnerOptions" placeholder="Sélectionner Proton/Wine" />
       <p class="text-xs text-white/40 mt-2">
         {{ selectedRunnerDescription }}
       </p>
     </div>
-    
+
     <!-- Additional Options -->
     <div class="mt-6 space-y-3">
-      <Toggle 
-        v-model="createDesktopShortcut"
-        label="Créer un raccourci bureau"
-        description="Ajouter une icône sur le bureau"
-      />
-      
-      <Toggle 
-        v-model="addToSteam"
-        label="Ajouter à Steam (raccourci non-Steam)"
-        description="Le jeu apparaîtra dans votre bibliothèque Steam"
-      />
+      <Toggle v-model="createDesktopShortcut" label="Créer un raccourci bureau"
+        description="Ajouter une icône sur le bureau" />
+
+      <Toggle v-model="addToSteam" label="Ajouter à Steam (raccourci non-Steam)"
+        description="Le jeu apparaîtra dans votre bibliothèque Steam" />
     </div>
-    
+
     <!-- Footer Actions -->
     <template #footer>
       <div class="flex items-center justify-between gap-4 w-full">
         <!-- Cancel -->
-        <Button 
-          variant="ghost" 
-          @click="showInstallModal = false"
-          class="flex-1"
-        >
+        <Button variant="ghost" @click="showInstallModal = false" class="flex-1">
           Annuler
         </Button>
-        
+
         <!-- Install -->
-        <Button 
-          variant="primary" 
-          @click="confirmInstall"
-          :disabled="!hasEnoughSpace || installing"
-          :loading="installing"
-          class="flex-1"
-        >
+        <Button variant="primary" @click="confirmInstall" :disabled="!hasEnoughSpace || installing"
+          :loading="installing" class="flex-1">
           <template #icon v-if="!installing">
             <Download class="w-5 h-5" />
           </template>
@@ -228,7 +189,7 @@ async function browseInstallPath() {
   //   defaultPath: installPath.value
   // })
   // if (selected) installPath.value = selected
-  
+
   console.log('TODO: Open file picker')
 }
 
@@ -238,7 +199,7 @@ async function loadGameInfo() {
     const config = await api.getGameConfig(props.game.id)
     gameSize.value = config.downloadSize || 0
     gameVersion.value = config.version || '1.0.0'
-    
+
     // Get available disk space for install path
     const diskInfo = await api.getDiskInfo()
     const targetDisk = diskInfo.find(d => installPath.value.startsWith(d.mountPoint))
@@ -250,9 +211,9 @@ async function loadGameInfo() {
 
 async function confirmInstall() {
   if (!hasEnoughSpace.value || installing.value) return
-  
+
   installing.value = true
-  
+
   try {
     const installConfig: InstallConfig = {
       gameId: props.game.id,
@@ -261,12 +222,12 @@ async function confirmInstall() {
       createShortcut: createDesktopShortcut.value,
       addToSteam: addToSteam.value,
     }
-    
+
     emit('install-started', installConfig)
-    
+
     // Start installation
     await api.installGame(props.game.id, installPath.value)
-    
+
     // Close modal
     showInstallModal.value = false
   } catch (error) {

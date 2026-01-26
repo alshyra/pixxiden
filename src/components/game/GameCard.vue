@@ -1,44 +1,39 @@
 <template>
-  <div 
-    class="game-card"
-    :class="{ 
-      'focused': focused,
-      'selected': selected
-    }"
-    :style="cardStyle"
-    :data-id="game.id"
-  >
+  <div class="game-card" :class="{
+    'focused': focused,
+    'selected': selected
+  }" :style="cardStyle" :data-id="game.id">
     <!-- Placeholder background when no image -->
     <div v-if="!game.backgroundUrl && !game.backgroundUrl" class="placeholder-bg">
       <PixxidenLogo :size="80" :glow="false" />
       <div class="glow-effect"></div>
     </div>
-    
+
     <!-- Gradient overlay -->
     <div class="card-overlay"></div>
-    
+
     <!-- Store badge -->
     <div class="store-badge" :class="`store-${game.store}`">
       {{ storeBadgeText }}
     </div>
-    
+
     <!-- Installed indicator -->
     <div v-if="game.installed" class="installed-badge">
       <Check class="w-3 h-3" />
       <span>Installé</span>
     </div>
-    
+
     <!-- Playing indicator -->
     <div v-if="playing" class="playing-badge">
       <div class="playing-pulse"></div>
       <span>En cours</span>
     </div>
-    
+
     <!-- Title -->
     <div class="card-title">
       {{ game.title }}
     </div>
-    
+
     <!-- Focus ring glow -->
     <div v-if="focused" class="focus-glow"></div>
   </div>
@@ -135,12 +130,10 @@ const storeBadgeText = computed(() => {
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.95) 0%,
-    rgba(0, 0, 0, 0.5) 30%,
-    transparent 60%
-  );
+  background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.5) 30%,
+      transparent 60%);
   pointer-events: none;
 }
 
@@ -176,7 +169,8 @@ const storeBadgeText = computed(() => {
   border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
-.store-amazon, .store-prime {
+.store-amazon,
+.store-prime {
   background: rgba(255, 153, 0, 0.9);
   color: #000000;
   border: 1px solid rgba(255, 153, 0, 0.5);
@@ -229,10 +223,13 @@ const storeBadgeText = computed(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.5;
     transform: scale(0.8);
@@ -265,7 +262,7 @@ const storeBadgeText = computed(() => {
   inset: -2px;
   border-radius: 14px;
   background: transparent;
-  box-shadow: 
+  box-shadow:
     0 0 20px rgba(94, 92, 230, 0.4),
     inset 0 0 20px rgba(94, 92, 230, 0.1);
   pointer-events: none;

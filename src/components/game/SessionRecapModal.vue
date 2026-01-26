@@ -1,26 +1,18 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div 
-        v-if="isOpen"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-lg"
-        @click.self="close"
-      >
+      <div v-if="isOpen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-lg"
+        @click.self="close">
         <!-- Modal Content -->
-        <div 
-          ref="modalRef"
+        <div ref="modalRef"
           class="bg-[#0f0f12]/98 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-2xl w-full mx-4 border border-white/10 overflow-hidden"
-          @keydown="handleKeydown"
-        >
+          @keydown="handleKeydown">
           <!-- Header with Game Info -->
           <div class="relative h-32 bg-gradient-to-br from-purple-900/50 via-blue-900/30 to-cyan-900/20">
-            <img 
-              v-if="game?.backgroundUrl"
-              :src="game.backgroundUrl" 
-              class="absolute inset-0 w-full h-full object-cover opacity-50"
-            />
+            <img v-if="game?.backgroundUrl" :src="game.backgroundUrl"
+              class="absolute inset-0 w-full h-full object-cover opacity-50" />
             <div class="absolute inset-0 bg-gradient-to-t from-[#0f0f12] to-transparent"></div>
-            
+
             <!-- Title Overlay -->
             <div class="absolute bottom-4 left-6 right-6">
               <h2 class="text-2xl font-black italic text-white tracking-tight">
@@ -31,7 +23,7 @@
               </p>
             </div>
           </div>
-          
+
           <!-- Session Stats -->
           <div class="p-6 space-y-6">
             <!-- Main Stats Grid -->
@@ -44,16 +36,17 @@
                   Durée session
                 </p>
               </div>
-              
+
               <div class="bg-[#1a1a1e] rounded-xl p-4 text-center border border-white/5">
                 <p class="text-3xl font-black text-[#5e5ce6] mb-1">
-                  {{ game?.playTimeMinutes ? formatTotalTime(game.playTimeMinutes + Math.floor(sessionDuration / 60)) : 'N/A' }}
+                  {{ game?.playTimeMinutes ? formatTotalTime(game.playTimeMinutes + Math.floor(sessionDuration / 60)) :
+                  'N/A' }}
                 </p>
                 <p class="text-[10px] font-bold text-white/40 uppercase tracking-wider">
                   Temps total
                 </p>
               </div>
-              
+
               <div class="bg-[#1a1a1e] rounded-xl p-4 text-center border border-white/5">
                 <p class="text-3xl font-black text-yellow-400 mb-1">
                   {{ game?.achievementsUnlocked !== undefined ? game.achievementsUnlocked : 'N/A' }}
@@ -63,7 +56,7 @@
                 </p>
               </div>
             </div>
-            
+
             <!-- Session Info -->
             <div class="bg-[#1a1a1e]/50 rounded-xl p-4 border border-white/5">
               <div class="flex items-center justify-between py-2 border-b border-white/5">
@@ -79,38 +72,28 @@
                 <span class="text-sm font-semibold text-white">{{ getStoreName(game?.store) }}</span>
               </div>
             </div>
-            
+
             <!-- Action Buttons -->
             <div class="grid grid-cols-2 gap-4">
-              <Button
-                ref="playAgainBtn"
-                variant="success"
-                size="lg"
-                class="!rounded-xl"
+              <Button ref="playAgainBtn" variant="success" size="lg" class="!rounded-xl"
                 :class="{ 'ring-2 ring-green-400 ring-offset-2 ring-offset-[#0f0f12]': focusedButton === 'playAgain' }"
-                @click="playAgain"
-              >
+                @click="playAgain">
                 <template #icon>
                   <Play class="w-6 h-6" />
                 </template>
                 Rejouer
               </Button>
-              
-              <Button
-                ref="closeBtn"
-                variant="ghost"
-                size="lg"
-                class="!rounded-xl !bg-white/10 hover:!bg-white/20"
+
+              <Button ref="closeBtn" variant="ghost" size="lg" class="!rounded-xl !bg-white/10 hover:!bg-white/20"
                 :class="{ 'ring-2 ring-white/40 ring-offset-2 ring-offset-[#0f0f12]': focusedButton === 'close' }"
-                @click="close"
-              >
+                @click="close">
                 <template #icon>
                   <Home class="w-6 h-6" />
                 </template>
                 Retour à la bibliothèque
               </Button>
             </div>
-            
+
             <!-- Controller Hint -->
             <p class="text-center text-white/30 text-xs">
               <kbd class="px-2 py-1 bg-[#1a1a1e] rounded text-white/50 mr-1">A</kbd> Sélectionner
@@ -254,9 +237,9 @@ function formatTotalTime(minutes: number): string {
 
 function formatDateTime(date: Date | null): string {
   if (!date) return 'N/A'
-  return date.toLocaleTimeString('fr-FR', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return date.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 

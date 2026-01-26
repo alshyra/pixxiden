@@ -1,84 +1,52 @@
 <template>
   <div class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600">
     <!-- Hero Banner -->
-    <HeroBanner 
-      :game="selectedGame"
-      :metadata="selectedMetadataGame"
-      @open-details="openGameDetails(selectedGame)"
-      class="transition-all duration-600"
-    />
-    
+    <HeroBanner :game="selectedGame" :metadata="selectedMetadataGame" @open-details="openGameDetails(selectedGame)"
+      class="transition-all duration-600" />
+
     <!-- Games Carousel -->
     <div class="absolute bottom-14 left-0 right-0">
-      <GameCarousel
-        ref="carouselRef"
-        :games="filteredGames"
-        :selected-id="selectedGame?.id"
-        :playing-id="playingGame?.id"
-        @select="selectGame"
-        @open="openGameDetails"
-      />
+      <GameCarousel ref="carouselRef" :games="filteredGames" :selected-id="selectedGame?.id"
+        :playing-id="playingGame?.id" @select="selectGame" @open="openGameDetails" />
     </div>
-    
+
     <!-- Bottom Filters -->
-    <BottomFilters
-      v-model="currentFilter"
-    />
-    
+    <BottomFilters v-model="currentFilter" />
+
     <!-- Loading Overlay -->
-    <Transition
-      enter-active-class="transition-opacity duration-300"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-300"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div 
-        v-if="loading" 
-        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm"
-      >
+    <Transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-opacity duration-300" leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="loading"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
         <div class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4" />
         <p class="text-white/60 text-sm font-medium">Chargement de votre bibliothèque...</p>
       </div>
     </Transition>
-    
+
     <!-- Empty State -->
-    <Transition
-      enter-active-class="transition-all duration-500"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition-all duration-300"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <div 
-        v-if="!loading && filteredGames.length === 0" 
-        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
-      >
+    <Transition enter-active-class="transition-all duration-500" enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-300"
+      leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+      <div v-if="!loading && filteredGames.length === 0"
+        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
         <div class="mb-6 opacity-50">
           <Package class="w-24 h-24 text-white/30" />
         </div>
-        
+
         <h2 class="text-2xl font-bold text-white mb-2">
           {{ currentFilter === 'all' ? 'Aucun jeu trouvé' : 'Aucun jeu dans ce filtre' }}
         </h2>
-        
+
         <p class="text-sm text-white/50 mb-8 max-w-sm">
-          {{ currentFilter === 'all' 
-            ? 'Synchronisez vos bibliothèques pour commencer à jouer' 
+          {{ currentFilter === 'all'
+            ? 'Synchronisez vos bibliothèques pour commencer à jouer'
             : 'Changez de filtre pour voir vos autres jeux'
           }}
         </p>
-        
-        <Button 
-          v-if="currentFilter === 'all'"
-          variant="primary"
-          size="lg"
-          :loading="syncing"
-          :disabled="syncing"
-          @click="syncLibrary"
-        >
+
+        <Button v-if="currentFilter === 'all'" variant="primary" size="lg" :loading="syncing" :disabled="syncing"
+          @click="syncLibrary">
           <template #icon>
             <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': syncing }" />
           </template>
@@ -86,20 +54,13 @@
         </Button>
       </div>
     </Transition>
-    
+
     <!-- Game Count Badge -->
-    <Transition
-      enter-active-class="transition-all duration-300"
-      enter-from-class="opacity-0 translate-y-4"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition-all duration-200"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 translate-y-4"
-    >
-      <div 
-        v-if="!loading && filteredGames.length > 0"
-        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md"
-      >
+    <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 translate-y-4"
+      enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-200"
+      leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-4">
+      <div v-if="!loading && filteredGames.length > 0"
+        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md">
         {{ filteredGames.length }} {{ filteredGames.length === 1 ? 'jeu' : 'jeux' }}
       </div>
     </Transition>
@@ -138,7 +99,7 @@ const selectedMetadataGame = ref(null)
 // Filter games based on current filter
 const filteredGames = computed(() => {
   let games = [...libraryStore.games]
-  
+
   switch (currentFilter.value) {
     case 'installed':
       games = games.filter(g => g.installed)
@@ -159,7 +120,7 @@ const filteredGames = computed(() => {
       // 'all' - sort alphabetically
       games = games.sort((a, b) => a.title.localeCompare(b.title))
   }
-  
+
   return games
 })
 
@@ -170,20 +131,20 @@ const selectedIndex = ref(0)
 function navigateCarousel(direction: 'left' | 'right') {
   const total = filteredGames.value.length
   if (total === 0) return
-  
+
   if (direction === 'left') {
-    selectedIndex.value = selectedIndex.value > 0 
-      ? selectedIndex.value - 1 
+    selectedIndex.value = selectedIndex.value > 0
+      ? selectedIndex.value - 1
       : total - 1 // Wrap to end
   } else {
-    selectedIndex.value = selectedIndex.value < total - 1 
-      ? selectedIndex.value + 1 
+    selectedIndex.value = selectedIndex.value < total - 1
+      ? selectedIndex.value + 1
       : 0 // Wrap to beginning
   }
-  
+
   // Update selected game
   selectedGame.value = filteredGames.value[selectedIndex.value] || null
-  
+
   // Scroll to the selected game (keyboard/gamepad navigation)
   nextTick(() => {
     carouselRef.value?.scrollToSelected()
@@ -195,7 +156,7 @@ const filterOrder = ['all', 'installed', 'epic', 'gog', 'amazon', 'steam']
 
 function navigateFilters(direction: 'up' | 'down') {
   const currentIdx = filterOrder.indexOf(currentFilter.value)
-  
+
   if (direction === 'up' && currentIdx > 0) {
     currentFilter.value = filterOrder[currentIdx - 1]
   } else if (direction === 'down' && currentIdx < filterOrder.length - 1) {
@@ -242,7 +203,7 @@ async function loadGames() {
   loading.value = true
   try {
     await libraryStore.fetchGames()
-    
+
     // Auto-select first game
     if (filteredGames.value.length > 0) {
       selectedGame.value = filteredGames.value[0]
@@ -258,7 +219,7 @@ async function loadGames() {
 function handleKeyDown(e: KeyboardEvent) {
   // Don't trigger if typing in an input
   if (document.activeElement?.tagName === 'INPUT') return
-  
+
   // Arrow keys for navigation
   if (e.key === 'ArrowLeft') {
     e.preventDefault()
@@ -280,7 +241,7 @@ function handleKeyDown(e: KeyboardEvent) {
     navigateFilters('down')
     return
   }
-  
+
   // Q/E keys for filter switching (LB/RB equivalent)
   if (e.key === 'q' || e.key === 'Q') {
     e.preventDefault()
@@ -292,13 +253,13 @@ function handleKeyDown(e: KeyboardEvent) {
     switchFilter('next')
     return
   }
-  
+
   // S key to open settings
   if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
     e.preventDefault()
     openSettings()
   }
-  
+
   // Enter / A to open game details
   if (e.key === 'Enter' || e.key === 'a' || e.key === 'A') {
     if (selectedGame.value) {
@@ -306,7 +267,7 @@ function handleKeyDown(e: KeyboardEvent) {
       openGameDetails(selectedGame.value)
     }
   }
-  
+
   // Escape / B to go back
   if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
     e.preventDefault()
@@ -318,7 +279,7 @@ function handleKeyDown(e: KeyboardEvent) {
 watch(filteredGames, () => {
   // Reset selection to first game
   selectedIndex.value = 0
-  
+
   // Update selected game
   if (filteredGames.value.length > 0) {
     selectedGame.value = filteredGames.value[0]
@@ -330,16 +291,16 @@ watch(filteredGames, () => {
 // Quick filter switch with LB/RB
 function switchFilter(direction: 'prev' | 'next') {
   const currentIdx = filterOrder.indexOf(currentFilter.value)
-  
+
   if (direction === 'prev') {
     // Go to previous, wrap to last if at beginning
-    currentFilter.value = currentIdx > 0 
-      ? filterOrder[currentIdx - 1] 
+    currentFilter.value = currentIdx > 0
+      ? filterOrder[currentIdx - 1]
       : filterOrder[filterOrder.length - 1]
   } else {
     // Go to next, wrap to first if at end
-    currentFilter.value = currentIdx < filterOrder.length - 1 
-      ? filterOrder[currentIdx + 1] 
+    currentFilter.value = currentIdx < filterOrder.length - 1
+      ? filterOrder[currentIdx + 1]
       : filterOrder[0]
   }
 }
@@ -378,7 +339,7 @@ onGamepad('rb', () => {
 
 onMounted(() => {
   loadGames()
-  
+
   window.addEventListener('keydown', handleKeyDown)
 })
 
