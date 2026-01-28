@@ -6,7 +6,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     // Tests pour la détection des binaires
     mod binary_detection {
         use std::process::Command;
@@ -16,7 +16,7 @@ mod tests {
         fn test_legendary_binary_detection() {
             // Vérifie si legendary est installé
             let result = which("legendary");
-            
+
             // Le test ne doit pas échouer si legendary n'est pas installé
             // Il doit juste reporter le status
             match result {
@@ -33,7 +33,7 @@ mod tests {
         #[test]
         fn test_gogdl_binary_detection() {
             let result = which("gogdl");
-            
+
             match result {
                 Ok(path) => {
                     println!("GOGDL found at: {:?}", path);
@@ -48,7 +48,7 @@ mod tests {
         #[test]
         fn test_nile_binary_detection() {
             let result = which("nile");
-            
+
             match result {
                 Ok(path) => {
                     println!("Nile found at: {:?}", path);
@@ -64,9 +64,9 @@ mod tests {
         fn test_heroic_legendary_path() {
             // Teste le chemin Heroic Launcher pour legendary
             let heroic_path = std::path::PathBuf::from(
-                "/opt/Heroic/resources/app.asar.unpacked/build/bin/x64/linux/legendary"
+                "/opt/Heroic/resources/app.asar.unpacked/build/bin/x64/linux/legendary",
             );
-            
+
             if heroic_path.exists() {
                 println!("Heroic Legendary found at: {:?}", heroic_path);
             } else {
@@ -103,7 +103,7 @@ mod tests {
 
             let app_name = json_data["app_name"].as_str().unwrap();
             let app_title = json_data["app_title"].as_str().unwrap();
-            
+
             assert_eq!(app_name, "fortnite");
             assert_eq!(app_title, "Fortnite");
         }
@@ -120,7 +120,7 @@ mod tests {
             let id = json_data["id"].as_str().unwrap();
             let title = json_data["title"].as_str().unwrap();
             let installed = json_data["installed"].as_bool().unwrap();
-            
+
             assert_eq!(id, "1234567890");
             assert_eq!(title, "Cyberpunk 2077");
             assert!(installed);
@@ -130,9 +130,9 @@ mod tests {
         fn test_game_id_generation() {
             let store = "epic";
             let store_id = "fortnite";
-            
+
             let game_id = format!("{}-{}", store, store_id);
-            
+
             assert_eq!(game_id, "epic-fortnite");
         }
 
@@ -152,7 +152,7 @@ mod tests {
             if let Some(home) = dirs::home_dir() {
                 let config_path = home.join(".config/legendary");
                 println!("Expected Legendary config: {:?}", config_path);
-                
+
                 // Le répertoire peut ne pas exister si legendary n'est pas installé
                 // On vérifie juste que le chemin est correct
                 assert!(config_path.to_str().unwrap().contains(".config/legendary"));
@@ -164,7 +164,7 @@ mod tests {
             if let Some(home) = dirs::home_dir() {
                 let config_path = home.join(".config/heroic/legendaryConfig/legendary");
                 println!("Expected Heroic config: {:?}", config_path);
-                
+
                 assert!(config_path.to_str().unwrap().contains("heroic"));
             }
         }
@@ -174,7 +174,7 @@ mod tests {
             if let Some(home) = dirs::home_dir() {
                 let config_path = home.join(".config/heroic/gog_store");
                 println!("Expected GOGDL config: {:?}", config_path);
-                
+
                 assert!(config_path.to_str().unwrap().contains("gog_store"));
             }
         }
@@ -184,7 +184,7 @@ mod tests {
             if let Some(home) = dirs::home_dir() {
                 let config_path = home.join(".config/nile");
                 println!("Expected Nile config: {:?}", config_path);
-                
+
                 assert!(config_path.to_str().unwrap().contains("nile"));
             }
         }

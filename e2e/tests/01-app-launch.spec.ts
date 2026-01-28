@@ -32,7 +32,7 @@ describe("Application Launch", () => {
 
   it("should render the library view as default route", async () => {
     // The app should start on the library view
-    // BottomFilters uses French labels: "tous", "installés", etc.
+    // TopFilters uses French labels: "tous", "installés", etc.
     // First make sure we're on the main window
     const handles = await browser.getWindowHandles();
     for (const handle of handles) {
@@ -47,7 +47,7 @@ describe("Application Launch", () => {
     await browser.waitUntil(
       async () => {
         const bodyText = await $("body").getText();
-        // Check for filter buttons that are visible in BottomFilters (French labels)
+        // Check for filter buttons that are visible in TopFilters (French labels)
         return bodyText.includes("tous") || bodyText.includes("installés");
       },
       { timeout: 15000, timeoutMsg: "Library view not displayed" },
@@ -70,7 +70,7 @@ describe("Application Launch", () => {
       }
     }
 
-    // Check for filter buttons (French labels from BottomFilters component)
+    // Check for filter buttons (French labels from TopFilters component)
     const bodyText = await $("body").getText();
     const hasFilters = bodyText.includes("tous") || bodyText.includes("installés");
     expect(hasFilters).toBe(true);

@@ -105,14 +105,14 @@ fn get_current_username() -> Result<String, String> {
 pub fn is_sudoers_configured() -> Result<SudoersStatus, String> {
     let distro = crate::system_updates::detect_distro();
     let exists = Path::new(SUDOERS_FILE_PATH).exists();
-    
+
     // If file exists, verify it's valid
     let configured = if exists {
         // Check if visudo validates the file
         let output = Command::new("sudo")
             .args(["visudo", "-c", "-f", SUDOERS_FILE_PATH])
             .output();
-        
+
         match output {
             Ok(out) => out.status.success(),
             Err(_) => false,
@@ -120,7 +120,7 @@ pub fn is_sudoers_configured() -> Result<SudoersStatus, String> {
     } else {
         false
     };
-    
+
     Ok(SudoersStatus {
         configured,
         distro,
@@ -131,29 +131,29 @@ pub fn is_sudoers_configured() -> Result<SudoersStatus, String> {
 /// Configure sudoers for Pixxiden (requires password once)
 pub async fn configure_sudoers(password: String) -> Result<(), String> {
     let distro = crate::system_updates::detect_distro();
-    
+
     if matches!(distro, Distro::Unknown) {
         return Err("Unable to detect Linux distribution. Cannot configure sudoers.".to_string());
     }
-    
+
     let username = get_current_username()?;
     let sudoers_content = generate_sudoers_content(&username, &distro);
-    
+
     if sudoers_content.is_empty() {
         return Err("Unsupported distribution for sudoers configuration".to_string());
     }
-    
+
     // Create a temporary file with the sudoers content
     let temp_path = "/tmp/pixxiden_sudoers_temp";
     fs::write(temp_path, &sudoers_content)
         .map_err(|e| format!("Failed to write temporary sudoers file: {}", e))?;
-    
+
     // Validate the sudoers file using visudo
     let validate = Command::new("visudo")
         .args(["-c", "-f", temp_path])
         .output()
         .map_err(|e| format!("Failed to validate sudoers file: {}", e))?;
-    
+
     if !validate.status.success() {
         fs::remove_file(temp_path).ok();
         return Err(format!(
@@ -161,7 +161,7 @@ pub async fn configure_sudoers(password: String) -> Result<(), String> {
             String::from_utf8_lossy(&validate.stderr)
         ));
     }
-    
+
     // Use sudo with password to copy the file to /etc/sudoers.d/
     // We use `sh -c` with echo to pass the password
     let install_script = format!(
@@ -172,15 +172,15 @@ pub async fn configure_sudoers(password: String) -> Result<(), String> {
         SUDOERS_FILE_PATH,
         SUDOERS_FILE_PATH
     );
-    
+
     let install = Command::new("sh")
         .args(["-c", &install_script])
         .output()
         .map_err(|e| format!("Failed to install sudoers file: {}", e))?;
-    
+
     // Clean up temp file
     fs::remove_file(temp_path).ok();
-    
+
     if !install.status.success() {
         let stderr = String::from_utf8_lossy(&install.stderr);
         if stderr.contains("incorrect password") || stderr.contains("Sorry") {
@@ -188,13 +188,13 @@ pub async fn configure_sudoers(password: String) -> Result<(), String> {
         }
         return Err(format!("Failed to install sudoers file: {}", stderr));
     }
-    
+
     // Final validation
     let final_check = Command::new("sudo")
         .args(["visudo", "-c", "-f", SUDOERS_FILE_PATH])
         .output()
         .map_err(|e| format!("Failed to validate installed sudoers: {}", e))?;
-    
+
     if !final_check.status.success() {
         // Rollback: remove the invalid file
         let _ = Command::new("sudo")
@@ -202,29 +202,15 @@ pub async fn configure_sudoers(password: String) -> Result<(), String> {
             .output();
         return Err("Sudoers validation failed after installation".to_string());
     }
-    
-    log::info!("Sudoers configured successfully for user: {}", username);
-    Ok(())
-}
 
-/// Remove Pixxiden sudoers configuration
-pub async fn remove_sudoers_config() -> Result<(), String> {
-    if Path::new(SUDOERS_FILE_PATH).exists() {
-        Command::new("sudo")
-            .args(["rm", "-f", SUDOERS_FILE_PATH])
-            .output()
-            .map_err(|e| format!("Failed to remove sudoers file: {}", e))?;
-        
-        log::info!("Sudoers configuration removed");
-    }
-    
+    log::info!("Sudoers configured successfully for user: {}", username);
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_generate_sudoers_content_arch() {
         let content = generate_sudoers_content("testuser", &Distro::Arch);
@@ -232,7 +218,7 @@ mod tests {
         assert!(content.contains("pacman -Syu"));
         assert!(content.contains("NOPASSWD"));
     }
-    
+
     #[test]
     fn test_generate_sudoers_content_debian() {
         let content = generate_sudoers_content("testuser", &Distro::Debian);
@@ -240,7 +226,7 @@ mod tests {
         assert!(content.contains("apt upgrade"));
         assert!(content.contains("NOPASSWD"));
     }
-    
+
     #[test]
     fn test_get_current_username() {
         let username = get_current_username();

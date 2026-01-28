@@ -1,4 +1,4 @@
-use crate::services::auth::{StoreManager, AuthError};
+use crate::services::auth::{AuthError, StoreManager};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -11,9 +11,9 @@ pub struct AuthState {
 }
 
 impl AuthState {
-    pub fn new() -> Self {
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
         Self {
-            store_manager: Arc::new(Mutex::new(StoreManager::new())),
+            store_manager: Arc::new(Mutex::new(StoreManager::new(app_handle.clone()))),
         }
     }
 }
@@ -29,11 +29,13 @@ impl From<AuthError> for AuthErrorResponse {
     fn from(error: AuthError) -> Self {
         let (error_type, message) = match error {
             AuthError::InvalidCredentials => ("invalid_credentials", "Invalid email or password"),
-            AuthError::TwoFactorRequired => ("two_factor_required", "Two-factor authentication required"),
+            AuthError::TwoFactorRequired => {
+                ("two_factor_required", "Two-factor authentication required")
+            }
             AuthError::NetworkError => ("network_error", "Network error occurred"),
             AuthError::Unknown(ref msg) => ("unknown", msg.as_str()),
         };
-        
+
         Self {
             error_type: error_type.to_string(),
             message: message.to_string(),
@@ -54,25 +56,19 @@ pub async fn get_stores_auth_status(
 // ===== Epic Games Commands =====
 
 #[tauri::command]
-pub async fn epic_start_auth(
-    auth_state: State<'_, AuthState>,
-) -> Result<(), String> {
+pub async fn epic_start_auth(auth_state: State<'_, AuthState>) -> Result<(), String> {
     let manager = auth_state.store_manager.lock().await;
     manager.epic().start_auth().await
 }
 
 #[tauri::command]
-pub async fn epic_is_authenticated(
-    auth_state: State<'_, AuthState>,
-) -> Result<bool, String> {
+pub async fn epic_is_authenticated(auth_state: State<'_, AuthState>) -> Result<bool, String> {
     let manager = auth_state.store_manager.lock().await;
     Ok(manager.epic().is_authenticated().await)
 }
 
 #[tauri::command]
-pub async fn epic_logout(
-    auth_state: State<'_, AuthState>,
-) -> Result<(), String> {
+pub async fn epic_logout(auth_state: State<'_, AuthState>) -> Result<(), String> {
     let manager = auth_state.store_manager.lock().await;
     manager.epic().logout().await
 }
@@ -80,11 +76,9 @@ pub async fn epic_logout(
 // ===== GOG Commands =====
 
 #[tauri::command]
-pub async fn gog_get_auth_url(
-    auth_state: State<'_, AuthState>,
-) -> Result<String, String> {
+pub async fn gog_get_auth_url(auth_state: State<'_, AuthState>) -> Result<String, String> {
     let manager = auth_state.store_manager.lock().await;
-    manager.gog().get_auth_url()
+    manager.gog().get_auth_url().await
 }
 
 #[tauri::command]
@@ -97,17 +91,13 @@ pub async fn gog_login_with_code(
 }
 
 #[tauri::command]
-pub async fn gog_is_authenticated(
-    auth_state: State<'_, AuthState>,
-) -> Result<bool, String> {
+pub async fn gog_is_authenticated(auth_state: State<'_, AuthState>) -> Result<bool, String> {
     let manager = auth_state.store_manager.lock().await;
     Ok(manager.gog().is_authenticated().await)
 }
 
 #[tauri::command]
-pub async fn gog_logout(
-    auth_state: State<'_, AuthState>,
-) -> Result<(), String> {
+pub async fn gog_logout(auth_state: State<'_, AuthState>) -> Result<(), String> {
     let manager = auth_state.store_manager.lock().await;
     manager.gog().logout().await
 }
@@ -121,7 +111,11 @@ pub async fn amazon_login(
     password: String,
 ) -> Result<(), AuthErrorResponse> {
     let manager = auth_state.store_manager.lock().await;
-    manager.amazon().login(&email, &password).await.map_err(AuthErrorResponse::from)
+    manager
+        .amazon()
+        .login(&email, &password)
+        .await
+        .map_err(AuthErrorResponse::from)
 }
 
 #[tauri::command]
@@ -132,21 +126,21 @@ pub async fn amazon_login_with_2fa(
     code: String,
 ) -> Result<(), AuthErrorResponse> {
     let manager = auth_state.store_manager.lock().await;
-    manager.amazon().login_with_2fa(&email, &password, &code).await.map_err(AuthErrorResponse::from)
+    manager
+        .amazon()
+        .login_with_2fa(&email, &password, &code)
+        .await
+        .map_err(AuthErrorResponse::from)
 }
 
 #[tauri::command]
-pub async fn amazon_is_authenticated(
-    auth_state: State<'_, AuthState>,
-) -> Result<bool, String> {
+pub async fn amazon_is_authenticated(auth_state: State<'_, AuthState>) -> Result<bool, String> {
     let manager = auth_state.store_manager.lock().await;
     Ok(manager.amazon().is_authenticated().await)
 }
 
 #[tauri::command]
-pub async fn amazon_logout(
-    auth_state: State<'_, AuthState>,
-) -> Result<(), String> {
+pub async fn amazon_logout(auth_state: State<'_, AuthState>) -> Result<(), String> {
     let manager = auth_state.store_manager.lock().await;
     manager.amazon().logout().await.map_err(|e| e.to_string())
 }

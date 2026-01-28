@@ -3,7 +3,7 @@
  *
  * Tests for the library view UI interactions:
  * - Game grid display
- * - Filter interactions (BottomFilters: tous, installés, Epic, GOG, etc.)
+ * - Filter interactions (TopFilters: tous, installés, Epic, GOG, etc.)
  * - Game card interactions (hover/click)
  */
 
@@ -108,7 +108,7 @@ describe("Library UI", () => {
 
   describe("Game Grid Display", () => {
     it("should display the library view with filters", async () => {
-      // BottomFilters displays French labels: "tous", "installés", etc.
+      // TopFilters displays French labels: "tous", "installés", etc.
       const bodyText = await $("body").getText();
       const hasFilters = bodyText.includes("tous") || bodyText.includes("installés");
       expect(hasFilters).toBe(true);
@@ -172,7 +172,7 @@ describe("Library UI", () => {
 
   describe("Filter Interactions", () => {
     it("should display filter buttons", async () => {
-      // BottomFilters uses French labels: tous, installés, Epic, GOG, etc.
+      // TopFilters uses French labels: tous, installés, Epic, GOG, etc.
       const bodyText = await $("body").getText();
 
       const hasAllFilter = bodyText.includes("tous");

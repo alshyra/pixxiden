@@ -22,8 +22,8 @@
       />
     </div>
 
-    <!-- Bottom Filters -->
-    <BottomFilters v-model="currentFilter" />
+    <!-- Top Filters -->
+    <TopFilters v-model="currentFilter" />
 
     <!-- Loading Overlay -->
     <Transition
@@ -80,12 +80,12 @@
           size="lg"
           :loading="syncing"
           :disabled="syncing"
-          @click="syncLibrary"
+          @click="openSettings"
         >
           <template #icon>
             <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': syncing }" />
           </template>
-          {{ syncing ? "Synchronisation..." : "Synchroniser les bibliothèques" }}
+          {{ "Connectez vos stores." }}
         </Button>
       </div>
     </Transition>
@@ -119,7 +119,7 @@ import { RefreshCw, Package } from "lucide-vue-next";
 import type { Game } from "@/types";
 import GameCarousel from "@/components/game/GameCarousel.vue";
 import { HeroBanner } from "@/components/game";
-import { BottomFilters } from "@/components/layout";
+import { TopFilters } from "@/components/layout";
 
 const router = useRouter();
 const libraryStore = useLibraryStore();
@@ -136,7 +136,7 @@ const selectedGame = ref<Game | null>(null);
 const playingGame = ref<Game | null>(null);
 const selectedMetadataGame = ref(null);
 
-// Filters - handled by BottomFilters component
+// Filters - handled by TopFilters component
 
 // Filter games based on current filter
 const filteredGames = computed(() => {

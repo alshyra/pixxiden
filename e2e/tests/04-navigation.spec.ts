@@ -116,11 +116,11 @@ describe("Navigation", () => {
     await injectMockGames();
 
     // Wait for the library view to fully render
-    // LibraryFullscreen uses .fullscreen-view class and BottomFilters with filter buttons
+    // LibraryFullscreen uses .fullscreen-view class and TopFilters with filter buttons
     await browser.waitUntil(
       async () => {
         const bodyText = await $("body").getText();
-        // BottomFilters shows French filter labels: "tous", "installés"
+        // TopFilters shows French filter labels: "tous", "installés"
         return bodyText.includes("tous") || bodyText.includes("installés");
       },
       { timeout: 5000, timeoutMsg: "Library view did not render after setup" },
@@ -135,7 +135,7 @@ describe("Navigation", () => {
       // Should be on root or library route
       expect(url.endsWith("/") || url.includes("library")).toBe(true);
 
-      // Verify we're on library by checking for BottomFilters content (French labels)
+      // Verify we're on library by checking for TopFilters content (French labels)
       const bodyText = await $("body").getText();
       const hasFilters = bodyText.includes("tous") || bodyText.includes("installés");
       console.log(`Has filter buttons: ${hasFilters}`);

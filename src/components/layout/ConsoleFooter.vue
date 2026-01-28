@@ -32,9 +32,7 @@ import { ControllerButton } from "@/components/ui";
 
 const { buttons, controllerType, isConnected } = useFooterControls();
 
-const statusText = computed(() => {
-  return isConnected.value ? "Connecté" : "Déconnecté";
-});
+const statusText = computed(() => isConnected.value ? "Connecté" : "Déconnecté");
 
 const controllerLabel = computed(() => {
   switch (controllerType.value) {

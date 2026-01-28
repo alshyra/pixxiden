@@ -12,29 +12,54 @@ mod system_updates;
 mod tests;
 
 use commands::{
-    get_game, get_games, get_store_status, get_game_config, install_game, launch_game, sync_games,
-    scan_gog_installed, uninstall_game,
-    close_splashscreen, get_system_info, get_disk_info, check_for_updates, shutdown_system, 
-    get_settings, save_settings, clear_game_cache, clear_all_cache, get_cache_stats,
-    get_api_keys, needs_setup, save_api_keys, skip_setup, test_api_keys,
-    update_game_custom_executable, force_close_game,
-    // System Updates
-    get_distro, is_sudoers_configured, configure_sudoers, check_system_updates,
-    install_system_updates, requires_system_reboot, reboot_system,
-    AppState,
     auth::{
-        AuthState,
-        get_stores_auth_status,
-        epic_start_auth, epic_is_authenticated, epic_logout,
-        gog_get_auth_url, gog_login_with_code, gog_is_authenticated, gog_logout,
-        amazon_login, amazon_login_with_2fa, amazon_is_authenticated, amazon_logout,
+        amazon_is_authenticated, amazon_login, amazon_login_with_2fa, amazon_logout,
+        epic_is_authenticated, epic_logout, epic_start_auth, get_stores_auth_status,
+        gog_get_auth_url, gog_is_authenticated, gog_login_with_code, gog_logout, AuthState,
     },
+    check_for_updates,
+    check_system_updates,
+    clear_all_cache,
+    clear_game_cache,
+    close_splashscreen,
+    configure_sudoers,
+    force_close_game,
+    get_api_keys,
+    get_cache_stats,
+    get_disk_info,
+    // System Updates
+    get_distro,
+    get_game,
+    get_game_config,
+    get_games,
+    get_settings,
+    get_store_status,
+    get_system_info,
+    install_game,
+    install_system_updates,
+    is_sudoers_configured,
+    launch_game,
+    needs_setup,
+    reboot_system,
+    requires_system_reboot,
+    save_api_keys,
+    save_settings,
+    scan_gog_installed,
+    shutdown_system,
+    skip_setup,
+    sync_games,
+    test_api_keys,
+    uninstall_game,
+    update_game_custom_executable,
+    AppState,
 };
 use database::Database;
 use gamepad::GamepadMonitor;
 use services::GameEnricher;
-use store::{gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter, steam::SteamAdapter};
 use std::sync::Arc;
+use store::{
+    gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter, steam::SteamAdapter,
+};
 use tauri::{Manager, Window};
 use tokio::sync::Mutex;
 
@@ -44,7 +69,7 @@ pub fn run() {
     if let Err(e) = dotenvy::dotenv() {
         log::warn!("Failed to load .env file: {}", e);
     }
-    
+
     tauri::Builder::default()
         .setup(|app| {
             // Initialize logging
@@ -59,14 +84,19 @@ pub fn run() {
             // Initialize database and adapters in a blocking context
             let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
             let db = rt.block_on(async {
-                Database::new().await.expect("Failed to initialize database")
+                Database::new()
+                    .await
+                    .expect("Failed to initialize database")
             });
-            
+
             // Initialize game enricher
             let enricher = rt.block_on(async {
-                let enricher = GameEnricher::new(Default::default())
-                    .expect("Failed to create game enricher");
-                enricher.init().await.expect("Failed to initialize game enricher");
+                let enricher =
+                    GameEnricher::new(Default::default()).expect("Failed to create game enricher");
+                enricher
+                    .init()
+                    .await
+                    .expect("Failed to initialize game enricher");
                 enricher
             });
 
@@ -87,11 +117,11 @@ pub fn run() {
             };
 
             app.manage(state);
-            
+
             // Initialize auth state
-            let auth_state = AuthState::new();
+            let auth_state = AuthState::new(app.handle().clone());
             app.manage(auth_state);
-            
+
             // Initialize gamepad monitor
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
             app.manage(gamepad_monitor);
@@ -158,7 +188,6 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-
 /// Start gamepad monitoring for overlay toggle
 #[tauri::command]
 fn start_gamepad_monitoring(
@@ -169,7 +198,7 @@ fn start_gamepad_monitoring(
         log::info!("Gamepad monitor already running");
         return Ok(());
     }
-    
+
     monitor.start(window);
     log::info!("Gamepad monitoring started");
     Ok(())
@@ -177,9 +206,7 @@ fn start_gamepad_monitoring(
 
 /// Stop gamepad monitoring
 #[tauri::command]
-fn stop_gamepad_monitoring(
-    monitor: tauri::State<'_, Arc<GamepadMonitor>>,
-) -> Result<(), String> {
+fn stop_gamepad_monitoring(monitor: tauri::State<'_, Arc<GamepadMonitor>>) -> Result<(), String> {
     monitor.stop();
     log::info!("Gamepad monitoring stopped");
     Ok(())

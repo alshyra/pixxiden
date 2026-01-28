@@ -1,6 +1,6 @@
+use super::{AmazonAuth, EpicAuth, GOGAuthService};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::{EpicAuth, GOGAuthService, AmazonAuth};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
@@ -25,9 +25,9 @@ impl Store {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ConfigSource {
-    Pixxiden,  // Config created by PixiDen
-    Heroic,    // Existing config from Heroic
-    None,      // No config
+    Pixxiden, // Config created by PixiDen
+    Heroic,   // Existing config from Heroic
+    None,     // No config
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -44,11 +44,11 @@ pub struct StoreManager {
 }
 
 impl StoreManager {
-    pub fn new() -> Self {
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
         Self {
-            epic_auth: EpicAuth::new(),
-            gog_auth: GOGAuthService::new(),
-            amazon_auth: AmazonAuth::new(),
+            epic_auth: EpicAuth::new(app_handle.clone()),
+            gog_auth: GOGAuthService::new(app_handle.clone()),
+            amazon_auth: AmazonAuth::new(app_handle.clone()),
         }
     }
 
@@ -68,7 +68,7 @@ impl StoreManager {
                     None
                 },
                 config_source: if epic_authenticated {
-                    ConfigSource::Heroic  // Legendary uses same path as Heroic
+                    ConfigSource::Heroic // Legendary uses same path as Heroic
                 } else {
                     ConfigSource::None
                 },
@@ -81,7 +81,7 @@ impl StoreManager {
             Store::GOG.as_str().to_string(),
             AuthStatus {
                 authenticated: gog_authenticated,
-                username: None,  // GOG auth doesn't expose username easily
+                username: None, // GOG auth doesn't expose username easily
                 config_source: if gog_authenticated {
                     ConfigSource::Heroic
                 } else {
@@ -102,7 +102,7 @@ impl StoreManager {
                     None
                 },
                 config_source: if amazon_authenticated {
-                    ConfigSource::Heroic  // Nile uses same path as Heroic
+                    ConfigSource::Heroic // Nile uses same path as Heroic
                 } else {
                     ConfigSource::None
                 },
@@ -152,27 +152,5 @@ impl StoreManager {
     /// Get Amazon auth service reference
     pub fn amazon(&self) -> &AmazonAuth {
         &self.amazon_auth
-    }
-}
-
-impl Default for StoreManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_store_manager_initialization() {
-        let manager = StoreManager::new();
-        let status = manager.get_all_auth_status().await;
-        
-        assert!(status.contains_key("epic"));
-        assert!(status.contains_key("gog"));
-        assert!(status.contains_key("amazon"));
-        assert!(status.contains_key("steam"));
     }
 }

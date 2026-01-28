@@ -17,35 +17,41 @@
         v-for="(store, index) in stores"
         :key="store.id"
         variant="glass"
-        class="flex items-center justify-between !p-5"
+        class="!p-5"
         :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === index }"
         :data-focusable="index"
+        noPadding
       >
-        <div class="flex items-center gap-4">
-          <!-- Store Icon -->
-          <div
-            class="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shadow-[0_0_15px_rgba(94,92,230,0.4)]"
-            :class="storeIconClass(store.id)"
+        <!-- Wrapper flex horizontal avec space-between -->
+        <div class="flex items-center justify-between w-full">
+          <!-- Left side: Icon + Info -->
+          <div class="flex items-center gap-4">
+            <!-- Store Icon -->
+            <div
+              class="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shadow-[0_0_15px_rgba(94,92,230,0.4)]"
+              :class="storeIconClass(store.id)"
+            >
+              {{ store.name.substring(0, 2).toUpperCase() }}
+            </div>
+
+            <!-- Store Info -->
+            <div>
+              <h3 class="text-base font-bold text-white">{{ store.name }}</h3>
+              <p class="text-xs font-semibold mt-0.5" :class="storeStatusClass(store)">
+                {{ storeStatusText(store) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Right side: Button -->
+          <Button
+            :variant="store.authenticated ? 'outline' : 'primary'"
+            size="sm"
+            @click="toggleConnection(store)"
           >
-            {{ store.name.substring(0, 2).toUpperCase() }}
-          </div>
-
-          <!-- Store Info -->
-          <div>
-            <h3 class="text-base font-bold text-white">{{ store.name }}</h3>
-            <p class="text-xs font-semibold mt-0.5" :class="storeStatusClass(store)">
-              {{ storeStatusText(store) }}
-            </p>
-          </div>
+            {{ store.authenticated ? "DÉCONNEXION" : "CONNEXION" }}
+          </Button>
         </div>
-
-        <Button
-          :variant="store.authenticated ? 'outline' : 'primary'"
-          size="sm"
-          @click="toggleConnection(store)"
-        >
-          {{ store.authenticated ? "DÉCONNEXION" : "CONNEXION" }}
-        </Button>
       </Card>
 
       <!-- Info message -->
@@ -60,10 +66,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted } from "vue";
 import { Card, Button } from "@/components/ui";
 import { Info } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
+import { useAuthStore } from "@/stores/auth";
 
 export interface StoreAccount {
   id: string;
@@ -79,12 +86,32 @@ const props = defineProps<{
 
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+const authStore = useAuthStore();
 
 // Toggle store connection
 function toggleConnection(store: StoreAccount) {
   console.log("Toggle connection for:", store.name);
   // TODO: Implement store connection/disconnection logic
   // This will be implemented when store authentication is ready
+  switch(store.id) {
+    case "steam":
+      // authStore.loginSteam();
+      // Trigger Steam connection/disconnection
+      break;
+    case "epic":
+      // Trigger Epic Games connection/disconnection
+      authStore.loginEpic();
+      break;
+    case "gog":
+      authStore.getGOGAuthUrl();
+      // Trigger GOG connection/disconnection
+      break;
+    case "amazon":
+      // authStore.loginAmazon();
+      break;
+    default:
+      console.warn("Unknown store ID:", store.id);
+  }
 }
 
 function storeIconClass(storeId: string): string {
@@ -132,9 +159,5 @@ const confirmHandler = () => {
 onMounted(() => {
   onGamepad("navigate", navigateHandler);
   onGamepad("confirm", confirmHandler);
-});
-
-onUnmounted(() => {
-  // Cleanup is handled automatically by useGamepad
 });
 </script>

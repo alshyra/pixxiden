@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::process::Command;
+use tauri_plugin_shell::ShellExt;
 use tokio::fs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -30,15 +30,19 @@ struct NileUser {
 
 pub struct AmazonAuth {
     config_path: PathBuf,
+    app_handle: tauri::AppHandle,
 }
 
 impl AmazonAuth {
-    pub fn new() -> Self {
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
         let mut config_path = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
         config_path.push("nile");
         config_path.push("user.json");
-        
-        Self { config_path }
+
+        Self {
+            config_path,
+            app_handle,
+        }
     }
 
     /// Check if user is authenticated (user.json exists and is valid)
@@ -48,9 +52,7 @@ impl AmazonAuth {
         }
 
         match fs::read_to_string(&self.config_path).await {
-            Ok(content) => {
-                serde_json::from_str::<NileUser>(&content).is_ok()
-            }
+            Ok(content) => serde_json::from_str::<NileUser>(&content).is_ok(),
             Err(_) => false,
         }
     }
@@ -59,25 +61,33 @@ impl AmazonAuth {
     pub async fn login(&self, email: &str, password: &str) -> Result<(), AuthError> {
         // Ensure parent directory exists
         if let Some(parent) = self.config_path.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .map_err(|e| AuthError::Unknown(format!("Failed to create config directory: {}", e)))?;
+            fs::create_dir_all(parent).await.map_err(|e| {
+                AuthError::Unknown(format!("Failed to create config directory: {}", e))
+            })?;
         }
 
-        let output = Command::new("nile")
+        let output = self
+            .app_handle
+            .shell()
+            .sidecar("nile")
+            .map_err(|e| AuthError::Unknown(format!("Failed to get nile sidecar: {}", e)))?
             .arg("auth")
             .arg("--email")
             .arg(email)
             .arg("--password")
             .arg(password)
             .output()
-            .map_err(|e| AuthError::NetworkError)?;
+            .await
+            .map_err(|_| AuthError::NetworkError)?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let error_msg = stderr.to_lowercase();
 
-            return if error_msg.contains("2fa") || error_msg.contains("two-factor") || error_msg.contains("two factor") {
+            return if error_msg.contains("2fa")
+                || error_msg.contains("two-factor")
+                || error_msg.contains("two factor")
+            {
                 Err(AuthError::TwoFactorRequired)
             } else if error_msg.contains("invalid") || error_msg.contains("incorrect") {
                 Err(AuthError::InvalidCredentials)
@@ -90,22 +100,33 @@ impl AmazonAuth {
 
         // Verify authentication succeeded
         if !self.is_authenticated().await {
-            return Err(AuthError::Unknown("Authentication completed but config file not found".to_string()));
+            return Err(AuthError::Unknown(
+                "Authentication completed but config file not found".to_string(),
+            ));
         }
 
         Ok(())
     }
 
     /// Login with email, password, and 2FA code
-    pub async fn login_with_2fa(&self, email: &str, password: &str, code: &str) -> Result<(), AuthError> {
+    pub async fn login_with_2fa(
+        &self,
+        email: &str,
+        password: &str,
+        code: &str,
+    ) -> Result<(), AuthError> {
         // Ensure parent directory exists
         if let Some(parent) = self.config_path.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .map_err(|e| AuthError::Unknown(format!("Failed to create config directory: {}", e)))?;
+            fs::create_dir_all(parent).await.map_err(|e| {
+                AuthError::Unknown(format!("Failed to create config directory: {}", e))
+            })?;
         }
 
-        let output = Command::new("nile")
+        let output = self
+            .app_handle
+            .shell()
+            .sidecar("nile")
+            .map_err(|e| AuthError::Unknown(format!("Failed to get nile sidecar: {}", e)))?
             .arg("auth")
             .arg("--email")
             .arg(email)
@@ -114,6 +135,7 @@ impl AmazonAuth {
             .arg("--2fa")
             .arg(code)
             .output()
+            .await
             .map_err(|_| AuthError::NetworkError)?;
 
         if !output.status.success() {
@@ -131,7 +153,9 @@ impl AmazonAuth {
 
         // Verify authentication succeeded
         if !self.is_authenticated().await {
-            return Err(AuthError::Unknown("Authentication completed but config file not found".to_string()));
+            return Err(AuthError::Unknown(
+                "Authentication completed but config file not found".to_string(),
+            ));
         }
 
         Ok(())
@@ -156,16 +180,5 @@ impl AmazonAuth {
                 .map_err(|e| format!("Failed to logout: {}", e))?;
         }
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_amazon_auth_initialization() {
-        let auth = AmazonAuth::new();
-        assert!(auth.config_path.to_str().unwrap().contains("nile"));
     }
 }

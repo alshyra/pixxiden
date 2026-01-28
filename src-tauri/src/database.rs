@@ -47,24 +47,24 @@ impl Database {
         let data_dir = dirs::data_dir()
             .ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?
             .join("Pixxiden");
-        
+
         std::fs::create_dir_all(&data_dir)?;
         let db_path = data_dir.join("Pixxiden.db");
-        
+
         let database_url = format!("sqlite:{}?mode=rwc", db_path.display());
-        
+
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
             .connect(&database_url)
             .await?;
-        
+
         let db = Self { pool };
         db.run_migrations().await?;
-        
+
         log::info!("Database initialized at {:?}", db_path);
         Ok(db)
     }
-    
+
     async fn run_migrations(&self) -> anyhow::Result<()> {
         // Create games table if not exists
         sqlx::query(
@@ -95,23 +95,23 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
-        
+
         // Migration: Add custom_executable column if it doesn't exist
         // SQLite doesn't have IF NOT EXISTS for ALTER TABLE, so we check first
         let has_custom_executable: bool = sqlx::query_scalar(
-            "SELECT COUNT(*) > 0 FROM pragma_table_info('games') WHERE name = 'custom_executable'"
+            "SELECT COUNT(*) > 0 FROM pragma_table_info('games') WHERE name = 'custom_executable'",
         )
         .fetch_one(&self.pool)
         .await
         .unwrap_or(false);
-        
+
         if !has_custom_executable {
             log::info!("Adding custom_executable column to games table...");
             sqlx::query("ALTER TABLE games ADD COLUMN custom_executable TEXT")
                 .execute(&self.pool)
                 .await?;
         }
-        
+
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS play_sessions (
@@ -126,10 +126,10 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     pub async fn get_all_games(&self) -> anyhow::Result<Vec<Game>> {
         let rows = sqlx::query(
             r#"
@@ -143,7 +143,7 @@ impl Database {
         )
         .fetch_all(&self.pool)
         .await?;
-        
+
         let games: Vec<Game> = rows
             .iter()
             .map(|row| Game {
@@ -175,10 +175,10 @@ impl Database {
                     .with_timezone(&Utc),
             })
             .collect();
-        
+
         Ok(games)
     }
-    
+
     pub async fn get_game(&self, id: &str) -> anyhow::Result<Option<Game>> {
         let row = sqlx::query(
             r#"
@@ -192,7 +192,7 @@ impl Database {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        
+
         Ok(row.map(|row| Game {
             id: row.get("id"),
             title: row.get("title"),
@@ -222,7 +222,7 @@ impl Database {
                 .with_timezone(&Utc),
         }))
     }
-    
+
     pub async fn upsert_game(&self, game: &Game) -> anyhow::Result<()> {
         sqlx::query(
             r#"
@@ -267,11 +267,16 @@ impl Database {
         .bind(game.updated_at.to_rfc3339())
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
-    pub async fn set_installed(&self, id: &str, installed: bool, path: Option<&str>) -> anyhow::Result<()> {
+
+    pub async fn set_installed(
+        &self,
+        id: &str,
+        installed: bool,
+        path: Option<&str>,
+    ) -> anyhow::Result<()> {
         sqlx::query(
             r#"
             UPDATE games SET installed = ?, install_path = ?, updated_at = ?
@@ -284,10 +289,10 @@ impl Database {
         .bind(id)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     pub async fn update_play_time(&self, id: &str, minutes: i64) -> anyhow::Result<()> {
         sqlx::query(
             r#"
@@ -304,11 +309,15 @@ impl Database {
         .bind(id)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
-    pub async fn update_custom_executable(&self, id: &str, custom_executable: Option<&str>) -> anyhow::Result<()> {
+
+    pub async fn update_custom_executable(
+        &self,
+        id: &str,
+        custom_executable: Option<&str>,
+    ) -> anyhow::Result<()> {
         sqlx::query(
             r#"
             UPDATE games SET custom_executable = ?, updated_at = ?
@@ -320,7 +329,7 @@ impl Database {
         .bind(id)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
 }

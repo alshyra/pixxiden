@@ -1,5 +1,5 @@
-pub mod legendary;
 pub mod gogdl;
+pub mod legendary;
 pub mod nile;
 pub mod steam;
 

@@ -24,7 +24,7 @@ pub struct EnrichedGame {
     pub install_path: Option<String>,
     pub wine_prefix: Option<String>,
     pub wine_version: Option<String>,
-    
+
     // === Metadata (from IGDB) ===
     pub description: Option<String>,
     pub metacritic_score: Option<u8>,
@@ -34,41 +34,41 @@ pub struct EnrichedGame {
     pub genres: Vec<String>,
     pub release_date: Option<String>,
     pub summary: Option<String>,
-    
+
     // === Playtime (from HowLongToBeat) ===
-    pub hltb_main: Option<u32>,        // hours for main story
-    pub hltb_main_extra: Option<u32>,  // hours for main + extras
-    pub hltb_complete: Option<u32>,    // hours for 100% completion
-    pub hltb_speedrun: Option<u32>,    // hours for speedrun (any%)
-    
+    pub hltb_main: Option<u32>,       // hours for main story
+    pub hltb_main_extra: Option<u32>, // hours for main + extras
+    pub hltb_complete: Option<u32>,   // hours for 100% completion
+    pub hltb_speedrun: Option<u32>,   // hours for speedrun (any%)
+
     // === Compatibility (from ProtonDB) ===
-    pub proton_tier: Option<String>,          // "platinum", "gold", "silver", "bronze", "borked"
-    pub proton_confidence: Option<String>,    // "good", "adequate", "low"
+    pub proton_tier: Option<String>, // "platinum", "gold", "silver", "bronze", "borked"
+    pub proton_confidence: Option<String>, // "good", "adequate", "low"
     pub proton_trending_tier: Option<String>, // trending tier
-    pub steam_app_id: Option<u32>,            // Steam app ID for ProtonDB lookup
-    
+    pub steam_app_id: Option<u32>,   // Steam app ID for ProtonDB lookup
+
     // === Achievements ===
     pub achievements_total: Option<u32>,
     pub achievements_unlocked: Option<u32>,
-    
+
     // === Assets (local file paths) ===
     pub hero_path: Option<String>,
     pub grid_path: Option<String>,
     pub logo_path: Option<String>,
     pub icon_path: Option<String>,
-    
+
     // === Legacy URL assets (for backwards compatibility) ===
     pub cover_url: Option<String>,
     pub background_url: Option<String>,
-    
+
     // === User data ===
     pub play_time_minutes: i64,
     pub last_played: Option<DateTime<Utc>>,
-    
+
     // === Timestamps ===
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    
+
     // === Cache metadata ===
     pub enriched_at: Option<DateTime<Utc>>,
 }
@@ -78,7 +78,7 @@ pub struct EnrichedGame {
 #[serde(rename_all = "camelCase")]
 pub struct GameMetadata {
     pub game_id: String,
-    
+
     // IGDB data
     pub igdb_id: Option<u64>,
     pub description: Option<String>,
@@ -89,30 +89,30 @@ pub struct GameMetadata {
     pub publisher: Option<String>,
     pub genres: Vec<String>,
     pub release_date: Option<String>,
-    
+
     // HowLongToBeat data
     pub hltb_id: Option<u64>,
     pub hltb_main: Option<u32>,
     pub hltb_main_extra: Option<u32>,
     pub hltb_complete: Option<u32>,
     pub hltb_speedrun: Option<u32>,
-    
+
     // ProtonDB data
     pub steam_app_id: Option<u32>,
     pub proton_tier: Option<String>,
     pub proton_confidence: Option<String>,
     pub proton_trending_tier: Option<String>,
-    
+
     // Achievements
     pub achievements_total: Option<u32>,
     pub achievements_unlocked: Option<u32>,
-    
+
     // Asset paths (relative to cache dir)
     pub hero_path: Option<String>,
     pub grid_path: Option<String>,
     pub logo_path: Option<String>,
     pub icon_path: Option<String>,
-    
+
     // Timestamps
     pub fetched_at: DateTime<Utc>,
     pub last_updated: DateTime<Utc>,
@@ -142,7 +142,7 @@ impl ProtonTier {
             _ => None,
         }
     }
-    
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Platinum => "platinum",
@@ -208,10 +208,10 @@ pub struct SteamGridDBGame {
 pub struct HLTBResult {
     pub game_id: u64,
     pub game_name: String,
-    pub main_story: Option<f32>,      // hours
-    pub main_extra: Option<f32>,      // hours
-    pub completionist: Option<f32>,   // hours
-    pub speedrun_any: Option<f32>,    // hours
+    pub main_story: Option<f32>,    // hours
+    pub main_extra: Option<f32>,    // hours
+    pub completionist: Option<f32>, // hours
+    pub speedrun_any: Option<f32>,  // hours
 }
 
 /// ProtonDB compatibility report
@@ -246,7 +246,7 @@ pub struct SteamAchievement {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_proton_tier_from_str() {
         assert_eq!(ProtonTier::from_str("platinum"), Some(ProtonTier::Platinum));
@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(ProtonTier::from_str("Silver"), Some(ProtonTier::Silver));
         assert_eq!(ProtonTier::from_str("unknown"), None);
     }
-    
+
     #[test]
     fn test_proton_tier_as_str() {
         assert_eq!(ProtonTier::Platinum.as_str(), "platinum");

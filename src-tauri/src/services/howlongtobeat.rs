@@ -38,10 +38,10 @@ pub struct HLTBGame {
 pub struct HLTBDurations {
     pub game_id: Option<u64>,
     pub game_name: Option<String>,
-    pub main_story: Option<u32>,        // hours
-    pub main_extra: Option<u32>,        // hours
-    pub completionist: Option<u32>,     // hours
-    pub speedrun: Option<u32>,          // hours (if available)
+    pub main_story: Option<u32>,    // hours
+    pub main_extra: Option<u32>,    // hours
+    pub completionist: Option<u32>, // hours
+    pub speedrun: Option<u32>,      // hours (if available)
 }
 
 /// Search request payload (mimics the website's API)
@@ -68,6 +68,7 @@ struct HLTBSearchOptions {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 struct HLTBGameOptions {
     userId: u32,
     platform: String,
@@ -99,12 +100,14 @@ struct HLTBRangeYear {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 struct HLTBUserOptions {
     sortCategory: String,
 }
 
 /// Search response
 #[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
 struct HLTBSearchResponse {
     color: Option<String>,
     title: Option<String>,
@@ -157,10 +160,10 @@ impl HowLongToBeatService {
             .timeout(REQUEST_TIMEOUT)
             .build()
             .expect("Failed to create HTTP client");
-        
+
         Self { client }
     }
-    
+
     /// Search for a game by name
     pub async fn search(&self, name: &str) -> Result<Vec<HLTBGame>> {
         let request = HLTBSearchRequest {
@@ -174,7 +177,10 @@ impl HowLongToBeatService {
                     platform: "".to_string(),
                     sortCategory: "popular".to_string(),
                     rangeCategory: "main".to_string(),
-                    rangeTime: HLTBRangeTime { min: None, max: None },
+                    rangeTime: HLTBRangeTime {
+                        min: None,
+                        max: None,
+                    },
                     gameplay: HLTBGameplay {
                         perspective: "".to_string(),
                         flow: "".to_string(),
@@ -194,34 +200,42 @@ impl HowLongToBeatService {
                 randomizer: 0,
             },
         };
-        
-        let response = self.client
+
+        let response = self
+            .client
             .post(HLTB_SEARCH_URL)
-            .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+            )
             .header("Referer", HLTB_BASE_URL)
             .header("Content-Type", "application/json")
             .json(&request)
             .send()
             .await
             .context("Failed to send HLTB search request")?;
-        
+
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             log::warn!("HLTB search failed ({}): {}", status, body);
             anyhow::bail!("HLTB search failed with status: {}", status);
         }
-        
+
         let result: HLTBSearchResponse = response
             .json()
             .await
             .context("Failed to parse HLTB response")?;
-        
-        let games: Vec<HLTBGame> = result.data.into_iter()
+
+        let games: Vec<HLTBGame> = result
+            .data
+            .into_iter()
             .map(|g| HLTBGame {
                 game_id: g.game_id,
                 game_name: g.game_name,
-                game_image: g.game_image.map(|img| format!("{}/games/{}", HLTB_BASE_URL, img)),
+                game_image: g
+                    .game_image
+                    .map(|img| format!("{}/games/{}", HLTB_BASE_URL, img)),
                 comp_main: g.comp_main.map(|h| h as f32 / 3600.0),
                 comp_plus: g.comp_plus.map(|h| h as f32 / 3600.0),
                 comp_100: g.comp_100.map(|h| h as f32 / 3600.0),
@@ -231,33 +245,34 @@ impl HowLongToBeatService {
                 comp_100_count: g.comp_100_count,
             })
             .collect();
-        
+
         Ok(games)
     }
-    
+
     /// Search for a game and return the best match
     pub async fn search_one(&self, name: &str) -> Result<Option<HLTBGame>> {
         let games = self.search(name).await?;
-        
+
         // Find best match by name similarity
         let search_lower = name.to_lowercase();
-        
-        let best = games.into_iter()
+
+        let best = games
+            .into_iter()
             .find(|g| {
                 let game_lower = g.game_name.to_lowercase();
-                game_lower == search_lower || 
-                game_lower.contains(&search_lower) ||
-                search_lower.contains(&game_lower)
+                game_lower == search_lower
+                    || game_lower.contains(&search_lower)
+                    || search_lower.contains(&game_lower)
             })
             .or_else(|| None);
-        
+
         Ok(best)
     }
-    
+
     /// Get durations for a game by name
     pub async fn get_durations(&self, name: &str) -> Result<Option<HLTBDurations>> {
         let game = self.search_one(name).await?;
-        
+
         Ok(game.map(|g| HLTBDurations {
             game_id: Some(g.game_id),
             game_name: Some(g.game_name),
@@ -267,24 +282,25 @@ impl HowLongToBeatService {
             speedrun: None, // HLTB doesn't provide speedrun in search, would need separate lookup
         }))
     }
-    
+
     /// Parse hours from string (handles various formats)
     fn parse_hours(text: &str) -> Option<f32> {
-        let cleaned = text.trim()
+        let cleaned = text
+            .trim()
             .replace("½", ".5")
             .replace("¼", ".25")
             .replace("¾", ".75");
-        
+
         // Handle "XX Hours" format
         if let Some(hours_str) = cleaned.strip_suffix(" Hours") {
             return hours_str.trim().parse().ok();
         }
-        
+
         // Handle "XX Mins" format
         if let Some(mins_str) = cleaned.strip_suffix(" Mins") {
             return mins_str.trim().parse::<f32>().ok().map(|m| m / 60.0);
         }
-        
+
         // Handle plain number
         cleaned.parse().ok()
     }
@@ -299,7 +315,7 @@ impl Default for HowLongToBeatService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_parse_hours() {
         assert_eq!(HowLongToBeatService::parse_hours("10 Hours"), Some(10.0));
@@ -308,7 +324,7 @@ mod tests {
         assert_eq!(HowLongToBeatService::parse_hours("10½ Hours"), Some(10.5));
         assert_eq!(HowLongToBeatService::parse_hours("invalid"), None);
     }
-    
+
     #[test]
     fn test_hltb_durations_default() {
         let durations = HLTBDurations::default();
@@ -322,72 +338,84 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    
+
     #[tokio::test]
     #[ignore = "Requires network access, may be rate limited"]
     async fn test_search_success() {
         let service = HowLongToBeatService::new();
-        
+
         let result = service.search("Hollow Knight").await;
         assert!(result.is_ok(), "Search failed: {:?}", result.err());
-        
+
         let games = result.unwrap();
         assert!(!games.is_empty(), "No games found");
-        
+
         let first = &games[0];
         println!("Found: {} (ID: {})", first.game_name, first.game_id);
         println!("  Main: {:?}h", first.comp_main);
         println!("  Main+Extra: {:?}h", first.comp_plus);
         println!("  100%: {:?}h", first.comp_100);
     }
-    
+
     #[tokio::test]
     #[ignore = "Requires network access, may be rate limited"]
     async fn test_search_one() {
         let service = HowLongToBeatService::new();
-        
+
         let result = service.search_one("Hollow Knight").await;
         assert!(result.is_ok(), "Search failed: {:?}", result.err());
-        
+
         let game = result.unwrap();
         assert!(game.is_some(), "Game not found");
-        
+
         let game = game.unwrap();
         assert!(game.game_name.to_lowercase().contains("hollow knight"));
     }
-    
+
     #[tokio::test]
     #[ignore = "Requires network access, may be rate limited"]
     async fn test_get_durations() {
         let service = HowLongToBeatService::new();
-        
+
         let result = service.get_durations("Hollow Knight").await;
         assert!(result.is_ok(), "Get durations failed: {:?}", result.err());
-        
+
         let durations = result.unwrap();
         assert!(durations.is_some(), "Durations not found");
-        
+
         let durations = durations.unwrap();
         println!("Durations for {:?}:", durations.game_name);
         println!("  Main story: {:?}h", durations.main_story);
         println!("  Main + extras: {:?}h", durations.main_extra);
         println!("  Completionist: {:?}h", durations.completionist);
-        
+
         // Hollow Knight typically has ~25h main story
         if let Some(main) = durations.main_story {
-            assert!(main > 10 && main < 100, "Unexpected main story duration: {}", main);
+            assert!(
+                main > 10 && main < 100,
+                "Unexpected main story duration: {}",
+                main
+            );
         }
     }
-    
+
     #[tokio::test]
     #[ignore = "Requires network access, may be rate limited"]
     async fn test_search_not_found() {
         let service = HowLongToBeatService::new();
-        
-        let result = service.search("ThisGameDefinitelyDoesNotExist12345XYZ").await;
+
+        let result = service
+            .search("ThisGameDefinitelyDoesNotExist12345XYZ")
+            .await;
         assert!(result.is_ok());
-        
+
         let games = result.unwrap();
-        assert!(games.is_empty() || !games[0].game_name.to_lowercase().contains("thisgamedefinitely"));
+        assert!(
+            games.is_empty()
+                || !games[0]
+                    .game_name
+                    .to_lowercase()
+                    .contains("thisgamedefinitely")
+        );
     }
 }

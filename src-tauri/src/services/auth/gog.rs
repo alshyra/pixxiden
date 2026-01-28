@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::process::Command;
+use tauri_plugin_shell::ShellExt;
 use tokio::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,16 +14,20 @@ struct GOGAuth {
 
 pub struct GOGAuthService {
     config_path: PathBuf,
+    app_handle: tauri::AppHandle,
 }
 
 impl GOGAuthService {
-    pub fn new() -> Self {
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
         let mut config_path = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
         config_path.push("heroic");
         config_path.push("gog_store");
         config_path.push("auth.json");
-        
-        Self { config_path }
+
+        Self {
+            config_path,
+            app_handle,
+        }
     }
 
     /// Check if user is authenticated (auth.json exists and is valid)
@@ -45,11 +49,16 @@ impl GOGAuthService {
     }
 
     /// Get authentication URL for GOG login
-    pub fn get_auth_url(&self) -> Result<String, String> {
-        let output = Command::new("gogdl")
+    pub async fn get_auth_url(&self) -> Result<String, String> {
+        let output = self
+            .app_handle
+            .shell()
+            .sidecar("gogdl")
+            .map_err(|e| format!("Failed to get gogdl sidecar: {}", e))?
             .arg("auth")
             .arg("--login-url")
             .output()
+            .await
             .map_err(|e| format!("Failed to get GOG auth URL: {}", e))?;
 
         if !output.status.success() {
@@ -74,11 +83,16 @@ impl GOGAuthService {
                 .map_err(|e| format!("Failed to create config directory: {}", e))?;
         }
 
-        let output = Command::new("gogdl")
+        let output = self
+            .app_handle
+            .shell()
+            .sidecar("gogdl")
+            .map_err(|e| format!("Failed to get gogdl sidecar: {}", e))?
             .arg("auth")
             .arg("--code")
             .arg(code)
             .output()
+            .await
             .map_err(|e| format!("Failed to authenticate with GOG: {}", e))?;
 
         if !output.status.success() {
@@ -102,17 +116,5 @@ impl GOGAuthService {
                 .map_err(|e| format!("Failed to logout: {}", e))?;
         }
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_gog_auth_initialization() {
-        let auth = GOGAuthService::new();
-        assert!(auth.config_path.to_str().unwrap().contains("heroic"));
-        assert!(auth.config_path.to_str().unwrap().contains("gog_store"));
     }
 }

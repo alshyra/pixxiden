@@ -23,6 +23,13 @@
   </div>
 </template>
 <script setup lang="ts">
-defineProps<{ password: string; showPassword: boolean; error: string | null }>();
-defineEmits<["update:password", "update:showPassword", "validate"]>();
+import { ref } from 'vue';
+
+const props = defineProps<{ password: string; showPassword: boolean; error: string | null }>();
+const { password } = ref(props);
+defineEmits<{
+  "update:password": [value: string];
+  "update:showPassword": [value: boolean];
+  validate: [];
+}>();
 </script>

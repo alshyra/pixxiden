@@ -56,11 +56,11 @@ describe("Splash Screen", () => {
   });
 
   it("should have rendered the main app content", async () => {
-    // Wait for main content to be visible - LibraryFullscreen uses BottomFilters
+    // Wait for main content to be visible - LibraryFullscreen uses TopFilters
     await browser.waitUntil(
       async () => {
         const bodyText = await $("body").getText();
-        // BottomFilters component shows "tous" filter (French for "all")
+        // TopFilters component shows "tous" filter (French for "all")
         return bodyText.includes("tous") || bodyText.includes("installés");
       },
       { timeout: 1000, timeoutMsg: "Main app content not rendered" },
