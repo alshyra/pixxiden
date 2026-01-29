@@ -5,7 +5,6 @@
     <!-- Hero Banner -->
     <HeroBanner
       :game="selectedGame"
-      :metadata="selectedMetadataGame"
       @open-details="openGameDetails(selectedGame)"
       class="transition-all duration-600"
     />
@@ -120,9 +119,11 @@ import type { Game } from "@/types";
 import GameCarousel from "@/components/game/GameCarousel.vue";
 import { HeroBanner } from "@/components/game";
 import { TopFilters } from "@/components/layout";
+import { storeToRefs } from "pinia";
 
 const router = useRouter();
 const libraryStore = useLibraryStore();
+const { games } = storeToRefs(libraryStore)
 const { on: onGamepad } = useGamepad();
 
 // Carousel ref for programmatic scroll
@@ -134,36 +135,24 @@ const syncing = ref(false);
 const currentFilter = ref("all");
 const selectedGame = ref<Game | null>(null);
 const playingGame = ref<Game | null>(null);
-const selectedMetadataGame = ref(null);
-
-// Filters - handled by TopFilters component
 
 // Filter games based on current filter
 const filteredGames = computed(() => {
-  let games = [...libraryStore.games];
-
   switch (currentFilter.value) {
     case "installed":
-      games = games.filter((g) => g.installed);
-      break;
+      return games.value.filter((g) => g.installed);
     case "epic":
-      games = games.filter((g) => g.store === "epic");
-      break;
+      return games.value.filter((g) => g.store === "epic");
     case "gog":
-      games = games.filter((g) => g.store === "gog");
-      break;
+      return games.value.filter((g) => g.store === "gog");
     case "amazon":
-      games = games.filter((g) => g.store === "amazon");
-      break;
+      return games.value.filter((g) => g.store === "amazon");
     case "steam":
-      games = games.filter((g) => g.store === "steam");
-      break;
+      return games.value.filter((g) => g.store === "steam");
     default:
       // 'all' - sort alphabetically
-      games = games.sort((a, b) => a.title.localeCompare(b.title));
+      return games.value.slice().sort((a, b) => a.title.localeCompare(b.title));
   }
-
-  return games;
 });
 
 // Current selection index in carousel
@@ -224,24 +213,14 @@ function openSettings() {
   router.push("/settings");
 }
 
-// Sync library
-async function syncLibrary() {
-  syncing.value = true;
-  try {
-    await libraryStore.syncLibrary();
-  } catch (error) {
-    console.error("Failed to sync library:", error);
-  } finally {
-    syncing.value = false;
-  }
-}
-
 // Load games
 async function loadGames() {
   loading.value = true;
   try {
     await libraryStore.fetchGames();
-
+    if (games.value.length === 0) {
+      router.push("/settings");
+    }
     // Auto-select first game
     if (filteredGames.value.length > 0) {
       selectedGame.value = filteredGames.value[0];

@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Default capabilities for PixiDen",
-  "windows": ["main", "splashscreen", "game-overlay"],
+  "windows": ["main", "game-overlay"],
   "permissions": [
     "core:default",
     "core:window:allow-create",

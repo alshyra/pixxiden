@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::process::Stdio;
 use tauri_plugin_shell::ShellExt;
 use tokio::fs;
 use tokio::time::Duration;
@@ -39,6 +40,52 @@ impl EpicAuth {
         }
     }
 
+    /// Get the Epic login URL from legendary
+    pub async fn get_auth_url(&self) -> Result<String, String> {
+        let output = self.app_handle
+            .shell()
+            .sidecar("legendary")
+            .map_err(|e| format!("Failed to get legendary sidecar: {}", e))?
+            .args(["auth", "--disable-webview"])
+            .output()
+            .await
+            .map_err(|e| format!("Failed to launch legendary: {}", e))?;
+           
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        
+        // Parse la sortie pour extraire l'URL
+        // Format: "Please manually open the following URL: https://legendary.gl/epiclogin"
+        let combined = format!("{}{}", stdout, stderr);
+        
+        for line in combined.lines() {
+            if line.contains("https://legendary.gl/epiclogin") {
+                if let Some(url) = line.split("URL: ").nth(1) {
+                    return Ok(url.trim().to_string());
+                }
+            }
+        }
+        
+        Err("Failed to get auth URL from legendary".to_string())
+    }
+
+    pub async fn complete_auth(&self, auth_code: &str) -> Result<(), String> {
+        let output = self.app_handle
+            .shell()
+            .sidecar("legendary")
+            .map_err(|e| format!("Failed to get legendary sidecar: {}", e))?
+            .args(["auth", "--code", auth_code])
+            .output()
+            .await
+            .map_err(|e| format!("Failed to complete auth: {}", e))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Auth failed: {}", stderr));
+        }
+
+        Ok(())
+    }
     pub async fn start_auth(&self) -> Result<(), String> {
         let (_rx, child) = self
             .app_handle

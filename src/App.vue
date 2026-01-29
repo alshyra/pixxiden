@@ -1,28 +1,31 @@
 <template>
-  <div id="app" class="min-h-screen bg-black text-white">
-    <!-- Setup Wizard (first-run) -->
-    <SetupWizard v-if="showSetupWizard" @complete="onSetupComplete" @skip="onSetupSkip" />
-
-    <!-- Main router view - no transitions for E2E compatibility -->
-    <router-view v-slot="{ Component, route }">
-      <component
-        v-if="Component"
-        :is="Component"
-        :key="route.path"
-        :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }"
-      />
-    </router-view>
-
-    <!-- Console Footer (persistent) -->
-    <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
-
-    <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
-    <GameOverlay ref="gameOverlay" />
+  <div id="app" class="min-h-screen bg-black text-white" >
+    <SplashScreen v-if="isSplashScreen" />
+    <template v-if="!isSplashScreen">
+      <!-- Setup Wizard (first-run) -->
+      <SetupWizard v-if="showSetupWizard" @complete="onSetupComplete" @skip="onSetupSkip" />
+  
+      <!-- Main router view - no transitions for E2E compatibility -->
+      <router-view v-slot="{ Component, route }">
+        <component
+          v-if="Component"
+          :is="Component"
+          :key="route.path"
+          :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }"
+        />
+      </router-view>
+  
+      <!-- Console Footer (persistent) -->
+      <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
+  
+      <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
+      <GameOverlay ref="gameOverlay" />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, provide, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, provide, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { GameOverlay } from "@/components/game";
@@ -30,12 +33,18 @@ import { ConsoleFooter } from "@/components/layout";
 import { SetupWizard } from "@/components/ui";
 import { useGamepad } from "@/composables/useGamepad";
 import * as api from "@/services/api";
+import SplashScreen from "./views/SplashScreen.vue";
 
 const route = useRoute();
 const router = useRouter();
 const gamepad = useGamepad();
 const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null);
 const showSetupWizard = ref(false);
+const isSplashScreen = ref(true)
+
+setTimeout(() => {
+  isSplashScreen.value = false;
+}, 3000);
 
 // Track if a game is currently running (for PS/Guide button behavior)
 const isGameRunning = ref(false);
@@ -104,36 +113,12 @@ function onSetupSkip() {
 provide("gameOverlay", gameOverlay);
 
 // Check if we're on splash screen (hide footer)
-const isSplashScreen = computed(() => {
-  return route.path === "/splash" || route.name === "splash";
-});
 
 // Check if settings overlay is open
-const isSettingsOpen = computed(() => {
-  return route.name === "settings";
-});
+const isSettingsOpen = computed(() => route.name === "settings");
 
 // Provide settings state for child components
 provide("isSettingsOpen", isSettingsOpen);
-
-// Get the appropriate transition name based on route
-function getTransitionName(targetRoute: typeof route): string {
-  // Settings opens as overlay
-  if (targetRoute.name === "settings") {
-    return "settings-overlay";
-  }
-  // Default fade for other views
-  return "fade";
-}
-
-function onEnter(el: Element) {
-  // Animation entry callback if needed
-}
-
-function onLeave(el: Element, done: () => void) {
-  // Animation leave callback if needed
-  done();
-}
 </script>
 
 <style>

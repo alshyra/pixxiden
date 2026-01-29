@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
 import type { AuthStatus, StoreType } from "@/types";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 interface AuthState {
   stores: Record<StoreType, AuthStatus>;
@@ -116,12 +117,28 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
+        // Lancer le flow (ouvre la webview)
         await invoke("epic_start_auth");
-        await this.fetchAuthStatus(); // Refresh status after auth
+
+        // Écouter l'événement de fin d'auth
+        const unlisten = await WebviewWindow.getByLabel("epic-login");
+        unlisten?.listen(
+          "epic-auth-complete",
+          async (event) => {
+            const authCode = event.payload as string;
+
+            // Envoyer le code au backend
+            await invoke("epic_complete_auth", { authCode });
+
+            // Fermer la webview
+            const webview = await WebviewWindow.getByLabel("epic-login");
+            await webview?.close();
+
+            unlisten.destroy();
+          },
+        );
       } catch (error) {
-        this.error = formatAuthError("Epic Games", "login", error);
-        console.error("Failed to login to Epic:", error);
-        throw error;
+        console.error("Epic auth failed:", error);
       } finally {
         this.loading = false;
       }

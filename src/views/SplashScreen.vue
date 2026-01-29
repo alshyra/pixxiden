@@ -2,7 +2,7 @@
   <div
     class="flex flex-col items-center justify-center w-full h-full border border-white/5 bg-[#0a0a0c]"
   >
-    <PixxidenLogo :glow="true" :is-loading="false" :size="140" />
+    <PixxidenLogo class="mb-[3rem]" :glow="true" :is-loading="true" :size="140" />
 
     <!-- Titre -->
     <h1
@@ -43,11 +43,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Game } from "@/types";
 import { PixxidenLogo } from "@/components/ui";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const statusMessage = ref("Initialisation...");
 const currentGame = ref("");
 const progress = ref(0);
-const MINIMAL_DISPLAY_TIME = 2000; // 2 seconds minimum
+const MINIMAL_DISPLAY_TIME = 3000; // 3 seconds minimum
 
 let unlistenProgress: UnlistenFn | null = null;
 
@@ -129,13 +131,7 @@ onMounted(async () => {
     const elapsed = Date.now() - startTime;
     const remainingTime = Math.max(0, MINIMAL_DISPLAY_TIME - elapsed);
     await new Promise((resolve) => setTimeout(resolve, remainingTime));
-
-    try {
-      console.log("🎮 Closing splash screen");
-      await invoke("close_splashscreen");
-    } catch (e) {
-      console.error("🎮 Failed to close splash screen:", e);
-    }
+    router.replace({ name: "Library" });
   }
 });
 
@@ -144,20 +140,3 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-@keyframes dash {
-  0% {
-    stroke-dashoffset: 320;
-  }
-  50% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: -320;
-  }
-}
-
-.animate-dash {
-  animation: dash 4s ease-in-out infinite;
-}
-</style>

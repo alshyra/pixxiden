@@ -1,9 +1,13 @@
+use crate::services::auth::EpicAuth;
 use crate::services::auth::{AuthError, StoreManager};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{Emitter, Manager, State};
 use tokio::sync::Mutex;
+use tauri::WebviewUrl;
+use tauri::WebviewWindowBuilder;
+use tauri::Listener;
 
 // State container for StoreManager
 pub struct AuthState {
@@ -56,9 +60,48 @@ pub async fn get_stores_auth_status(
 // ===== Epic Games Commands =====
 
 #[tauri::command]
-pub async fn epic_start_auth(auth_state: State<'_, AuthState>) -> Result<(), String> {
-    let manager = auth_state.store_manager.lock().await;
-    manager.epic().start_auth().await
+pub async fn epic_start_auth(app: tauri::AppHandle) -> Result<(), String> {
+    let epic_auth = EpicAuth::new(app.clone());
+    let auth_url = epic_auth.get_auth_url().await?;
+    
+    let _webview = WebviewWindowBuilder::new(  // ← Underscore pour ignorer warning
+        &app,
+        "epic-login",
+        WebviewUrl::External(auth_url.parse().unwrap())
+    )
+    .title("Epic Games Login")
+    .inner_size(800.0, 600.0)
+    .center()
+    .build()
+    .map_err(|e| format!("Failed to create webview: {}", e))?;
+    
+    // Écouter l'événement du code auth
+    let app_handle = app.clone();  // ← Clone avant le move
+    app.listen("epic-auth-code", move |event| {
+        let auth_code = event.payload().to_string();
+        let app_clone = app_handle.clone();  // ← Clone dans la closure
+        let epic_auth = EpicAuth::new(app_clone.clone());
+        
+        tauri::async_runtime::spawn(async move {
+            match epic_auth.complete_auth(&auth_code).await {
+                Ok(_) => {
+                    // Émettre succès
+                    let _ = app_clone.emit("epic-auth-success", ());
+                    
+                    // Fermer la webview
+                    if let Some(webview) = app_clone.get_webview_window("epic-login") {
+                        let _ = webview.close();
+                    }
+                },
+                Err(e) => {
+                    // Émettre erreur
+                    let _ = app_clone.emit("epic-auth-error", e);
+                }
+            }
+        });
+    });
+    
+    Ok(())
 }
 
 #[tauri::command]

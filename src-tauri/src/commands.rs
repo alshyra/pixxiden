@@ -85,16 +85,6 @@ pub struct SyncResult {
     pub errors: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SplashProgressEvent {
-    pub store: String,
-    pub game_title: String,
-    pub current: usize,
-    pub total: usize,
-    pub message: String,
-}
-
 #[derive(Debug, Serialize)]
 pub struct StoreStatus {
     pub name: String,
@@ -151,109 +141,109 @@ pub async fn sync_games(
 
     let db = state.db.lock().await;
 
-    // Helper to emit progress
-    let emit_progress =
-        |app: &tauri::AppHandle, store: &str, title: &str, current: usize, total: usize| {
-            let _ = app.emit(
-                "splash-progress",
-                SplashProgressEvent {
-                    store: store.to_string(),
-                    game_title: title.to_string(),
-                    current,
-                    total,
-                    message: format!("Syncing {} - {}", store, title),
-                },
-            );
-        };
+    // // Helper to emit progress
+    // let emit_progress =
+    //     |app: &tauri::AppHandle, store: &str, title: &str, current: usize, total: usize| {
+    //         let _ = app.emit(
+    //             "splash-progress",
+    //             SplashProgressEvent {
+    //                 store: store.to_string(),
+    //                 game_title: title.to_string(),
+    //                 current,
+    //                 total,
+    //                 message: format!("Syncing {} - {}", store, title),
+    //             },
+    //         );
+    //     };
 
-    // Sync Epic Games via Legendary
-    if state.legendary.is_available() && state.legendary.is_authenticated().await {
-        log::info!("Syncing Epic Games...");
-        let _ = app.emit(
-            "splash-progress",
-            SplashProgressEvent {
-                store: "Epic Games".to_string(),
-                game_title: String::new(),
-                current: 0,
-                total: 0,
-                message: "Scanning Epic Games library...".to_string(),
-            },
-        );
+    // // Sync Epic Games via Legendary
+    // if state.legendary.is_available() && state.legendary.is_authenticated().await {
+    //     log::info!("Syncing Epic Games...");
+    //     let _ = app.emit(
+    //         "splash-progress",
+    //         SplashProgressEvent {
+    //             store: "Epic Games".to_string(),
+    //             game_title: String::new(),
+    //             current: 0,
+    //             total: 0,
+    //             message: "Scanning Epic Games library...".to_string(),
+    //         },
+    //     );
 
-        match state.legendary.list_games().await {
-            Ok(games) => {
-                let total = games.len();
-                for (i, game) in games.into_iter().enumerate() {
-                    emit_progress(&app, "Epic Games", &game.title, i + 1, total);
-                    result.total_games += 1;
-                    if let Err(e) = db.upsert_game(&game).await {
-                        result
-                            .errors
-                            .push(format!("Failed to save {}: {}", game.title, e));
-                    } else {
-                        result.new_games += 1;
-                    }
-                }
-                log::info!("Synced {} Epic Games", result.total_games);
-            }
-            Err(e) => {
-                let error = format!("Epic sync failed: {}", e);
-                log::error!("{}", error);
-                result.errors.push(error);
-            }
-        }
-    } else {
-        log::warn!("Epic Games (Legendary) not available or not authenticated");
-    }
+    //     match state.legendary.list_games().await {
+    //         Ok(games) => {
+    //             let total = games.len();
+    //             for (i, game) in games.into_iter().enumerate() {
+    //                 emit_progress(&app, "Epic Games", &game.title, i + 1, total);
+    //                 result.total_games += 1;
+    //                 if let Err(e) = db.upsert_game(&game).await {
+    //                     result
+    //                         .errors
+    //                         .push(format!("Failed to save {}: {}", game.title, e));
+    //                 } else {
+    //                     result.new_games += 1;
+    //                 }
+    //             }
+    //             log::info!("Synced {} Epic Games", result.total_games);
+    //         }
+    //         Err(e) => {
+    //             let error = format!("Epic sync failed: {}", e);
+    //             log::error!("{}", error);
+    //             result.errors.push(error);
+    //         }
+    //     }
+    // } else {
+    //     log::warn!("Epic Games (Legendary) not available or not authenticated");
+    // }
 
-    // Sync GOG via gogdl
-    if state.gogdl.is_available() && state.gogdl.is_authenticated().await {
-        log::info!("Syncing GOG Games...");
-        let _ = app.emit(
-            "splash-progress",
-            SplashProgressEvent {
-                store: "GOG".to_string(),
-                game_title: String::new(),
-                current: 0,
-                total: 0,
-                message: "Scanning GOG library...".to_string(),
-            },
-        );
+    // // Sync GOG via gogdl
+    // if state.gogdl.is_available() && state.gogdl.is_authenticated().await {
+    //     log::info!("Syncing GOG Games...");
+    //     let _ = app.emit(
+    //         "splash-progress",
+    //         SplashProgressEvent {
+    //             store: "GOG".to_string(),
+    //             game_title: String::new(),
+    //             current: 0,
+    //             total: 0,
+    //             message: "Scanning GOG library...".to_string(),
+    //         },
+    //     );
 
-        match state.gogdl.list_games().await {
-            Ok(games) => {
-                let total = games.len();
-                for (i, game) in games.into_iter().enumerate() {
-                    emit_progress(&app, "GOG", &game.title, i + 1, total);
-                    result.total_games += 1;
-                    if let Err(e) = db.upsert_game(&game).await {
-                        result
-                            .errors
-                            .push(format!("Failed to save {}: {}", game.title, e));
-                    } else {
-                        result.new_games += 1;
-                    }
-                }
-            }
-            Err(e) => {
-                let error = format!("GOG sync failed: {}", e);
-                log::error!("{}", error);
-                result.errors.push(error);
-            }
-        }
-    }
+    //     match state.gogdl.list_games().await {
+    //         Ok(games) => {
+    //             let total = games.len();
+    //             for (i, game) in games.into_iter().enumerate() {
+    //                 emit_progress(&app, "GOG", &game.title, i + 1, total);
+    //                 result.total_games += 1;
+    //                 if let Err(e) = db.upsert_game(&game).await {
+    //                     result
+    //                         .errors
+    //                         .push(format!("Failed to save {}: {}", game.title, e));
+    //                 } else {
+    //                     result.new_games += 1;
+    //                 }
+    //             }
+    //         }
+    //         Err(e) => {
+    //             let error = format!("GOG sync failed: {}", e);
+    //             log::error!("{}", error);
+    //             result.errors.push(error);
+    //         }
+    //     }
+    // }
 
-    // Emit completion
-    let _ = app.emit(
-        "splash-progress",
-        SplashProgressEvent {
-            store: String::new(),
-            game_title: String::new(),
-            current: result.total_games,
-            total: result.total_games,
-            message: format!("Synced {} games", result.total_games),
-        },
-    );
+    // // Emit completion
+    // let _ = app.emit(
+    //     "splash-progress",
+    //     SplashProgressEvent {
+    //         store: String::new(),
+    //         game_title: String::new(),
+    //         current: result.total_games,
+    //         total: result.total_games,
+    //         message: format!("Synced {} games", result.total_games),
+    //     },
+    // );
 
     Ok(result)
 }
@@ -503,31 +493,6 @@ pub async fn get_game_config(id: String, state: State<'_, AppState>) -> Result<G
         wine_version: game.wine_version,
         installed: game.installed,
     })
-}
-
-#[tauri::command]
-pub async fn close_splashscreen(app: tauri::AppHandle) -> Result<(), String> {
-    log::info!("Closing splash screen and showing main window");
-
-    // Get the splash screen window
-    if let Some(splash_window) = app.get_webview_window("splashscreen") {
-        // Close the splash screen
-        splash_window
-            .close()
-            .map_err(|e: tauri::Error| e.to_string())?;
-    }
-
-    // Get the main window and show it
-    if let Some(main_window) = app.get_webview_window("main") {
-        main_window
-            .show()
-            .map_err(|e: tauri::Error| e.to_string())?;
-        main_window
-            .set_focus()
-            .map_err(|e: tauri::Error| e.to_string())?;
-    }
-
-    Ok(())
 }
 
 // ===================== SYSTEM COMMANDS =====================
