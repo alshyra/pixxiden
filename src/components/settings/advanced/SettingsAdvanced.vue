@@ -52,17 +52,32 @@
 
 <script setup lang="ts">
 import { Card, Select, Toggle } from "@/components/ui";
-import SettingsRow from "./SettingsRow.vue";
+import SettingsRow from "../layout/SettingsRow.vue";
 import { AlertTriangle } from "lucide-vue-next";
+import { onMounted, ref } from "vue";
+import * as api from "@/services/api";
 
-defineProps<{
-  protonVersion: string;
-  mangoHudEnabled: boolean;
-  protonVersions: Array<{ value: string; label: string }>;
-}>();
+// Proton versions options
+const protonVersions = [
+  { value: "ge-proton-8-32", label: "GE-Proton 8-32" },
+  { value: "ge-proton-8-31", label: "GE-Proton 8-31" },
+  { value: "ge-proton-8-30", label: "GE-Proton 8-30" },
+  { value: "proton-experimental", label: "Proton Experimental" },
+];
 
-defineEmits<{
-  "update:protonVersion": [value: string];
-  "update:mangoHudEnabled": [value: boolean];
-}>();
+// Settings state
+const protonVersion = ref("ge-proton-8-32");
+const mangoHudEnabled = ref(false);
+
+async function loadSettings() {
+  try {
+    const settings = await api.getSettings();
+    protonVersion.value = settings.protonVersion;
+    mangoHudEnabled.value = settings.mangoHudEnabled;
+  } catch (error) {
+    console.error("Failed to load settings:", error);
+  }
+}
+
+onMounted(() => loadSettings())
 </script>

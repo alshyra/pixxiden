@@ -228,27 +228,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, markRaw, type Component } from "vue";
 import { Button, ProgressBar } from "@/components/ui";
-import SudoersConfigModal from "./SudoersConfigModal.vue";
+import type { UpdatePackage, UpdateProgressEvent } from "@/services/api";
+import * as api from "@/services/api";
 import {
   AlertTriangle,
-  Settings,
-  CheckCircle,
-  RefreshCw,
-  Download,
-  ChevronDown,
   ArrowRight,
-  Power,
-  Cpu,
-  Monitor,
-  Volume2,
-  Gamepad2,
   Box,
+  CheckCircle,
+  ChevronDown,
+  Cpu,
+  Download,
+  Gamepad2,
   Library,
+  Monitor,
+  Power,
+  RefreshCw,
+  Settings,
+  Volume2,
 } from "lucide-vue-next";
-import * as api from "@/services/api";
-import type { UpdatePackage, UpdateProgressEvent, PackageCategory } from "@/services/api";
+import { computed, markRaw, onMounted, ref, type Component } from "vue";
+import SudoersConfigModal from "../../sudoers-config/SudoersConfigModal.vue";
 
 // State
 const loading = ref(false);

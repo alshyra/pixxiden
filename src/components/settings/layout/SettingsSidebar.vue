@@ -18,13 +18,9 @@
       </div>
 
       <SettingsNavItem
-        v-for="(section, index) in sections"
+        v-for="(section) in sections"
         :key="section.id"
-        :label="section.label"
-        :icon="section.icon"
-        :active="activeSection === section.id"
-        :focused="focused && focusedIndex === index"
-        @click="$emit('select', section.id)"
+        :section="section"
       />
     </nav>
 
@@ -46,9 +42,14 @@ export interface SettingsSection {
   icon?: string;
 }
 
+const sections: SettingsSection[] = [
+  { id: "/settings/system", label: "Système" },
+  { id: "/settings/store", label: "Comptes" },
+  { id: "/settings/api-keys", label: "Clés API" },
+  { id: "/settings/advanced", label: "Avancé" },
+];
+
 defineProps<{
-  sections: SettingsSection[];
-  activeSection: string;
   focused: boolean;
   focusedIndex: number;
   version: string;

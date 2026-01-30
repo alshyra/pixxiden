@@ -1,9 +1,14 @@
-import { createRouter, createWebHistory } from "vue-router";
-import LibraryFullscreen from "@/views/LibraryFullscreen.vue";
-import SettingsView from "@/views/SettingsView.vue";
-import StoresSettings from "@/views/StoresSettings.vue";
 import GameDetails from "@/views/GameDetails.vue";
 import GameOverlayWindow from "@/views/GameOverlayWindow.vue";
+import LibraryFullscreen from "@/views/LibraryFullscreen.vue";
+import SettingsView from "@/views/SettingsView.vue";
+import { createRouter, createWebHistory } from "vue-router";
+import {
+  SettingsStore,
+  SettingsAdvanced,
+  SettingsApiKeys,
+  SettingsSystem,
+} from "@/components/settings";
 
 const routes = [
   {
@@ -29,14 +34,31 @@ const routes = [
   //   component: () => import('@/views/DownloadsView.vue'),
   // },
   {
-    path: "/settings",
-    name: "settings",
+    path: "/settings/",
     component: SettingsView,
-  },
-  {
-    path: "/settings/stores",
-    name: "stores-settings",
-    component: StoresSettings,
+    children: [
+      {
+        path:'',
+        name: "settings",
+        redirect: '/settings/system',
+      },
+      {
+        path: "system",
+        component: SettingsSystem,
+      },
+      {
+        path: "store",
+        component: SettingsStore,
+      },
+      {
+        path: "api-keys",
+        component: SettingsApiKeys,
+      },
+      {
+        path: "advanced",
+        component: SettingsAdvanced,
+      },
+    ],
   },
 ];
 

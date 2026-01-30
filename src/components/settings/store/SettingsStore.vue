@@ -11,7 +11,16 @@
       </p>
     </header>
 
-    <div class="flex flex-col gap-6">
+    <!-- Loading State -->
+    <div
+      v-if="loading"
+      class="flex items-center justify-center gap-4 p-12 bg-[#0a0a0a] border border-[#1f1f1f] rounded-[10px]"
+    >
+      <div class="w-6 h-6 border-2 border-white/10 border-t-[#5e5ce6] rounded-full animate-spin" />
+      <span class="text-white/50">Chargement des stores...</span>
+    </div>
+
+    <div v-else class="flex flex-col gap-6">
       <!-- Store Cards -->
       <Card
         v-for="(store, index) in stores"
@@ -71,6 +80,7 @@ import { Card, Button } from "@/components/ui";
 import { Info } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
 import { useAuthStore } from "@/stores/auth";
+import * as api from "@/services/api";
 
 export interface StoreAccount {
   id: string;
@@ -80,13 +90,39 @@ export interface StoreAccount {
   username?: string;
 }
 
-const props = defineProps<{
-  stores: StoreAccount[];
-}>();
-
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
 const authStore = useAuthStore();
+const loading = ref(false);
+
+// State local au composant
+const stores = ref<StoreAccount[]>([
+  { id: "epic", name: "Epic Games", available: false, authenticated: false, username: "" },
+  { id: "gog", name: "GOG Galaxy", available: false, authenticated: false, username: "" },
+  { id: "amazon", name: "Amazon Games", available: false, authenticated: false, username: "" },
+  { id: "steam", name: "Steam", available: false, authenticated: false, username: "" },
+]);
+
+// Load store status
+async function loadStoreStatus() {
+  loading.value = true;
+  try {
+    const storeStatuses = await api.getStoreStatus();
+    storeStatuses.forEach((status) => {
+      const store = stores.value.find((s) => s.id === status.name);
+      if (store) {
+        store.available = status.available;
+        store.authenticated = status.authenticated;
+        store.username = status.username || "";
+      }
+    });
+    console.log("🏪 Store status loaded:", storeStatuses);
+  } catch (error) {
+    console.error("Failed to load store status:", error);
+  } finally {
+    loading.value = false;
+  }
+}
 
 // Toggle store connection
 function toggleConnection(store: StoreAccount) {
@@ -99,12 +135,11 @@ function toggleConnection(store: StoreAccount) {
       // Trigger Steam connection/disconnection
       break;
     case "epic":
-      // Trigger Epic Games connection/disconnection
+      // WIP: as for now legendary opens a window not usable
       authStore.loginEpic();
       break;
     case "gog":
       authStore.getGOGAuthUrl();
-      // Trigger GOG connection/disconnection
       break;
     case "amazon":
       // authStore.loginAmazon();
@@ -140,7 +175,7 @@ function storeStatusText(store: StoreAccount): string {
 
 // Gamepad navigation
 const navigateHandler = ({ direction }: { direction: string }) => {
-  const maxIndex = props.stores.length - 1;
+  const maxIndex = stores.value.length - 1;
 
   if (direction === "up" && focusedIndex.value > 0) {
     focusedIndex.value--;
@@ -150,13 +185,16 @@ const navigateHandler = ({ direction }: { direction: string }) => {
 };
 
 const confirmHandler = () => {
-  const store = props.stores[focusedIndex.value];
+  const store = stores.value[focusedIndex.value];
   if (store) {
     toggleConnection(store);
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // Charger les données au montage
+  await loadStoreStatus();
+
   onGamepad("navigate", navigateHandler);
   onGamepad("confirm", confirmHandler);
 });

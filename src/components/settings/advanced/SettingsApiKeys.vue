@@ -23,23 +23,22 @@
     <div v-else class="flex flex-col gap-6">
       <!-- SteamGridDB -->
       <ApiKeyCard
-        title="🎨 SteamGridDB"
+        title="SteamGridDB"
         description="Covers, bannières et logos de haute qualité"
         help-url="https://www.steamgriddb.com/profile/preferences/api"
         help-text="Obtenir une clé →"
         :valid="testResults.steamgriddb"
       >
         <Input
-          :model-value="modelValue.steamgriddbApiKey"
+          v-model="apiKeys.steamgriddbApiKey"
           type="password"
           placeholder="Clé API SteamGridDB"
-          @update:model-value="updateKey('steamgriddbApiKey', $event)"
         />
       </ApiKeyCard>
 
       <!-- IGDB (Twitch) -->
       <ApiKeyCard
-        title="🎮 IGDB (Twitch)"
+        title="IGDB (Twitch)"
         description="Base de données de jeux (descriptions, notes, genres)"
         help-url="https://dev.twitch.tv/console/apps"
         help-text="Créer une application Twitch →"
@@ -47,23 +46,21 @@
       >
         <div class="grid grid-cols-2 gap-4">
           <Input
-            :model-value="modelValue.igdbClientId"
+            v-model="apiKeys.igdbClientId"
             type="text"
             placeholder="Client ID"
-            @update:model-value="updateKey('igdbClientId', $event)"
           />
           <Input
-            :model-value="modelValue.igdbClientSecret"
+            v-model="apiKeys.igdbClientSecret"
             type="password"
             placeholder="Client Secret"
-            @update:model-value="updateKey('igdbClientSecret', $event)"
           />
         </div>
       </ApiKeyCard>
 
       <!-- Steam Web API -->
       <ApiKeyCard
-        title="🎯 Steam Web API"
+        title="Steam Web API"
         description="Temps de jeu et statistiques Steam"
         help-url="https://steamcommunity.com/dev/apikey"
         help-text="Obtenir une clé →"
@@ -71,16 +68,14 @@
       >
         <div class="grid grid-cols-2 gap-4">
           <Input
-            :model-value="modelValue.steamApiKey"
+            v-model="apiKeys.steamApiKey"
             type="password"
             placeholder="Clé API Steam"
-            @update:model-value="updateKey('steamApiKey', $event)"
           />
           <Input
-            :model-value="modelValue.steamId"
+            v-model="apiKeys.steamId"
             type="text"
             placeholder="Steam ID (ex: 76561198...)"
-            @update:model-value="updateKey('steamId', $event)"
           />
         </div>
       </ApiKeyCard>
@@ -130,7 +125,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { Button, Input } from "@/components/ui";
-import ApiKeyCard from "./ApiKeyCard.vue";
+import ApiKeyCard from "../advanced/ApiKeyCard.vue";
 import { Info, CheckCircle, Check } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
 import * as api from "@/services/api";
@@ -149,35 +144,53 @@ export interface ApiKeyTestResults {
   steam: boolean | null;
 }
 
-const props = defineProps<{
-  modelValue: ApiKeys;
-  loading: boolean;
-}>();
-
-const emit = defineEmits<{
-  "update:modelValue": [value: ApiKeys];
-}>();
-
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+const loading = ref(false);
 const saving = ref(false);
 const testing = ref(false);
+
+// State local au composant
+const apiKeys = ref<ApiKeys>({
+  steamgriddbApiKey: "",
+  igdbClientId: "",
+  igdbClientSecret: "",
+  steamApiKey: "",
+  steamId: "",
+});
+
 const testResults = ref<ApiKeyTestResults>({
   steamgriddb: null,
   igdb: null,
   steam: null,
 });
 
-function updateKey(key: keyof ApiKeys, value: string) {
-  emit("update:modelValue", { ...props.modelValue, [key]: value });
+// Load API keys
+async function loadApiKeys() {
+  loading.value = true;
+  try {
+    const keys = await api.getApiKeys();
+    apiKeys.value = {
+      steamgriddbApiKey: keys.steamgriddbApiKey || "",
+      igdbClientId: keys.igdbClientId || "",
+      igdbClientSecret: keys.igdbClientSecret || "",
+      steamApiKey: keys.steamApiKey || "",
+      steamId: keys.steamId || "",
+    };
+    console.log("🔑 API keys loaded");
+  } catch (error) {
+    console.error("Failed to load API keys:", error);
+  } finally {
+    loading.value = false;
+  }
 }
 
 // Save API keys
 async function saveApiKeys() {
   saving.value = true;
   try {
-    await api.saveApiKeys(props.modelValue);
-    console.log("API keys saved");
+    await api.saveApiKeys(apiKeys.value);
+    console.log("✅ API keys saved");
   } catch (error) {
     console.error("Failed to save API keys:", error);
   } finally {
@@ -191,12 +204,13 @@ async function testApiKeys() {
   testResults.value = { steamgriddb: null, igdb: null, steam: null };
 
   try {
-    const results = await api.testApiKeys(props.modelValue);
+    const results = await api.testApiKeys(apiKeys.value);
     testResults.value = {
       steamgriddb: results.steamgriddbValid ?? null,
       igdb: results.igdbValid ?? null,
       steam: results.steamValid ?? null,
     };
+    console.log("🧪 API keys test results:", testResults.value);
   } catch (error) {
     console.error("Failed to test API keys:", error);
   } finally {
@@ -205,7 +219,10 @@ async function testApiKeys() {
 }
 
 // Gamepad navigation
-onMounted(() => {
+onMounted(async () => {
+  // Charger les données au montage
+  await loadApiKeys();
+
   onGamepad("navigate", ({ direction }: { direction: string }) => {
     if (direction === "left" && focusedIndex.value > 0) {
       focusedIndex.value--;

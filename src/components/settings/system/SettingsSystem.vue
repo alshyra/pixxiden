@@ -30,9 +30,9 @@
         <div class="divide-y divide-white/8">
           <div class="flex justify-between items-center py-4">
             <span class="text-sm text-white/50">Système d'exploitation</span>
-            <span class="text-sm font-semibold text-white">{{
-              systemInfo?.osName || "Inconnu"
-            }}</span>
+            <span class="text-sm font-semibold text-white">
+              {{ systemInfo?.osName || "Inconnu" }}
+            </span>
           </div>
           <div class="flex justify-between items-center py-4">
             <span class="text-sm text-white/50">Kernel</span>
@@ -100,7 +100,7 @@ import { ref, onMounted } from "vue";
 import { Card, Button, ProgressBar } from "@/components/ui";
 import { Power as PowerIcon } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
-import SystemUpdates from "./SystemUpdates.vue";
+import SystemUpdates from "./system-updates/SystemUpdates.vue";
 import * as api from "@/services/api";
 
 interface SystemInfo {
@@ -116,14 +116,12 @@ interface DiskInfo {
   totalSpace: number;
 }
 
-defineProps<{
-  loading: boolean;
-  systemInfo: SystemInfo | null;
-  diskInfo: DiskInfo[];
-}>();
-
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+// System state
+const systemInfo = ref<SystemInfo | null>(null);
+const diskInfo = ref<DiskInfo[]>([]);
+const loading = ref(false);
 
 // Shutdown system
 async function shutdown() {
@@ -144,8 +142,22 @@ function formatBytes(bytes: number): string {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
+// Load system info
+async function loadSystemInfo() {
+  loading.value = true;
+  try {
+    systemInfo.value = await api.getSystemInfo();
+    diskInfo.value = await api.getDiskInfo();
+  } catch (error) {
+    console.error("Failed to load system info:", error);
+  } finally {
+    loading.value = false;
+  }
+}
+
 // Gamepad navigation
 onMounted(() => {
+  loadSystemInfo();
   onGamepad("navigate", ({ direction }: { direction: string }) => {
     // Navigation will be handled by SystemUpdates component
   });

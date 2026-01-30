@@ -131,7 +131,7 @@ onMounted(async () => {
     const elapsed = Date.now() - startTime;
     const remainingTime = Math.max(0, MINIMAL_DISPLAY_TIME - elapsed);
     await new Promise((resolve) => setTimeout(resolve, remainingTime));
-    router.replace({ name: "Library" });
+    router.replace({ name: "library" });
   }
 });
 

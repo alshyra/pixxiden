@@ -1,23 +1,16 @@
 <template>
-  <div id="app" class="min-h-screen bg-black text-white" >
+  <div id="app" class="min-h-screen bg-black text-white">
     <SplashScreen v-if="isSplashScreen" />
     <template v-if="!isSplashScreen">
       <!-- Setup Wizard (first-run) -->
       <SetupWizard v-if="showSetupWizard" @complete="onSetupComplete" @skip="onSetupSkip" />
-  
+
       <!-- Main router view - no transitions for E2E compatibility -->
-      <router-view v-slot="{ Component, route }">
-        <component
-          v-if="Component"
-          :is="Component"
-          :key="route.path"
-          :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }"
-        />
-      </router-view>
-  
+      <RouterView :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }" />
+
       <!-- Console Footer (persistent) -->
       <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
-  
+
       <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
       <GameOverlay ref="gameOverlay" />
     </template>
@@ -52,6 +45,16 @@ provide("isGameRunning", isGameRunning);
 
 let unlistenGameLaunched: UnlistenFn | null = null;
 let unlistenGameError: UnlistenFn | null = null;
+
+// Generate stable key for routes - settings routes share the same key
+function getRouteKey(route: any) {
+  // Pour les routes settings, utiliser une clé commune
+  if (route.path.startsWith('/settings')) {
+    return 'settings';
+  }
+  // Pour les autres routes, utiliser le path complet
+  return route.path;
+}
 
 // Check if setup wizard is needed on mount
 onMounted(async () => {

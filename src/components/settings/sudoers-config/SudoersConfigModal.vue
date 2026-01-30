@@ -48,7 +48,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { Button } from "@/components/ui";
-import SudoersConfigSteps from "./sudoers-config/SudoersConfigSteps.vue";
+import SudoersConfigSteps from "../sudoers-config/SudoersConfigSteps.vue";
 import * as api from "@/services/api";
 
 type Step = "info" | "password" | "success";
