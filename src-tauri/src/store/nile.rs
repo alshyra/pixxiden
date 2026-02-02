@@ -1,12 +1,10 @@
-use crate::database::Game;
-use crate::store::StoreAdapter;
-use async_trait::async_trait;
 use std::path::PathBuf;
 
 /// Nile adapter for Amazon Games
 /// Placeholder for future implementation
 pub struct NileAdapter {
     binary_path: PathBuf,
+    #[allow(dead_code)]
     config_path: PathBuf,
 }
 
@@ -37,36 +35,33 @@ impl NileAdapter {
             .map(|c| c.join("nile"))
             .unwrap_or_else(|| PathBuf::from("~/.config/nile"))
     }
-}
 
-#[async_trait]
-impl StoreAdapter for NileAdapter {
-    fn name(&self) -> &'static str {
-        "amazon"
-    }
-
-    fn is_available(&self) -> bool {
+    /// Check if Nile binary is available
+    pub fn is_available(&self) -> bool {
         self.binary_path.exists()
     }
 
-    async fn is_authenticated(&self) -> bool {
-        false // Not implemented yet
+    /// Check if user is authenticated to Amazon Games
+    pub async fn is_authenticated(&self) -> bool {
+        false // Amazon Games not implemented yet
     }
 
-    async fn list_games(&self) -> anyhow::Result<Vec<Game>> {
-        // Amazon Games not implemented yet
-        Ok(vec![])
+    /// DEPRECATED: Migrated to NileService.ts
+    pub async fn launch_game(&self, _store_id: &str) -> anyhow::Result<()> {
+        anyhow::bail!("launch_game() migrated to NileService.ts - use TypeScript implementation")
     }
 
-    async fn launch_game(&self, _store_id: &str) -> anyhow::Result<()> {
-        anyhow::bail!("Amazon Games not implemented")
+    /// DEPRECATED: Migrated to NileService.ts
+    pub async fn install_game(&self, _store_id: &str) -> anyhow::Result<()> {
+        anyhow::bail!("install_game() migrated to NileService.ts - use TypeScript implementation")
     }
 
-    async fn install_game(&self, _store_id: &str) -> anyhow::Result<()> {
-        anyhow::bail!("Amazon Games not implemented")
-    }
-
-    async fn uninstall_game(&self, _store_id: &str) -> anyhow::Result<()> {
-        anyhow::bail!("Amazon Games not implemented")
+    /// DEPRECATED: Migrated to NileService.ts
+    pub async fn uninstall_game(&self, _store_id: &str) -> anyhow::Result<()> {
+        anyhow::bail!("uninstall_game() migrated to NileService.ts - use TypeScript implementation")
     }
 }
+
+// TODO: StoreAdapter trait implementation removed
+// Amazon Games library operations migrated to NileService.ts in TypeScript
+// Only binary detection and authentication check remain in Rust

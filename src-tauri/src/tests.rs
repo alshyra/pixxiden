@@ -5,11 +5,8 @@
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     // Tests pour la détection des binaires
     mod binary_detection {
-        use std::process::Command;
         use which::which;
 
         #[test]
@@ -145,8 +142,6 @@ mod tests {
 
     // Tests pour les configurations
     mod config {
-        use std::path::PathBuf;
-
         #[test]
         fn test_legendary_config_path() {
             if let Some(home) = dirs::home_dir() {
@@ -195,6 +190,7 @@ mod tests {
         #[test]
         fn test_game_struct_creation() {
             // Test la création d'un struct Game
+            #[allow(dead_code)]
             struct Game {
                 id: String,
                 title: String,
@@ -218,6 +214,7 @@ mod tests {
 
         #[test]
         fn test_sync_result_struct() {
+            #[allow(dead_code)]
             struct SyncResult {
                 total_games: usize,
                 new_games: usize,

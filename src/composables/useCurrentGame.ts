@@ -2,9 +2,8 @@ import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useLibraryStore } from "@/stores/library";
 import type { Game } from "@/types";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 
 type UnlistenFn = () => void;
 

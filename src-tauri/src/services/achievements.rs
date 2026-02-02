@@ -7,7 +7,6 @@
 use anyhow::{Context, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::process::Command;
 use std::time::Duration;
 
 const STEAM_API_BASE: &str = "https://api.steampowered.com";
@@ -33,15 +32,7 @@ pub struct GameAchievements {
     pub achievements: Vec<Achievement>,
 }
 
-impl GameAchievements {
-    pub fn completion_percentage(&self) -> f32 {
-        if self.total == 0 {
-            0.0
-        } else {
-            (self.unlocked as f32 / self.total as f32) * 100.0
-        }
-    }
-}
+// TODO: completion_percentage() removed - calculate in TypeScript if needed
 
 /// Steam achievement schema response
 #[derive(Debug, Deserialize)]
@@ -50,6 +41,7 @@ struct SteamSchemaResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct SteamGameSchema {
     #[serde(rename = "gameName")]
     game_name: Option<String>,
@@ -65,6 +57,7 @@ struct SteamGameStats {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct SteamAchievementSchema {
     name: String,
     #[serde(rename = "displayName")]
@@ -82,6 +75,7 @@ struct SteamPlayerAchievementsResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct SteamPlayerStats {
     #[serde(rename = "steamID")]
     steam_id: Option<String>,
@@ -93,6 +87,7 @@ struct SteamPlayerStats {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct SteamPlayerAchievement {
     apiname: String,
     achieved: u8,
@@ -280,157 +275,8 @@ impl AchievementsService {
         }))
     }
 
-    // ===================== CLI-BASED ACHIEVEMENTS =====================
-
-    /// Parse legendary status output for Epic achievements
-    pub fn parse_legendary_achievements(output: &str) -> Option<GameAchievements> {
-        // legendary status output format varies, but achievements section looks like:
-        // Achievements: X/Y unlocked
-        // - [✓] Achievement Name - Description
-        // - [ ] Other Achievement - Description
-
-        let mut total = 0u32;
-        let mut unlocked = 0u32;
-        let mut achievements = Vec::new();
-        let mut in_achievements_section = false;
-
-        for line in output.lines() {
-            let line = line.trim();
-
-            // Check for achievements summary line
-            if line.contains("Achievements:") && line.contains("unlocked") {
-                if let Some(counts) = Self::parse_achievement_counts(line) {
-                    total = counts.0;
-                    unlocked = counts.1;
-                }
-                in_achievements_section = true;
-                continue;
-            }
-
-            // Parse individual achievements
-            if in_achievements_section && line.starts_with("- [") {
-                let achieved = line.contains("[✓]") || line.contains("[x]") || line.contains("[X]");
-
-                // Extract name (after the checkbox)
-                let name_part = line
-                    .trim_start_matches("- [✓]")
-                    .trim_start_matches("- [✗]")
-                    .trim_start_matches("- [ ]")
-                    .trim_start_matches("- [x]")
-                    .trim_start_matches("- [X]");
-
-                let (name, description) = if let Some(idx) = name_part.find(" - ") {
-                    (name_part[..idx].trim(), Some(name_part[idx + 3..].trim()))
-                } else {
-                    (name_part.trim(), None)
-                };
-
-                achievements.push(Achievement {
-                    api_name: name.to_string(),
-                    name: name.to_string(),
-                    description: description.map(|s| s.to_string()),
-                    achieved,
-                    unlock_time: None,
-                    icon_url: None,
-                    icon_gray_url: None,
-                });
-            }
-
-            // Exit achievements section on empty line or new section
-            if in_achievements_section
-                && (line.is_empty() || (line.contains(':') && !line.contains("Achievement")))
-            {
-                if !line.is_empty() {
-                    in_achievements_section = false;
-                }
-            }
-        }
-
-        if total > 0 || !achievements.is_empty() {
-            // If we parsed individual achievements but not the summary, count them
-            if total == 0 && !achievements.is_empty() {
-                total = achievements.len() as u32;
-                unlocked = achievements.iter().filter(|a| a.achieved).count() as u32;
-            }
-
-            Some(GameAchievements {
-                total,
-                unlocked,
-                achievements,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Parse achievement counts from a line like "Achievements: 37/63 unlocked"
-    fn parse_achievement_counts(line: &str) -> Option<(u32, u32)> {
-        // Try to find pattern like "X/Y" or "X of Y"
-        let parts: Vec<&str> = line
-            .split(|c: char| !c.is_numeric())
-            .filter(|s| !s.is_empty())
-            .collect();
-
-        if parts.len() >= 2 {
-            let unlocked = parts[0].parse().ok()?;
-            let total = parts[1].parse().ok()?;
-            return Some((total, unlocked));
-        }
-
-        None
-    }
-
-    /// Parse gogdl status output for GOG achievements
-    pub fn parse_gogdl_achievements(output: &str) -> Option<GameAchievements> {
-        // Similar format to legendary
-        Self::parse_legendary_achievements(output)
-    }
-
-    /// Parse nile status output for Amazon achievements
-    pub fn parse_nile_achievements(output: &str) -> Option<GameAchievements> {
-        // Similar format to legendary
-        Self::parse_legendary_achievements(output)
-    }
-
-    /// Get achievements from legendary CLI
-    pub async fn get_epic_achievements(
-        &self,
-        store_id: &str,
-        legendary_path: &str,
-    ) -> Result<Option<GameAchievements>> {
-        let output = Command::new(legendary_path)
-            .args(["status", store_id])
-            .output()
-            .context("Failed to run legendary status")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            log::debug!("legendary status failed: {}", stderr);
-            return Ok(None);
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        Ok(Self::parse_legendary_achievements(&stdout))
-    }
-
-    /// Get achievements from gogdl CLI
-    pub async fn get_gog_achievements(
-        &self,
-        store_id: &str,
-        gogdl_path: &str,
-    ) -> Result<Option<GameAchievements>> {
-        let output = Command::new(gogdl_path)
-            .args(["status", store_id])
-            .output()
-            .context("Failed to run gogdl status")?;
-
-        if !output.status.success() {
-            return Ok(None);
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        Ok(Self::parse_gogdl_achievements(&stdout))
-    }
+    // TODO: CLI-based achievements (parse_legendary_achievements, parse_gogdl_achievements)
+    // have been migrated to TypeScript services
 }
 
 impl Default for AchievementsService {
@@ -443,82 +289,7 @@ impl Default for AchievementsService {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_game_achievements_completion() {
-        let achievements = GameAchievements {
-            total: 100,
-            unlocked: 50,
-            achievements: vec![],
-        };
-
-        assert_eq!(achievements.completion_percentage(), 50.0);
-    }
-
-    #[test]
-    fn test_game_achievements_completion_zero() {
-        let achievements = GameAchievements {
-            total: 0,
-            unlocked: 0,
-            achievements: vec![],
-        };
-
-        assert_eq!(achievements.completion_percentage(), 0.0);
-    }
-
-    #[test]
-    fn test_parse_achievement_counts() {
-        assert_eq!(
-            AchievementsService::parse_achievement_counts("Achievements: 37/63 unlocked"),
-            Some((63, 37))
-        );
-
-        assert_eq!(
-            AchievementsService::parse_achievement_counts("10/20"),
-            Some((20, 10))
-        );
-    }
-
-    #[test]
-    fn test_parse_legendary_achievements() {
-        let output = r#"
-Game Status: Hollow Knight
-Version: 1.5.0.0
-Installed: Yes
-
-Achievements: 37/63 unlocked
-- [✓] Completion - Complete the game
-- [✓] Speedrun - Complete in under 5 hours
-- [ ] 100% - Achieve 100% completion
-- [x] Another - With description - This is a description
-"#;
-
-        let result = AchievementsService::parse_legendary_achievements(output);
-        assert!(result.is_some());
-
-        let achievements = result.unwrap();
-        assert_eq!(achievements.total, 63);
-        assert_eq!(achievements.unlocked, 37);
-        assert_eq!(achievements.achievements.len(), 4);
-
-        // Check individual achievements
-        assert!(achievements.achievements[0].achieved);
-        assert_eq!(achievements.achievements[0].name, "Completion");
-
-        assert!(achievements.achievements[1].achieved);
-
-        assert!(!achievements.achievements[2].achieved);
-        assert_eq!(achievements.achievements[2].name, "100%");
-
-        assert!(achievements.achievements[3].achieved);
-    }
-
-    #[test]
-    fn test_parse_legendary_no_achievements() {
-        let output = "Game Status: Some Game\nNo achievements available\n";
-
-        let result = AchievementsService::parse_legendary_achievements(output);
-        assert!(result.is_none());
-    }
+    // Note: test_game_achievements_completion removed - completion_percentage was migrated to TypeScript
 
     #[test]
     fn test_can_fetch_steam() {
@@ -564,17 +335,7 @@ mod integration_tests {
                 "Hollow Knight achievements: {}/{}",
                 achievements.unlocked, achievements.total
             );
-            println!("Completion: {:.1}%", achievements.completion_percentage());
-
-            // Print first few achievements
-            for ach in achievements.achievements.iter().take(5) {
-                println!(
-                    "  [{}] {} - {:?}",
-                    if ach.achieved { "✓" } else { " " },
-                    ach.name,
-                    ach.description
-                );
-            }
+            // Note: completion_percentage() removed - calculation moved to TypeScript
         } else {
             println!(
                 "No achievements found (game may not have achievements or profile is private)"

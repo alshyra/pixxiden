@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
-import { invoke } from "@tauri-apps/api/core";
 import type { AuthStatus, StoreType } from "@/types";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getAuthService } from "@/services";
 
 interface AuthState {
   stores: Record<StoreType, AuthStatus>;
@@ -12,8 +11,8 @@ interface AuthState {
 /**
  * Helper function to format error messages with context
  */
-function formatAuthError(store: string, action: string, error: any): string {
-  const baseMessage = error?.message || error?.toString() || "Unknown error";
+function formatAuthError(store: string, action: string, error: unknown): string {
+  const baseMessage = error instanceof Error ? error.message : String(error) || "Unknown error";
 
   // Common error patterns
   if (baseMessage.includes("timeout")) {
@@ -92,13 +91,14 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        const statuses = await invoke<Record<string, AuthStatus>>("get_stores_auth_status");
+        const auth = getAuthService();
+        const statuses = await auth.getAllAuthStatus();
 
         // Update store state
-        this.stores.epic = statuses.epic || { authenticated: false, configSource: "none" };
-        this.stores.gog = statuses.gog || { authenticated: false, configSource: "none" };
-        this.stores.amazon = statuses.amazon || { authenticated: false, configSource: "none" };
-        this.stores.steam = statuses.steam || { authenticated: false, configSource: "none" };
+        this.stores.epic = statuses.epic;
+        this.stores.gog = statuses.gog;
+        this.stores.amazon = statuses.amazon;
+        this.stores.steam = statuses.steam;
       } catch (error) {
         this.error = error instanceof Error ? error.message : "Failed to fetch auth status";
         console.error("Error fetching auth status:", error);
@@ -110,35 +110,21 @@ export const useAuthStore = defineStore("auth", {
     // ===== Epic Games =====
 
     /**
-     * Start Epic Games authentication (OAuth flow)
+     * Start Epic Games authentication (OAuth webview flow)
      */
     async loginEpic(): Promise<void> {
       this.loading = true;
       this.error = null;
 
       try {
-        // Lancer le flow (ouvre la webview)
-        await invoke("epic_start_auth");
-
-        // Écouter l'événement de fin d'auth
-        const unlisten = await WebviewWindow.getByLabel("epic-login");
-        unlisten?.listen(
-          "epic-auth-complete",
-          async (event) => {
-            const authCode = event.payload as string;
-
-            // Envoyer le code au backend
-            await invoke("epic_complete_auth", { authCode });
-
-            // Fermer la webview
-            const webview = await WebviewWindow.getByLabel("epic-login");
-            await webview?.close();
-
-            unlisten.destroy();
-          },
-        );
+        const auth = getAuthService();
+        await auth.startEpicAuth();
+        // Refresh status after successful auth
+        await this.fetchAuthStatus();
       } catch (error) {
+        this.error = formatAuthError("Epic Games", "authentication", error);
         console.error("Epic auth failed:", error);
+        throw error;
       } finally {
         this.loading = false;
       }
@@ -152,7 +138,8 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        await invoke("epic_logout");
+        const auth = getAuthService();
+        await auth.logoutEpic();
         await this.fetchAuthStatus();
       } catch (error) {
         this.error = formatAuthError("Epic Games", "logout", error);
@@ -166,27 +153,15 @@ export const useAuthStore = defineStore("auth", {
     // ===== GOG =====
 
     /**
-     * Get GOG authentication URL
+     * Login to GOG - opens webview OAuth flow
      */
-    async getGOGAuthUrl(): Promise<string> {
-      try {
-        return await invoke<string>("gog_get_auth_url");
-      } catch (error) {
-        this.error = formatAuthError("GOG", "URL generation", error);
-        console.error("Failed to get GOG auth URL:", error);
-        throw error;
-      }
-    },
-
-    /**
-     * Login to GOG with authentication code
-     */
-    async loginGOG(code: string): Promise<void> {
+    async loginGOG(_code?: string): Promise<void> {
       this.loading = true;
       this.error = null;
 
       try {
-        await invoke("gog_login_with_code", { code });
+        const auth = getAuthService();
+        await auth.startGogAuth();
         await this.fetchAuthStatus();
       } catch (error) {
         this.error = formatAuthError("GOG", "authentication", error);
@@ -205,7 +180,8 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        await invoke("gog_logout");
+        const auth = getAuthService();
+        await auth.logoutGog();
         await this.fetchAuthStatus();
       } catch (error) {
         this.error = formatAuthError("GOG", "logout", error);
@@ -227,11 +203,17 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        await invoke("amazon_login", { email, password });
+        const auth = getAuthService();
+        await auth.loginAmazon(email, password);
         await this.fetchAuthStatus();
-      } catch (error: any) {
-        // Check if error is an AuthErrorResponse
-        if (error?.errorType === "two_factor_required") {
+      } catch (error: unknown) {
+        // Check if error is an AuthErrorResponse (2FA required)
+        if (
+          error &&
+          typeof error === "object" &&
+          "errorType" in error &&
+          (error as { errorType: string }).errorType === "two_factor_required"
+        ) {
           this.error = "🔒 Two-factor authentication required. Please enter your 2FA code.";
           throw error; // Re-throw to let UI handle 2FA flow
         }
@@ -252,9 +234,10 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        await invoke("amazon_login_with_2fa", { email, password, code });
+        const auth = getAuthService();
+        await auth.loginAmazonWith2FA(email, password, code);
         await this.fetchAuthStatus();
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.error = formatAuthError("Amazon Games", "2FA verification", error);
         console.error("Failed to complete Amazon 2FA:", error);
         throw error;
@@ -271,7 +254,8 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        await invoke("amazon_logout");
+        const auth = getAuthService();
+        await auth.logoutAmazon();
         await this.fetchAuthStatus();
       } catch (error) {
         this.error = formatAuthError("Amazon Games", "logout", error);

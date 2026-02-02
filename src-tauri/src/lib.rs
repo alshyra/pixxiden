@@ -12,11 +12,6 @@ mod system_updates;
 mod tests;
 
 use commands::{
-    auth::{
-        amazon_is_authenticated, amazon_login, amazon_login_with_2fa, amazon_logout,
-        epic_is_authenticated, epic_logout, epic_start_auth, get_stores_auth_status,
-        gog_get_auth_url, gog_is_authenticated, gog_login_with_code, gog_logout, AuthState,
-    },
     check_for_updates,
     check_system_updates,
     clear_all_cache,
@@ -37,16 +32,14 @@ use commands::{
     install_game,
     install_system_updates,
     is_sudoers_configured,
-    launch_game,
+    launch_game_v2,
     needs_setup,
     reboot_system,
     requires_system_reboot,
     save_api_keys,
     save_settings,
-    scan_gog_installed,
     shutdown_system,
     skip_setup,
-    sync_games,
     test_api_keys,
     uninstall_game,
     update_game_custom_executable,
@@ -117,10 +110,6 @@ pub fn run() {
 
             app.manage(state);
 
-            // Initialize auth state
-            let auth_state = AuthState::new(app.handle().clone());
-            app.manage(auth_state);
-
             // Initialize gamepad monitor
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
             app.manage(gamepad_monitor);
@@ -133,9 +122,7 @@ pub fn run() {
             get_games,
             get_game,
             get_game_config,
-            sync_games,
-            scan_gog_installed,
-            launch_game,
+            launch_game_v2,
             install_game,
             uninstall_game,
             get_store_status,
@@ -160,19 +147,6 @@ pub fn run() {
             update_game_custom_executable,
             // Game control
             force_close_game,
-            // Store Authentication
-            get_stores_auth_status,
-            epic_start_auth,
-            epic_is_authenticated,
-            epic_logout,
-            gog_get_auth_url,
-            gog_login_with_code,
-            gog_is_authenticated,
-            gog_logout,
-            amazon_login,
-            amazon_login_with_2fa,
-            amazon_is_authenticated,
-            amazon_logout,
             // System Updates
             get_distro,
             is_sudoers_configured,

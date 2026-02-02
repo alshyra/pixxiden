@@ -1,17 +1,14 @@
-pub mod auth;
-
 use crate::database::{Database, Game};
 use crate::models::EnrichedGame;
 use crate::services::{ApiKeysConfig, ApiKeysManager, GameEnricher};
 use crate::store::{
     gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter, steam::SteamAdapter,
-    StoreAdapter,
 };
 use crate::system::{self, DiskInfo, SettingsConfig, SystemInfo};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{Emitter, Manager, State, Window};
+use tauri::{Emitter, State, Window};
 use tokio::sync::Mutex;
 
 pub struct AppState {
@@ -77,13 +74,7 @@ pub struct InstallErrorEvent {
     pub error: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct SyncResult {
-    pub total_games: usize,
-    pub new_games: usize,
-    pub updated_games: usize,
-    pub errors: Vec<String>,
-}
+// TODO: SyncResult removed - sync operations migrated to GameLibraryOrchestrator.ts
 
 #[derive(Debug, Serialize)]
 pub struct StoreStatus {
@@ -127,194 +118,92 @@ pub async fn get_game(id: String, state: State<'_, AppState>) -> Result<Option<G
     db.get_game(&id).await.map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub async fn sync_games(
-    app: tauri::AppHandle,
-    state: State<'_, AppState>,
-) -> Result<SyncResult, String> {
-    let mut result = SyncResult {
-        total_games: 0,
-        new_games: 0,
-        updated_games: 0,
-        errors: vec![],
-    };
+// TODO: launch_game (deprecated) removed - use launch_game_v2 from JS
+// The old launch_game did DB lookup in Rust, new one receives all data from JS
 
-    let db = state.db.lock().await;
-
-    // // Helper to emit progress
-    // let emit_progress =
-    //     |app: &tauri::AppHandle, store: &str, title: &str, current: usize, total: usize| {
-    //         let _ = app.emit(
-    //             "splash-progress",
-    //             SplashProgressEvent {
-    //                 store: store.to_string(),
-    //                 game_title: title.to_string(),
-    //                 current,
-    //                 total,
-    //                 message: format!("Syncing {} - {}", store, title),
-    //             },
-    //         );
-    //     };
-
-    // // Sync Epic Games via Legendary
-    // if state.legendary.is_available() && state.legendary.is_authenticated().await {
-    //     log::info!("Syncing Epic Games...");
-    //     let _ = app.emit(
-    //         "splash-progress",
-    //         SplashProgressEvent {
-    //             store: "Epic Games".to_string(),
-    //             game_title: String::new(),
-    //             current: 0,
-    //             total: 0,
-    //             message: "Scanning Epic Games library...".to_string(),
-    //         },
-    //     );
-
-    //     match state.legendary.list_games().await {
-    //         Ok(games) => {
-    //             let total = games.len();
-    //             for (i, game) in games.into_iter().enumerate() {
-    //                 emit_progress(&app, "Epic Games", &game.title, i + 1, total);
-    //                 result.total_games += 1;
-    //                 if let Err(e) = db.upsert_game(&game).await {
-    //                     result
-    //                         .errors
-    //                         .push(format!("Failed to save {}: {}", game.title, e));
-    //                 } else {
-    //                     result.new_games += 1;
-    //                 }
-    //             }
-    //             log::info!("Synced {} Epic Games", result.total_games);
-    //         }
-    //         Err(e) => {
-    //             let error = format!("Epic sync failed: {}", e);
-    //             log::error!("{}", error);
-    //             result.errors.push(error);
-    //         }
-    //     }
-    // } else {
-    //     log::warn!("Epic Games (Legendary) not available or not authenticated");
-    // }
-
-    // // Sync GOG via gogdl
-    // if state.gogdl.is_available() && state.gogdl.is_authenticated().await {
-    //     log::info!("Syncing GOG Games...");
-    //     let _ = app.emit(
-    //         "splash-progress",
-    //         SplashProgressEvent {
-    //             store: "GOG".to_string(),
-    //             game_title: String::new(),
-    //             current: 0,
-    //             total: 0,
-    //             message: "Scanning GOG library...".to_string(),
-    //         },
-    //     );
-
-    //     match state.gogdl.list_games().await {
-    //         Ok(games) => {
-    //             let total = games.len();
-    //             for (i, game) in games.into_iter().enumerate() {
-    //                 emit_progress(&app, "GOG", &game.title, i + 1, total);
-    //                 result.total_games += 1;
-    //                 if let Err(e) = db.upsert_game(&game).await {
-    //                     result
-    //                         .errors
-    //                         .push(format!("Failed to save {}: {}", game.title, e));
-    //                 } else {
-    //                     result.new_games += 1;
-    //                 }
-    //             }
-    //         }
-    //         Err(e) => {
-    //             let error = format!("GOG sync failed: {}", e);
-    //             log::error!("{}", error);
-    //             result.errors.push(error);
-    //         }
-    //     }
-    // }
-
-    // // Emit completion
-    // let _ = app.emit(
-    //     "splash-progress",
-    //     SplashProgressEvent {
-    //         store: String::new(),
-    //         game_title: String::new(),
-    //         current: result.total_games,
-    //         total: result.total_games,
-    //         message: format!("Synced {} games", result.total_games),
-    //     },
-    // );
-
-    Ok(result)
+/// New launch_game that receives all data from JS (no DB lookup)
+/// This is the new contract: JS sends everything, Rust just executes
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchGameData {
+    pub id: String,
+    pub title: String,
+    pub store: String,
+    #[allow(dead_code)]
+    pub store_id: String,
+    pub app_name: String,
+    #[allow(dead_code)]
+    pub install_path: Option<String>,
+    pub custom_executable: Option<String>,
 }
 
 #[tauri::command]
-pub async fn launch_game(
-    id: String,
+pub async fn launch_game_v2(
+    game: LaunchGameData,
+    _launch_command: Vec<String>, // Reserved for future use
+    env: std::collections::HashMap<String, String>,
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let db = state.db.lock().await;
-    let game = db
-        .get_game(&id)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Game {} not found", id))?;
-
-    drop(db); // Release lock before launching
-
     // Emit launching event
     let launch_event = LaunchEvent {
-        game_id: id.clone(),
+        game_id: game.id.clone(),
         game_title: game.title.clone(),
         store: game.store.clone(),
     };
     let _ = window.emit("game-launching", &launch_event);
-    log::info!("Launching game: {} ({})", game.title, game.store);
+    log::info!(
+        "Launching game (v2): {} ({})",
+        game.title,
+        game.store
+    );
 
-    // Launch the game
+    // Launch using the provided command (from JS)
     let result = match game.store.as_str() {
-        "epic" => state.legendary.launch_game(&game.store_id).await,
+        "epic" => state.legendary.launch_game(&game.app_name).await,
         "gog" => {
-            // Check if this is a game from ~/GOG Games/ (has install_path set)
-            if game.install_path.is_some() && game.store_id.starts_with("baldurs_gate") {
-                // Use Wine-GE directly
-                state.gogdl.launch_game_with_wine(&game).await
-            } else {
-                // Use gogdl binary (Heroic managed games) with optional custom executable
-                state
-                    .gogdl
-                    .launch_game_with_custom_exe(&game.store_id, game.custom_executable.as_deref())
-                    .await
-            }
+            // Use custom executable if provided
+            state
+                .gogdl
+                .launch_game_with_custom_exe(&game.app_name, game.custom_executable.as_deref())
+                .await
         }
-        "amazon" => state.nile.launch_game(&game.store_id).await,
+        "amazon" => state.nile.launch_game(&game.app_name).await,
+        "steam" => {
+            // Steam uses its own launch mechanism
+            // For now, use the steam:// protocol
+            log::info!("Launching Steam game via protocol: {}", game.app_name);
+            // TODO: Use steam:// protocol or SteamAdapter
+            Ok(())
+        }
         _ => Err(anyhow::anyhow!("Unknown store: {}", game.store)),
     };
 
+    // Log env vars for debugging
+    if !env.is_empty() {
+        log::debug!("Launch environment: {:?}", env);
+    }
+
     match result {
         Ok(()) => {
-            // Wait a bit for the process to start
             tokio::time::sleep(Duration::from_secs(2)).await;
 
-            // Emit success event
             let success_event = LaunchSuccessEvent {
-                game_id: id.clone(),
-                pid: None, // We could track PIDs if needed
+                game_id: game.id.clone(),
+                pid: None,
             };
             let _ = window.emit("game-launched", &success_event);
-            log::info!("Game launched successfully: {}", game.title);
+            log::info!("Game launched successfully (v2): {}", game.title);
 
             Ok(())
         }
         Err(e) => {
-            // Emit error event
             let error_event = LaunchErrorEvent {
-                game_id: id.clone(),
+                game_id: game.id.clone(),
                 error: e.to_string(),
             };
             let _ = window.emit("game-launch-failed", &error_event);
-            log::error!("Failed to launch game {}: {}", game.title, e);
+            log::error!("Failed to launch game (v2) {}: {}", game.title, e);
 
             Err(e.to_string())
         }
@@ -439,27 +328,7 @@ pub async fn get_store_status(state: State<'_, AppState>) -> Result<Vec<StoreSta
     Ok(statuses)
 }
 
-#[tauri::command]
-pub async fn scan_gog_installed(state: State<'_, AppState>) -> Result<Vec<Game>, String> {
-    log::info!("Scanning GOG Games directory for installed games...");
-
-    let games = state
-        .gogdl
-        .scan_installed_games()
-        .await
-        .map_err(|e| format!("Failed to scan GOG games: {}", e))?;
-
-    // Save to database
-    let db = state.db.lock().await;
-    for game in &games {
-        if let Err(e) = db.upsert_game(game).await {
-            log::error!("Failed to save game {}: {}", game.title, e);
-        }
-    }
-
-    log::info!("Found and saved {} GOG games", games.len());
-    Ok(games)
-}
+// TODO: scan_gog_installed removed - migrated to GogdlService.ts
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

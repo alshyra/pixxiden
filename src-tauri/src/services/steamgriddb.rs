@@ -51,27 +51,7 @@ pub struct SteamGridDBImage {
     pub humor: bool,
 }
 
-/// Image style preferences
-#[derive(Debug, Clone, Copy)]
-pub enum GridStyle {
-    Alternate,
-    Blurred,
-    WhiteLogo,
-    Material,
-    NoLogo,
-}
-
-impl GridStyle {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Alternate => "alternate",
-            Self::Blurred => "blurred",
-            Self::WhiteLogo => "white_logo",
-            Self::Material => "material",
-            Self::NoLogo => "no_logo",
-        }
-    }
-}
+// TODO: GridStyle enum removed - not used in current implementation
 
 /// SteamGridDB service
 #[derive(Clone)]
@@ -144,33 +124,7 @@ impl SteamGridDBService {
         }))
     }
 
-    /// Get the SteamGridDB ID for a game by Steam app ID
-    pub async fn get_game_by_steam_id(&self, steam_app_id: u32) -> Result<Option<SteamGridDBGame>> {
-        let url = format!("{}/games/steam/{}", STEAMGRIDDB_API_BASE, steam_app_id);
-
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", self.auth_header())
-            .send()
-            .await
-            .context("Failed to send Steam ID lookup request")?;
-
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
-            return Ok(None);
-        }
-
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            anyhow::bail!("SteamGridDB rate limit exceeded");
-        }
-
-        let data: SteamGridDBResponse<SteamGridDBGame> = response
-            .json()
-            .await
-            .context("Failed to parse game response")?;
-
-        Ok(data.data)
-    }
+    // TODO: get_game_by_steam_id() removed - use search_game() instead
 
     /// Fetch hero images for a game
     pub async fn get_heroes(&self, game_id: u64) -> Result<Vec<SteamGridDBImage>> {
@@ -324,6 +278,7 @@ impl SteamGridDBService {
 
 /// Collection of game assets
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct GameAssets {
     pub game_id: u64,
     pub game_name: String,
@@ -400,11 +355,7 @@ mod tests {
         assert!(best.is_none());
     }
 
-    #[test]
-    fn test_grid_style() {
-        assert_eq!(GridStyle::Alternate.as_str(), "alternate");
-        assert_eq!(GridStyle::Material.as_str(), "material");
-    }
+    // Note: test_grid_style removed - GridStyle enum was removed
 }
 
 // ===================== INTEGRATION TESTS (require API key) =====================

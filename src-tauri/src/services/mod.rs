@@ -1,6 +1,5 @@
 pub mod achievements;
 pub mod api_keys;
-pub mod auth;
 pub mod cache_manager;
 pub mod game_enricher;
 pub mod howlongtobeat;

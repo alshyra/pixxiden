@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::process::Stdio;
 use tauri_plugin_shell::ShellExt;
 use tokio::fs;
-use tokio::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct LegendaryUser {
@@ -40,36 +38,33 @@ impl EpicAuth {
         }
     }
 
-    /// Get the Epic login URL from legendary
+    /// Get the Epic OAuth URL directly (without calling legendary to avoid browser opening)
     pub async fn get_auth_url(&self) -> Result<String, String> {
-        let output = self.app_handle
-            .shell()
-            .sidecar("legendary")
-            .map_err(|e| format!("Failed to get legendary sidecar: {}", e))?
-            .args(["auth", "--disable-webview"])
-            .output()
-            .await
-            .map_err(|e| format!("Failed to launch legendary: {}", e))?;
-           
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        // Constantes Epic OAuth (depuis legendary source code)
+        const CLIENT_ID: &str = "34a02cf8f4414e29b15921876da36f9a";
         
-        // Parse la sortie pour extraire l'URL
-        // Format: "Please manually open the following URL: https://legendary.gl/epiclogin"
-        let combined = format!("{}{}", stdout, stderr);
+        // Construire l'URL exactement comme legendary le fait
+        let redirect_url = format!(
+            "https://www.epicgames.com/id/api/redirect?clientId={}&responseType=code",
+            CLIENT_ID
+        );
         
-        for line in combined.lines() {
-            if line.contains("https://legendary.gl/epiclogin") {
-                if let Some(url) = line.split("URL: ").nth(1) {
-                    return Ok(url.trim().to_string());
-                }
-            }
-        }
+        // URL encoder le redirect
+        let encoded_redirect = urlencoding::encode(&redirect_url);
         
-        Err("Failed to get auth URL from legendary".to_string())
+        let auth_url = format!(
+            "https://www.epicgames.com/id/login?redirectUrl={}",
+            encoded_redirect
+        );
+        
+        log::info!("Epic OAuth URL constructed: {}", auth_url);
+        Ok(auth_url)
     }
 
+    /// Complete authentication with the authorization code
     pub async fn complete_auth(&self, auth_code: &str) -> Result<(), String> {
+        log::info!("Completing Epic authentication with code: {}", auth_code);
+        
         let output = self.app_handle
             .shell()
             .sidecar("legendary")
@@ -81,37 +76,12 @@ impl EpicAuth {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            log::error!("Epic auth failed: {}", stderr);
             return Err(format!("Auth failed: {}", stderr));
         }
 
+        log::info!("Epic authentication completed successfully");
         Ok(())
-    }
-    pub async fn start_auth(&self) -> Result<(), String> {
-        let (_rx, child) = self
-            .app_handle
-            .shell()
-            .sidecar("legendary")
-            .map_err(|e| format!("Failed to get legendary sidecar: {}", e))?
-            .arg("auth")
-            .spawn()
-            .map_err(|e| format!("Failed to launch legendary: {}", e))?;
-
-        // Legendary auth ouvre le navigateur et retourne immédiatement
-        // Pas besoin d'attendre le processus, on poll l'authentification
-
-        // Wait and verify authentication completed
-        for _ in 0..30 {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-            if self.is_authenticated().await {
-                // Kill le processus legendary s'il tourne encore
-                let _ = child.kill();
-                return Ok(());
-            }
-        }
-
-        // Timeout - kill le processus
-        let _ = child.kill();
-        Err("Authentication timeout - please try again".to_string())
     }
 
     pub async fn get_username(&self) -> Option<String> {

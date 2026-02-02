@@ -1,8 +1,4 @@
 use crate::commands::InstallProgressEvent;
-use crate::database::Game;
-use crate::store::StoreAdapter;
-use async_trait::async_trait;
-use chrono::Utc;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -18,43 +14,17 @@ pub struct LegendaryAdapter {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct LegendaryStatus {
     account: Option<String>,
     games_available: Option<i32>,
 }
 
-#[derive(Debug, Deserialize)]
-struct LegendaryGameInfo {
-    app_name: String,
-    app_title: String,
-    asset_infos: Option<serde_json::Value>,
-    metadata: Option<GameMetadata>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GameMetadata {
-    description: Option<String>,
-    developer: Option<String>,
-    #[serde(rename = "developerId")]
-    developer_id: Option<String>,
-    #[serde(rename = "keyImages")]
-    key_images: Option<Vec<KeyImage>>,
-    #[serde(rename = "releaseInfo")]
-    release_info: Option<Vec<ReleaseInfo>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct KeyImage {
-    #[serde(rename = "type")]
-    image_type: String,
-    url: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct ReleaseInfo {
-    #[serde(rename = "dateAdded")]
-    date_added: Option<String>,
-}
+// TODO: The following parsing structures (LegendaryGameInfo, GameMetadata, etc.) have been
+// migrated to TypeScript (LegendaryService.ts). This file now only handles:
+// - Binary detection (find_binary, find_config)
+// - Command execution (run_command, launch_game, install_game)
+// Keep only the minimal adapter interface
 
 impl LegendaryAdapter {
     pub fn new() -> Self {
@@ -135,87 +105,8 @@ impl LegendaryAdapter {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
-    fn extract_cover_url(metadata: &Option<GameMetadata>) -> Option<String> {
-        metadata.as_ref().and_then(|m| {
-            m.key_images.as_ref().and_then(|images| {
-                // Prefer DieselGameBoxTall (vertical cover)
-                images
-                    .iter()
-                    .find(|img| img.image_type == "DieselGameBoxTall")
-                    .or_else(|| images.iter().find(|img| img.image_type == "DieselGameBox"))
-                    .or_else(|| images.first())
-                    .map(|img| img.url.clone())
-            })
-        })
-    }
-
-    fn extract_background_url(metadata: &Option<GameMetadata>) -> Option<String> {
-        metadata.as_ref().and_then(|m| {
-            m.key_images.as_ref().and_then(|images| {
-                // Prefer DieselGameBox (horizontal/wide)
-                images
-                    .iter()
-                    .find(|img| img.image_type == "DieselGameBox")
-                    .or_else(|| {
-                        images
-                            .iter()
-                            .find(|img| img.image_type == "DieselGameBoxWide")
-                    })
-                    .map(|img| img.url.clone())
-            })
-        })
-    }
-
-    /// Read Heroic's installed.json to get installed games and their paths
-    fn read_installed_json(&self) -> std::collections::HashMap<String, String> {
-        let installed_path = self.config_path.join("installed.json");
-        let mut result = std::collections::HashMap::new();
-
-        if let Ok(content) = std::fs::read_to_string(&installed_path) {
-            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(obj) = data.as_object() {
-                    for (app_name, info) in obj {
-                        if let Some(install_path) =
-                            info.get("install_path").and_then(|v| v.as_str())
-                        {
-                            result.insert(app_name.clone(), install_path.to_string());
-                        }
-                    }
-                }
-            }
-        }
-
-        log::info!("Found {} installed Epic games from Heroic", result.len());
-        result
-    }
-
-    /// Read Heroic's GamesConfig/{app_name}.json to get wine config
-    fn read_heroic_game_config(&self, app_name: &str) -> Option<(String, String)> {
-        let config_dir = dirs::home_dir()?.join(".config/heroic/GamesConfig");
-        let config_path = config_dir.join(format!("{}.json", app_name));
-
-        if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(game_config) = data.get(app_name) {
-                    let wine_prefix = game_config
-                        .get("winePrefix")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string());
-                    let wine_version = game_config
-                        .get("wineVersion")
-                        .and_then(|v| v.get("name"))
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string());
-
-                    if let (Some(prefix), Some(version)) = (wine_prefix, wine_version) {
-                        return Some((prefix, version));
-                    }
-                }
-            }
-        }
-
-        None
-    }
+    // TODO: read_heroic_game_config method removed
+    // Wine configuration is now read via TypeScript services
 
     /// Install with progress events (must be outside trait impl)
     pub async fn install_game_with_progress(
@@ -293,19 +184,14 @@ impl LegendaryAdapter {
 
         Some((progress, downloaded, total_with_unit, speed, eta))
     }
-}
 
-#[async_trait]
-impl StoreAdapter for LegendaryAdapter {
-    fn name(&self) -> &'static str {
-        "epic"
-    }
-
-    fn is_available(&self) -> bool {
+    /// Check if Legendary CLI is available
+    pub fn is_available(&self) -> bool {
         self.binary_path.exists() || which::which("legendary").is_ok()
     }
 
-    async fn is_authenticated(&self) -> bool {
+    /// Check if user is authenticated to Epic Games
+    pub async fn is_authenticated(&self) -> bool {
         match self.run_command(&["status", "--json"]).await {
             Ok(output) => {
                 if let Ok(status) = serde_json::from_str::<LegendaryStatus>(&output) {
@@ -318,97 +204,18 @@ impl StoreAdapter for LegendaryAdapter {
         }
     }
 
-    async fn list_games(&self) -> anyhow::Result<Vec<Game>> {
-        let output = self.run_command(&["list", "--json"]).await?;
-        let games_data: Vec<LegendaryGameInfo> = serde_json::from_str(&output)?;
-
-        // Get installed games from Heroic's installed.json (more reliable)
-        let installed_data = self.read_installed_json();
-        let installed_ids: std::collections::HashSet<String> =
-            installed_data.keys().cloned().collect();
-        let install_paths: std::collections::HashMap<String, String> = installed_data;
-
-        let now = Utc::now();
-        let games: Vec<Game> = games_data
-            .into_iter()
-            .map(|g| {
-                let id = format!("epic_{}", g.app_name);
-                let (wine_prefix, wine_version) = self
-                    .read_heroic_game_config(&g.app_name)
-                    .unwrap_or((String::new(), String::new()));
-
-                Game {
-                    id,
-                    title: g.app_title,
-                    store: "epic".to_string(),
-                    store_id: g.app_name.clone(),
-                    installed: installed_ids.contains(&g.app_name),
-                    install_path: install_paths.get(&g.app_name).cloned(),
-                    custom_executable: None,
-                    wine_prefix: if wine_prefix.is_empty() {
-                        None
-                    } else {
-                        Some(wine_prefix)
-                    },
-                    wine_version: if wine_version.is_empty() {
-                        None
-                    } else {
-                        Some(wine_version)
-                    },
-                    cover_url: Self::extract_cover_url(&g.metadata),
-                    background_url: Self::extract_background_url(&g.metadata),
-                    developer: g.metadata.as_ref().and_then(|m| m.developer.clone()),
-                    publisher: None,
-                    description: g.metadata.as_ref().and_then(|m| m.description.clone()),
-                    release_date: g.metadata.as_ref().and_then(|m| {
-                        m.release_info
-                            .as_ref()
-                            .and_then(|r| r.first().and_then(|ri| ri.date_added.clone()))
-                    }),
-                    last_played: None,
-                    play_time_minutes: 0,
-                    created_at: now,
-                    updated_at: now,
-                }
-            })
-            .collect();
-
-        log::info!("Found {} Epic Games", games.len());
-        Ok(games)
+    /// DEPRECATED: Migrated to LegendaryService.ts
+    pub async fn launch_game(&self, _store_id: &str) -> anyhow::Result<()> {
+        anyhow::bail!("launch_game() migrated to LegendaryService.ts - use TypeScript implementation")
     }
 
-    async fn launch_game(&self, store_id: &str) -> anyhow::Result<()> {
-        log::info!("Launching Epic game: {}", store_id);
-
-        // Read wine config from Heroic
-        let (wine_prefix, _wine_version) = self
-            .read_heroic_game_config(store_id)
-            .unwrap_or((String::new(), String::new()));
-
-        let mut cmd = Command::new(&self.binary_path);
-        cmd.args(["launch", store_id])
-            .env("LEGENDARY_CONFIG_PATH", &self.config_path);
-
-        // If wine prefix exists, pass it to legendary
-        if !wine_prefix.is_empty() {
-            log::info!("Using wine prefix: {}", wine_prefix);
-            cmd.env("WINEPREFIX", wine_prefix);
-        }
-
-        cmd.spawn()?;
-
-        Ok(())
-    }
-
-    async fn install_game(&self, store_id: &str) -> anyhow::Result<()> {
-        log::info!("Installing Epic game: {}", store_id);
-        self.run_command(&["install", store_id, "-y"]).await?;
-        Ok(())
-    }
-
-    async fn uninstall_game(&self, store_id: &str) -> anyhow::Result<()> {
-        log::info!("Uninstalling Epic game: {}", store_id);
-        self.run_command(&["uninstall", store_id, "-y"]).await?;
-        Ok(())
+    /// DEPRECATED: Migrated to LegendaryService.ts
+    pub async fn uninstall_game(&self, _store_id: &str) -> anyhow::Result<()> {
+        anyhow::bail!("uninstall_game() migrated to LegendaryService.ts - use TypeScript implementation")
     }
 }
+
+// TODO: StoreAdapter trait implementation removed
+// All game library operations (list_games, launch_game, install_game, uninstall_game)
+// migrated to LegendaryService.ts in TypeScript
+// Only binary detection, CLI command execution, and authentication check remain in Rust

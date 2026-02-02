@@ -66,9 +66,6 @@ export interface Game {
   enrichedAt?: string;
 }
 
-// Backwards compatibility alias
-export type EnrichedGame = Game;
-
 /**
  * Cache statistics
  */

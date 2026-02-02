@@ -121,6 +121,7 @@ pub struct GameMetadata {
 /// ProtonDB tier enum for type safety
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
 pub enum ProtonTier {
     Platinum,
     Gold,
@@ -131,6 +132,7 @@ pub enum ProtonTier {
 }
 
 impl ProtonTier {
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "platinum" => Some(Self::Platinum),
@@ -143,6 +145,7 @@ impl ProtonTier {
         }
     }
 
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Platinum => "platinum",
@@ -157,6 +160,7 @@ impl ProtonTier {
 
 /// IGDB search result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct IGDBGameResult {
     pub id: u64,
     pub name: String,
@@ -197,6 +201,7 @@ pub struct IGDBExternalGame {
 
 /// SteamGridDB search result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SteamGridDBGame {
     pub id: u64,
     pub name: String,
@@ -205,6 +210,7 @@ pub struct SteamGridDBGame {
 
 /// HowLongToBeat search result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct HLTBResult {
     pub game_id: u64,
     pub game_name: String,
@@ -217,6 +223,7 @@ pub struct HLTBResult {
 /// ProtonDB compatibility report
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct ProtonDBReport {
     pub tier: String,
     pub confidence: String,
@@ -227,6 +234,7 @@ pub struct ProtonDBReport {
 
 /// Steam achievements data
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SteamAchievements {
     pub total: u32,
     pub unlocked: u32,
@@ -234,6 +242,7 @@ pub struct SteamAchievements {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SteamAchievement {
     pub api_name: String,
     pub name: String,

@@ -107,7 +107,7 @@ struct HLTBUserOptions {
 
 /// Search response
 #[derive(Debug, Deserialize)]
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct HLTBSearchResponse {
     color: Option<String>,
     title: Option<String>,
@@ -120,6 +120,7 @@ struct HLTBSearchResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct HLTBGameData {
     game_id: u64,
     game_name: String,
@@ -283,27 +284,7 @@ impl HowLongToBeatService {
         }))
     }
 
-    /// Parse hours from string (handles various formats)
-    fn parse_hours(text: &str) -> Option<f32> {
-        let cleaned = text
-            .trim()
-            .replace("½", ".5")
-            .replace("¼", ".25")
-            .replace("¾", ".75");
-
-        // Handle "XX Hours" format
-        if let Some(hours_str) = cleaned.strip_suffix(" Hours") {
-            return hours_str.trim().parse().ok();
-        }
-
-        // Handle "XX Mins" format
-        if let Some(mins_str) = cleaned.strip_suffix(" Mins") {
-            return mins_str.trim().parse::<f32>().ok().map(|m| m / 60.0);
-        }
-
-        // Handle plain number
-        cleaned.parse().ok()
-    }
+    // TODO: parse_hours() method removed - not used in current implementation
 }
 
 impl Default for HowLongToBeatService {
@@ -316,14 +297,7 @@ impl Default for HowLongToBeatService {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_parse_hours() {
-        assert_eq!(HowLongToBeatService::parse_hours("10 Hours"), Some(10.0));
-        assert_eq!(HowLongToBeatService::parse_hours("10.5 Hours"), Some(10.5));
-        assert_eq!(HowLongToBeatService::parse_hours("30 Mins"), Some(0.5));
-        assert_eq!(HowLongToBeatService::parse_hours("10½ Hours"), Some(10.5));
-        assert_eq!(HowLongToBeatService::parse_hours("invalid"), None);
-    }
+    // test_parse_hours removed - method was migrated to TypeScript
 
     #[test]
     fn test_hltb_durations_default() {

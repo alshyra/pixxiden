@@ -44,6 +44,7 @@ impl ExternalCategory {
 struct TwitchTokenResponse {
     access_token: String,
     expires_in: u64,
+    #[allow(dead_code)]
     token_type: String,
 }
 
@@ -274,62 +275,8 @@ limit 1;"#,
         Ok(games.into_iter().next())
     }
 
-    /// Get a game by Steam app ID
-    pub async fn get_by_steam_id(&mut self, steam_app_id: u32) -> Result<Option<IGDBGame>> {
-        let body = format!(
-            r#"fields name, summary, storyline, rating, aggregated_rating, first_release_date,
-       genres.name, involved_companies.company.name, involved_companies.developer,
-       involved_companies.publisher, external_games.category, external_games.uid,
-       platforms.name, cover.url, cover.image_id;
-where external_games.category = 1 & external_games.uid = "{}";
-limit 1;"#,
-            steam_app_id
-        );
-
-        let response = self.query("games", &body).await?;
-        let games: Vec<IGDBGame> =
-            serde_json::from_str(&response).context("Failed to parse IGDB response")?;
-
-        Ok(games.into_iter().next())
-    }
-
-    /// Get a game by Epic store ID
-    pub async fn get_by_epic_id(&mut self, epic_id: &str) -> Result<Option<IGDBGame>> {
-        let body = format!(
-            r#"fields name, summary, storyline, rating, aggregated_rating, first_release_date,
-       genres.name, involved_companies.company.name, involved_companies.developer,
-       involved_companies.publisher, external_games.category, external_games.uid,
-       platforms.name, cover.url, cover.image_id;
-where external_games.category = 26 & external_games.uid = "{}";
-limit 1;"#,
-            epic_id
-        );
-
-        let response = self.query("games", &body).await?;
-        let games: Vec<IGDBGame> =
-            serde_json::from_str(&response).context("Failed to parse IGDB response")?;
-
-        Ok(games.into_iter().next())
-    }
-
-    /// Get a game by GOG ID
-    pub async fn get_by_gog_id(&mut self, gog_id: &str) -> Result<Option<IGDBGame>> {
-        let body = format!(
-            r#"fields name, summary, storyline, rating, aggregated_rating, first_release_date,
-       genres.name, involved_companies.company.name, involved_companies.developer,
-       involved_companies.publisher, external_games.category, external_games.uid,
-       platforms.name, cover.url, cover.image_id;
-where external_games.category = 5 & external_games.uid = "{}";
-limit 1;"#,
-            gog_id
-        );
-
-        let response = self.query("games", &body).await?;
-        let games: Vec<IGDBGame> =
-            serde_json::from_str(&response).context("Failed to parse IGDB response")?;
-
-        Ok(games.into_iter().next())
-    }
+    // TODO: get_by_steam_id(), get_by_epic_id(), get_by_gog_id() removed
+    // Use search() with game name instead - external ID matching is unreliable
 
     /// Parse IGDB game to metadata
     pub fn parse_metadata(&self, game: &IGDBGame) -> IGDBMetadata {
@@ -577,18 +524,5 @@ mod integration_tests {
         println!("  Steam ID: {:?}", metadata.steam_app_id);
     }
 
-    #[tokio::test]
-    #[ignore = "Requires IGDB_CLIENT_ID and IGDB_CLIENT_SECRET"]
-    async fn test_get_by_steam_id() {
-        let mut service = get_service().expect("IGDB credentials required");
-
-        // Hollow Knight Steam ID
-        let result = service.get_by_steam_id(367520).await;
-        assert!(result.is_ok());
-
-        let game = result.unwrap();
-        if let Some(game) = game {
-            println!("Found by Steam ID: {} ({})", game.name, game.id);
-        }
-    }
+    // Note: test_get_by_steam_id removed - method was migrated to TypeScript
 }

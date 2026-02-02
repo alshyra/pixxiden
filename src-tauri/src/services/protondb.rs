@@ -42,17 +42,7 @@ impl ProtonTier {
         }
     }
 
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Platinum => "platinum",
-            Self::Gold => "gold",
-            Self::Silver => "silver",
-            Self::Bronze => "bronze",
-            Self::Borked => "borked",
-            Self::Pending => "pending",
-            Self::Native => "native",
-        }
-    }
+    // TODO: as_str() removed - use tier string directly
 
     /// Get a numeric score for sorting (higher is better)
     pub fn score(&self) -> u8 {
@@ -79,6 +69,7 @@ impl ProtonTier {
 /// ProtonDB summary response
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct ProtonDBSummary {
     pub tier: String,
     pub total: u32,
@@ -177,39 +168,8 @@ impl ProtonDBService {
         }))
     }
 
-    /// Check if a game is compatible (gold or better)
-    pub async fn is_compatible(&self, steam_app_id: u32) -> Result<bool> {
-        let summary = self.get_summary(steam_app_id).await?;
-
-        Ok(summary
-            .and_then(|s| ProtonTier::from_str(&s.tier))
-            .map(|t| {
-                matches!(
-                    t,
-                    ProtonTier::Native | ProtonTier::Platinum | ProtonTier::Gold
-                )
-            })
-            .unwrap_or(false))
-    }
-
-    /// Batch fetch compatibility for multiple Steam app IDs
-    pub async fn get_batch_compatibility(
-        &self,
-        steam_app_ids: &[u32],
-    ) -> Vec<(u32, Option<ProtonDBCompatibility>)> {
-        // Use sequential requests to avoid rate limiting
-        let mut results = Vec::new();
-
-        for &app_id in steam_app_ids {
-            let compat = self.get_compatibility(app_id).await.ok().flatten();
-            results.push((app_id, compat));
-
-            // Small delay to avoid rate limiting
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-
-        results
-    }
+    // TODO: is_compatible() and get_batch_compatibility() removed
+    // Use get_compatibility() and check is_playable field instead
 }
 
 impl Default for ProtonDBService {
@@ -324,30 +284,6 @@ mod integration_tests {
         assert!(compat.is_playable);
     }
 
-    #[tokio::test]
-    #[ignore = "Requires network access"]
-    async fn test_is_compatible() {
-        let service = ProtonDBService::new();
-
-        // Hollow Knight should be compatible
-        let compatible = service.is_compatible(367520).await;
-        assert!(compatible.is_ok());
-        assert!(compatible.unwrap(), "Hollow Knight should be compatible");
-    }
-
-    #[tokio::test]
-    #[ignore = "Requires network access"]
-    async fn test_batch_compatibility() {
-        let service = ProtonDBService::new();
-
-        // Multiple games
-        let app_ids = vec![367520, 105600, 413150]; // Hollow Knight, Terraria, Stardew Valley
-        let results = service.get_batch_compatibility(&app_ids).await;
-
-        assert_eq!(results.len(), 3);
-
-        for (app_id, compat) in results {
-            println!("App {}: {:?}", app_id, compat.as_ref().map(|c| &c.tier));
-        }
-    }
+    // Note: Tests for is_compatible and get_batch_compatibility removed
+    // These methods were migrated to TypeScript services
 }

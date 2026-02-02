@@ -223,54 +223,9 @@ impl Database {
         }))
     }
 
-    pub async fn upsert_game(&self, game: &Game) -> anyhow::Result<()> {
-        sqlx::query(
-            r#"
-            INSERT INTO games (id, title, store, store_id, installed, install_path, custom_executable,
-                              wine_prefix, wine_version,
-                              cover_url, background_url, developer, publisher, description,
-                              release_date, last_played, play_time_minutes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(store, store_id) DO UPDATE SET
-                title = excluded.title,
-                installed = excluded.installed,
-                install_path = excluded.install_path,
-                wine_prefix = excluded.wine_prefix,
-                wine_version = excluded.wine_version,
-                cover_url = excluded.cover_url,
-                background_url = excluded.background_url,
-                developer = excluded.developer,
-                publisher = excluded.publisher,
-                description = excluded.description,
-                release_date = excluded.release_date,
-                updated_at = excluded.updated_at
-            "#,
-        )
-        .bind(&game.id)
-        .bind(&game.title)
-        .bind(&game.store)
-        .bind(&game.store_id)
-        .bind(if game.installed { 1 } else { 0 })
-        .bind(&game.install_path)
-        .bind(&game.custom_executable)
-        .bind(&game.wine_prefix)
-        .bind(&game.wine_version)
-        .bind(&game.cover_url)
-        .bind(&game.background_url)
-        .bind(&game.developer)
-        .bind(&game.publisher)
-        .bind(&game.description)
-        .bind(&game.release_date)
-        .bind(game.last_played.map(|dt| dt.to_rfc3339()))
-        .bind(game.play_time_minutes)
-        .bind(game.created_at.to_rfc3339())
-        .bind(game.updated_at.to_rfc3339())
-        .execute(&self.pool)
-        .await?;
+    // TODO: upsert_game method removed - game management migrated to TypeScript services
 
-        Ok(())
-    }
-
+    #[allow(dead_code)]
     pub async fn set_installed(
         &self,
         id: &str,
@@ -293,6 +248,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn update_play_time(&self, id: &str, minutes: i64) -> anyhow::Result<()> {
         sqlx::query(
             r#"
