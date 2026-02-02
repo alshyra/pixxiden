@@ -14,8 +14,9 @@
 <script setup lang="ts">
 import { SettingsSidebar } from "@/components/settings";
 import { useGamepad } from "@/composables/useGamepad";
+import { onKeyStroke } from "@vueuse/core";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
-import { onMounted, onUnmounted, ref } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -31,12 +32,9 @@ function closeSettings() {
 }
 
 // Keyboard handler
-function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === KEYBOARD_SHORTCUTS.BACK) {
-    e.preventDefault();
-    closeSettings();
-  }
-}
+onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
+  closeSettings();
+});
 
 // Navigation in settings sections with gamepad
 function navigateSidebar(direction: "up" | "down") {
@@ -92,13 +90,7 @@ onGamepad("confirm", () => {
   }
 });
 
-onMounted(() => {
-  window.addEventListener("keydown", handleKeyDown);
-});
 
-onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
-});
 </script>
 
 <style scoped>

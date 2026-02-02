@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import { onKeyStroke } from "@vueuse/core";
 import { useLibraryStore } from "@/stores/library";
 import { useGamepad } from "@/composables/useGamepad";
 import { useCurrentGame } from "@/composables/useCurrentGame";
@@ -72,41 +73,29 @@ const {
 } = useCurrentGame();
 
 // === INPUT HANDLERS ===
-function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === KEYBOARD_SHORTCUTS.BACK) {
-    e.preventDefault();
-    router.back();
-    return;
-  }
+onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
+  router.back();
+});
 
-  if (e.key === KEYBOARD_SHORTCUTS.CONFIRM) {
-    e.preventDefault();
-    // Install modal est maintenant géré par GameActions (Smart Component)
-    if (game.value?.installed) {
-      playGame();
-    }
-    return;
+onKeyStroke(KEYBOARD_SHORTCUTS.CONFIRM, () => {
+  if (game.value?.installed) {
+    playGame();
   }
-}
+});
 
 onGamepad("back", () => router.back());
 onGamepad("confirm", () => game.value?.installed && playGame());
 
 // === LIFECYCLE ===
 onMounted(async () => {
-  // Setup Tauri event listeners (download progress, launch events, etc.)
   await setupEventListeners();
 
-  // Fetch games si pas encore chargés
   if (libraryStore.games.length === 0) {
     await libraryStore.fetchGames();
   }
-
-  window.addEventListener("keydown", handleKeyDown);
 });
 
 onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
   cleanup();
 });
 </script>

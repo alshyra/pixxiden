@@ -1,62 +1,35 @@
 <template>
-  <div
-    class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600"
-  >
+  <div class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600">
     <!-- Hero Banner -->
-    <HeroBanner
-      :game="selectedGame"
-      @open-details="openGameDetails(selectedGame)"
-      class="transition-all duration-600"
-    />
+    <HeroBanner :game="selectedGame" @open-details="openGameDetails(selectedGame)"
+      class="transition-all duration-600" />
 
     <!-- Games Carousel -->
     <div class="absolute bottom-14 left-0 right-0">
-      <GameCarousel
-        ref="carouselRef"
-        :games="filteredGames"
-        :selected-id="selectedGame?.id"
-        :playing-id="playingGame?.id"
-        @select="selectGame"
-        @open="openGameDetails"
-      />
+      <GameCarousel ref="carouselRef" :games="filteredGames" :selected-id="selectedGame?.id"
+        :playing-id="playingGame?.id" @select="selectGame" @open="openGameDetails" />
     </div>
 
     <!-- Top Filters -->
     <TopFilters v-model="currentFilter" />
 
     <!-- Loading Overlay -->
-    <Transition
-      enter-active-class="transition-opacity duration-300"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-300"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="loading"
-        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm"
-      >
-        <div
-          class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4"
-        />
+    <Transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-opacity duration-300" leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="loading"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+        <div class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4" />
         <p class="text-white/60 text-sm font-medium">Chargement de votre bibliothèque...</p>
       </div>
     </Transition>
 
     <!-- Empty State -->
-    <Transition
-      enter-active-class="transition-all duration-500"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition-all duration-300"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <div
-        v-if="!loading && filteredGames.length === 0"
-        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
-      >
+    <Transition enter-active-class="transition-all duration-500" enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-300"
+      leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+      <div v-if="!loading && filteredGames.length === 0"
+        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
         <div class="mb-6 opacity-50">
           <Package class="w-24 h-24 text-white/30" />
         </div>
@@ -73,14 +46,8 @@
           }}
         </p>
 
-        <Button
-          v-if="currentFilter === 'all'"
-          variant="primary"
-          size="lg"
-          :loading="syncing"
-          :disabled="syncing"
-          @click="openSettings"
-        >
+        <Button v-if="currentFilter === 'all'" variant="primary" size="lg" :loading="syncing" :disabled="syncing"
+          @click="openSettings">
           <template #icon>
             <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': syncing }" />
           </template>
@@ -90,18 +57,11 @@
     </Transition>
 
     <!-- Game Count Badge -->
-    <Transition
-      enter-active-class="transition-all duration-300"
-      enter-from-class="opacity-0 translate-y-4"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition-all duration-200"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 translate-y-4"
-    >
-      <div
-        v-if="!loading && filteredGames.length > 0"
-        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md"
-      >
+    <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 translate-y-4"
+      enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-200"
+      leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-4">
+      <div v-if="!loading && filteredGames.length > 0"
+        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md">
         {{ filteredGames.length }} {{ filteredGames.length === 1 ? "jeu" : "jeux" }}
       </div>
     </Transition>
@@ -109,10 +69,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
+import { onKeyStroke } from "@vueuse/core";
 import { useLibraryStore } from "@/stores/library";
 import { useGamepad } from "@/composables/useGamepad";
+import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 import { Button } from "@/components/ui";
 import { RefreshCw, Package } from "lucide-vue-next";
 import type { Game } from "@/types";
@@ -233,78 +195,66 @@ async function loadGames() {
 }
 
 // Handle keyboard shortcuts
-function handleKeyDown(e: KeyboardEvent) {
-  // Don't trigger if typing in an input
-  if (document.activeElement?.tagName === "INPUT") return;
+onKeyStroke("ArrowLeft", () => {
+  navigateCarousel("left");
+});
 
-  // Arrow keys for navigation
-  if (e.key === "ArrowLeft") {
-    e.preventDefault();
-    navigateCarousel("left");
-    return;
-  }
-  if (e.key === "ArrowRight") {
-    e.preventDefault();
-    navigateCarousel("right");
-    return;
-  }
-  if (e.key === "ArrowUp") {
-    e.preventDefault();
-    navigateFilters("up");
-    return;
-  }
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    navigateFilters("down");
-    return;
-  }
+onKeyStroke("ArrowRight", () => {
+  navigateCarousel("right");
+});
 
-  // Q/E keys for filter switching (LB/RB equivalent)
-  if (e.key === "q" || e.key === "Q") {
-    e.preventDefault();
-    switchFilter("prev");
-    return;
-  }
-  if (e.key === "e" || e.key === "E") {
-    e.preventDefault();
-    switchFilter("next");
-    return;
-  }
+onKeyStroke("ArrowUp", () => {
+  navigateFilters("up");
+});
 
-  // S key to open settings
-  if ((e.key === "s" || e.key === "S") && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    e.preventDefault();
-    openSettings();
-  }
+onKeyStroke("ArrowDown", () => {
+  navigateFilters("down");
+});
 
-  // Enter / A to open game details
-  if (e.key === "Enter" || e.key === "a" || e.key === "A") {
-    if (selectedGame.value) {
-      e.preventDefault();
-      openGameDetails(selectedGame.value);
-    }
-  }
+onKeyStroke(["q", "Q"], () => {
+  switchFilter("prev");
+});
 
-  // Escape / B to go back
-  if (e.key === "Escape" || e.key === "b" || e.key === "B") {
-    e.preventDefault();
-    router.back();
-  }
-}
+onKeyStroke(["e", "E"], () => {
+  switchFilter("next");
+});
 
-// Watch for filter changes
+onKeyStroke([\"s\", \"S\"], (event: KeyboardEvent) => {
+  const target = document.activeElement as HTMLElement;
+if (target?.tagName !== \"INPUT\" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+openSettings();
+  }
+});
+  }
+});
+
+onKeyStroke("Enter", () => {
+  if (selectedGame.value) {
+    openGameDetails(selectedGame.value);
+  }
+});
+
+onKeyStroke("a", () => {
+  if (selectedGame.value) {
+    openGameDetails(selectedGame.value);
+  }
+});
+
+onKeyStroke("A", () => {
+  if (selectedGame.value) {
+    openGameDetails(selectedGame.value);
+  }
+});
+
+onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
+  router.back();
+});
+
+// Load games on mount
 watch(
-  filteredGames,
-  () => {
-    // Reset selection to first game
-    selectedIndex.value = 0;
-
-    // Update selected game
-    if (filteredGames.value.length > 0) {
-      selectedGame.value = filteredGames.value[0];
-    } else {
-      selectedGame.value = null;
-    }
+  () => libraryStore.games,
+  async () => {
+    await loadGames();
   },
   { immediate: true },
 );
@@ -356,15 +306,7 @@ onGamepad("rb", () => {
   switchFilter("next");
 });
 
-onMounted(() => {
-  loadGames();
 
-  window.addEventListener("keydown", handleKeyDown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
-});
 </script>
 
 <style scoped>
