@@ -1,18 +1,12 @@
 <template>
   <div class="fixed inset-0 flex gap-6 p-6 pb-20 z-50 bg-black/85 backdrop-blur-lg">
     <!-- Sidebar -->
-    <SettingsSidebar
-      :focused="focusZone === 'sidebar'"
-      :focused-index="focusedMenuIndex"
-      version="v0.1.0-alpha"
-    />
+    <SettingsSidebar :focused="focusZone === 'sidebar'" :focused-index="focusedMenuIndex" version="v0.1.0-alpha" />
 
     <!-- Main Content -->
-    <main
-      class="flex-1 bg-[#141419]/95 border border-white/10 rounded-[10px] p-8 overflow-y-auto"
-      :class="{ 'ring-2 ring-[#5e5ce6]': focusZone === 'content' }"
-    >
-      <RouterView/>
+    <main class="flex-1 bg-[#141419]/95 border border-white/10 rounded-[10px] p-8 overflow-y-auto"
+      :class="{ 'ring-2 ring-[#5e5ce6]': focusZone === 'content' }">
+      <RouterView />
     </main>
   </div>
 </template>
@@ -20,6 +14,7 @@
 <script setup lang="ts">
 import { SettingsSidebar } from "@/components/settings";
 import { useGamepad } from "@/composables/useGamepad";
+import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
@@ -37,7 +32,7 @@ function closeSettings() {
 
 // Keyboard handler
 function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === "Escape" || e.key === "b" || e.key === "B") {
+  if (e.key === KEYBOARD_SHORTCUTS.BACK) {
     e.preventDefault();
     closeSettings();
   }

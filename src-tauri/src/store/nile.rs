@@ -61,7 +61,3 @@ impl NileAdapter {
         anyhow::bail!("uninstall_game() migrated to NileService.ts - use TypeScript implementation")
     }
 }
-
-// TODO: StoreAdapter trait implementation removed
-// Amazon Games library operations migrated to NileService.ts in TypeScript
-// Only binary detection and authentication check remain in Rust

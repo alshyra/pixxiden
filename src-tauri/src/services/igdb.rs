@@ -275,9 +275,6 @@ limit 1;"#,
         Ok(games.into_iter().next())
     }
 
-    // TODO: get_by_steam_id(), get_by_epic_id(), get_by_gog_id() removed
-    // Use search() with game name instead - external ID matching is unreliable
-
     /// Parse IGDB game to metadata
     pub fn parse_metadata(&self, game: &IGDBGame) -> IGDBMetadata {
         // Extract developer and publisher

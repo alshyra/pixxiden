@@ -83,9 +83,6 @@ impl CacheManager {
         })
     }
 
-    // TODO: with_path() and cache_dir() methods removed - only used for testing
-    // Use new() or get_or_create() instead
-
     /// Get the assets directory path
     pub fn assets_dir(&self) -> PathBuf {
         self.cache_dir.join("assets")
@@ -161,8 +158,6 @@ impl CacheManager {
         Ok(())
     }
 
-    // TODO: has_game_metadata() removed - use get_game_metadata().is_some() instead
-
     /// Remove metadata for a specific game
     pub async fn remove_game_metadata(&self, game_id: &str) -> Result<()> {
         let mut cache = self.load_metadata_cache().await?;
@@ -170,10 +165,6 @@ impl CacheManager {
         self.save_metadata_cache(&cache).await?;
         Ok(())
     }
-
-    // ===================== ASSET OPERATIONS =====================
-
-    // TODO: get_asset_path() removed - use game_assets_dir() and build path manually
 
     /// Check if an asset exists
     pub async fn has_asset(&self, game_id: &str, asset_type: AssetType) -> bool {

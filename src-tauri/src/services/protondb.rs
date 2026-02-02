@@ -42,8 +42,6 @@ impl ProtonTier {
         }
     }
 
-    // TODO: as_str() removed - use tier string directly
-
     /// Get a numeric score for sorting (higher is better)
     pub fn score(&self) -> u8 {
         match self {
@@ -167,9 +165,6 @@ impl ProtonDBService {
             }
         }))
     }
-
-    // TODO: is_compatible() and get_batch_compatibility() removed
-    // Use get_compatibility() and check is_playable field instead
 }
 
 impl Default for ProtonDBService {

@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col"
-  >
+  <div class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
     <!-- Hero Section (Smart Component) -->
     <GameHeroSection />
 
@@ -32,13 +30,8 @@
     </div>
 
     <!-- Launch Overlay -->
-    <LaunchOverlay
-      :is-visible="isLaunching"
-      :game-title="game?.title || 'Game'"
-      :runner="launchRunner"
-      :error="launchError"
-      @close="closeLaunchOverlay"
-    />
+    <LaunchOverlay :is-visible="isLaunching" :game-title="game?.title || 'Game'" :runner="launchRunner"
+      :error="launchError" @close="closeLaunchOverlay" />
   </div>
 </template>
 
@@ -49,6 +42,7 @@ import { useLibraryStore } from "@/stores/library";
 import { useGamepad } from "@/composables/useGamepad";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 import { GameHeroSection, GameInfoCard, GameStatsGrid, LaunchOverlay } from "@/components/game";
+import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 
 /**
  * GameDetails - Page détail d'un jeu
@@ -79,13 +73,13 @@ const {
 
 // === INPUT HANDLERS ===
 function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === "Escape" || e.key === "b" || e.key === "B") {
+  if (e.key === KEYBOARD_SHORTCUTS.BACK) {
     e.preventDefault();
     router.back();
     return;
   }
 
-  if (e.key === "a" || e.key === "A" || e.key === "Enter") {
+  if (e.key === KEYBOARD_SHORTCUTS.CONFIRM) {
     e.preventDefault();
     // Install modal est maintenant géré par GameActions (Smart Component)
     if (game.value?.installed) {

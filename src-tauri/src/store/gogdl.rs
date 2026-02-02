@@ -12,9 +12,6 @@ pub struct GogdlAdapter {
     config_path: PathBuf,
 }
 
-// TODO: Structures GogGame, InstalledGame, InstalledGames migrated to GogdlService.ts
-// Only binary/config detection and CLI command execution remain in Rust
-
 /// Simple structure to support launch_game_with_custom_exe
 #[derive(Debug, Clone)]
 struct InstalledGameInfo {
@@ -68,9 +65,6 @@ impl GogdlAdapter {
             .map(|c| c.join("gogdl"))
             .unwrap_or_else(|| PathBuf::from("~/.config/gogdl"))
     }
-
-    // TODO: find_wine_ge, launch_game_with_wine, run_command methods removed
-    // Game launching is now handled via TypeScript services calling CLI directly
 
     /// Read installed games from Heroic's gog_store/installed.json
     /// Simple structure to support launch_game_with_custom_exe

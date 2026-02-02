@@ -9,9 +9,6 @@ pub struct SteamAdapter {
     pub steam_path: Option<PathBuf>,
 }
 
-// TODO: VDF parsing and library folder detection migrated to SteamService.ts
-// This adapter now only keeps steam_path detection for backward compatibility
-
 impl SteamAdapter {
     pub fn new() -> Self {
         let steam_path = Self::find_steam_path();
@@ -94,13 +91,6 @@ impl SteamAdapter {
 
         None
     }
-
-    // TODO: The following methods were migrated to SteamService.ts:
-    // - find_library_folders() - VDF parsing for library detection
-    // - get_installed_games() - ACF parsing for installed game detection
-    // - parse_app_manifest() - Full appmanifest parsing
-    // - extract_vdf_value() - VDF value extraction
-    // Only binary detection and authentication check remain in Rust
 }
 
 impl Default for SteamAdapter {
