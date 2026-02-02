@@ -11,5 +11,5 @@ export { default as Toggle } from "./Toggle.vue";
 export { default as SetupWizard } from "./SetupWizard.vue";
 export { default as ControllerButton } from "./ControllerButton.vue";
 
-// Re-export types
-export type { SelectOption } from "./Select.vue";
+// Note: Type exports from .vue files require separate .d.ts files
+// For now, types are documented in the component files themselves

@@ -2,15 +2,16 @@
  * Core API utilities - Tauri invoke wrapper and mock mode
  */
 
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _invoke: ((cmd: string, args?: Record<string, unknown>) => Promise<any>) | null = null;
 
 export const getInvoke = async () => {
   if (_invoke) return _invoke;
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    _invoke = invoke;
-    return invoke;
+    _invoke = tauriInvoke as typeof tauriInvoke;
+    return _invoke;
   } catch (e) {
     console.warn("[API] Failed to import Tauri invoke (expected in E2E):", e);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

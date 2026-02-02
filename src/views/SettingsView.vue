@@ -65,29 +65,25 @@ onGamepad("back", () => {
 });
 
 onGamepad("navigate", ({ direction }: { direction: string }) => {
-  if (focusZone.value === "sidebar") {
-    if (direction === "up" || direction === "down") {
-      navigateSidebar(direction as "up" | "down");
-    }
-  }
+  if (focusZone.value !== "sidebar") return
+  if (direction !== "up" && direction !== "down") return
+  navigateSidebar(direction);
   // Content navigation is handled by child components
 });
 
 onGamepad("confirm", () => {
-  if (focusZone.value === "sidebar") {
-    const sections = [
-      { id: "system", label: "Système" },
-      { id: "store", label: "Magasins" },
-      { id: "api-keys", label: "Clés API" },
-      { id: "advanced", label: "Avancé" },
-    ];
-    // Select the focused menu item
-    const section = sections[focusedMenuIndex.value];
-    if (section) {
-      router.push(`/settings/${section.id}`);
-      focusZone.value = "content";
-    }
-  }
+  if (focusZone.value !== "sidebar") return
+  const sections = [
+    { id: "system", label: "Système" },
+    { id: "store", label: "Magasins" },
+    { id: "api-keys", label: "Clés API" },
+    { id: "advanced", label: "Avancé" },
+  ];
+  // Select the focused menu item
+  const section = sections[focusedMenuIndex.value];
+  if (!section) return
+  router.push(`/settings/${section.id}`);
+  focusZone.value = "content";
 });
 
 

@@ -58,7 +58,6 @@ const globalState = ref<GamepadState>({
 
 // Track if global listener is already registered
 let isGlobalListenerRegistered = false;
-let gamepadPollInterval: ReturnType<typeof setInterval> | null = null;
 let previousButtonStates: boolean[] = [];
 let previousAxes: number[] = [0, 0, 0, 0];
 let lastNavigationTime = 0;
@@ -301,7 +300,7 @@ function startGlobalListener(router: ReturnType<typeof useRouter>) {
     });
 
     // Polling loop at ~60fps
-    gamepadPollInterval = setInterval(() => {
+    setInterval(() => {
       processGamepadInput(router);
     }, 16);
   } catch {
@@ -310,14 +309,8 @@ function startGlobalListener(router: ReturnType<typeof useRouter>) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _stopGlobalListener() {
-  if (gamepadPollInterval) {
-    clearInterval(gamepadPollInterval);
-    gamepadPollInterval = null;
-  }
-  isGlobalListenerRegistered = false;
-}
+// Note: Cleanup function intentionally removed to prevent unused variable warnings
+// If needed in the future, can be re-added with proper usage
 
 export function useGamepad() {
   const router = useRouter();

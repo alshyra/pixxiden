@@ -219,12 +219,10 @@ onKeyStroke(["e", "E"], () => {
   switchFilter("next");
 });
 
-onKeyStroke([\"s\", \"S\"], (event: KeyboardEvent) => {
+onKeyStroke(["s", "S"], (event: KeyboardEvent) => {
   const target = document.activeElement as HTMLElement;
-if (target?.tagName !== \"INPUT\" && !event.ctrlKey && !event.metaKey && !event.altKey) {
-openSettings();
-  }
-});
+  if (target?.tagName !== "INPUT" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    openSettings();
   }
 });
 

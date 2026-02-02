@@ -113,6 +113,37 @@ export class SidecarService {
       return null;
     }
   }
+
+  /**
+   * Run an arbitrary system command
+   */
+  async runCommand(command: string, args: string[]): Promise<SidecarResult> {
+    try {
+      console.log(`🔧 Running command: ${command} with args:`, args);
+
+      const cmd = Command.create(command, args);
+      const output = await cmd.execute();
+
+      const result: SidecarResult = {
+        stdout: output.stdout,
+        stderr: output.stderr,
+        code: output.code ?? 0,
+      };
+
+      if (result.code !== 0) {
+        console.warn(`⚠️ ${command} exited with code ${result.code}:`, result.stderr);
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`❌ ${command} execution failed:`, error);
+      return {
+        stdout: "",
+        stderr: error instanceof Error ? error.message : String(error),
+        code: -1,
+      };
+    }
+  }
 }
 
 // Export singleton getter for convenience

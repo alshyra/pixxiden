@@ -3,7 +3,7 @@
  * Coordinates between different store services and emits progress events
  */
 
-import type { StoreType, Game } from "@/types";
+import type { StoreType } from "@/types";
 import { SidecarService } from "../base/SidecarService";
 import { DatabaseService } from "../base/DatabaseService";
 
@@ -184,32 +184,23 @@ export class InstallationService {
       args.push("--base-path", options.installPath);
     }
 
-    const result = await this.sidecar.runLegendary(args, {
-      onProgress: (line) => {
-        // Parse legendary output for progress
-        const progressMatch = line.match(/Progress: (\d+)%/);
-        if (progressMatch) {
-          options.onProgress?.({
-            gameId,
-            status: "downloading",
-            progress: parseInt(progressMatch[1]),
-          });
-        }
-
-        const speedMatch = line.match(/Download: ([\d.]+) MiB\/s/);
-        if (speedMatch) {
-          options.onProgress?.({
-            gameId,
-            status: "downloading",
-            progress: 0,
-            downloadSpeed: parseFloat(speedMatch[1]),
-          });
-        }
-      },
-    });
+    const result = await this.sidecar.runLegendary(args);
 
     if (result.code !== 0) {
       throw new Error(`Failed to install Epic game: ${result.stderr}`);
+    }
+
+    // Parse output for progress (could emit events here if needed)
+    // For now, just update status
+    if (result.stdout.includes("Progress")) {
+      const progressMatch = result.stdout.match(/Progress: (\d+)%/);
+      if (progressMatch) {
+        options.onProgress?.({
+          gameId,
+          status: "downloading",
+          progress: parseInt(progressMatch[1]),
+        });
+      }
     }
   }
 
@@ -231,22 +222,22 @@ export class InstallationService {
       args.push("--path", options.installPath);
     }
 
-    const result = await this.sidecar.runGogdl(args, {
-      onProgress: (line) => {
-        // Parse gogdl output for progress
-        const progressMatch = line.match(/(\d+)%/);
-        if (progressMatch) {
-          options.onProgress?.({
-            gameId,
-            status: "downloading",
-            progress: parseInt(progressMatch[1]),
-          });
-        }
-      },
-    });
+    const result = await this.sidecar.runGogdl(args);
 
     if (result.code !== 0) {
       throw new Error(`Failed to install GOG game: ${result.stderr}`);
+    }
+
+    // Parse output for progress
+    if (result.stdout.includes("%")) {
+      const progressMatch = result.stdout.match(/(\d+)%/);
+      if (progressMatch) {
+        options.onProgress?.({
+          gameId,
+          status: "downloading",
+          progress: parseInt(progressMatch[1]),
+        });
+      }
     }
   }
 
@@ -268,22 +259,22 @@ export class InstallationService {
       args.push("--path", options.installPath);
     }
 
-    const result = await this.sidecar.runNile(args, {
-      onProgress: (line) => {
-        // Parse nile output for progress
-        const progressMatch = line.match(/(\d+)%/);
-        if (progressMatch) {
-          options.onProgress?.({
-            gameId,
-            status: "downloading",
-            progress: parseInt(progressMatch[1]),
-          });
-        }
-      },
-    });
+    const result = await this.sidecar.runNile(args);
 
     if (result.code !== 0) {
       throw new Error(`Failed to install Amazon game: ${result.stderr}`);
+    }
+
+    // Parse output for progress
+    if (result.stdout.includes("%")) {
+      const progressMatch = result.stdout.match(/(\d+)%/);
+      if (progressMatch) {
+        options.onProgress?.({
+          gameId,
+          status: "downloading",
+          progress: parseInt(progressMatch[1]),
+        });
+      }
     }
   }
 
@@ -309,8 +300,10 @@ export class InstallationService {
       progress: 50,
     });
 
-    // Open steam installation link
-    const result = await this.sidecar.runCommand("xdg-open", [`steam://install/${appId}`]);
+    // Open steam installation link (using xdg-open)
+    const result = await SidecarService.getInstance().runCommand("xdg-open", [
+      `steam://install/${appId}`,
+    ]);
 
     if (result.code !== 0) {
       throw new Error(`Failed to trigger Steam installation: ${result.stderr}`);
@@ -328,7 +321,9 @@ export class InstallationService {
     // Steam games are uninstalled through Steam client
     const appId = gameId.replace("steam-", "");
 
-    const result = await this.sidecar.runCommand("xdg-open", [`steam://uninstall/${appId}`]);
+    const result = await SidecarService.getInstance().runCommand("xdg-open", [
+      `steam://uninstall/${appId}`,
+    ]);
 
     if (result.code !== 0) {
       throw new Error(`Failed to trigger Steam uninstallation: ${result.stderr}`);

@@ -46,10 +46,7 @@ describe("InstallationService", () => {
 
       await installationService.installGame(gameId, store);
 
-      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(
-        ["install", gameId],
-        expect.any(Object),
-      );
+      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["install", gameId]);
       expect(mockDb.execute).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE games SET installed = 1"),
         expect.any(Array),
@@ -71,10 +68,7 @@ describe("InstallationService", () => {
 
       await installationService.installGame(gameId, store, { installPath });
 
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith(
-        ["install", gameId, "--path", installPath],
-        expect.any(Object),
-      );
+      expect(mockSidecar.runGogdl).toHaveBeenCalledWith(["install", gameId, "--path", installPath]);
     });
 
     it("should emit progress events during installation", async () => {

@@ -10,7 +10,5 @@ export { default as SettingsNavItem } from "./layout/SettingsNavItem.vue";
 export { default as SystemUpdates } from "./system/system-updates/SystemUpdates.vue";
 export { default as SudoersConfigModal } from "./sudoers-config/SudoersConfigModal.vue";
 
-// Re-export types
-export type { StoreAccount } from "./store/SettingsStore.vue";
-export type { ApiKeys, ApiKeyTestResults } from "./advanced/SettingsApiKeys.vue";
-export type { SettingsSection } from "./layout/SettingsSidebar.vue";
+// Note: Type exports from .vue files require separate .d.ts files
+// For now, types are documented in the component files themselves

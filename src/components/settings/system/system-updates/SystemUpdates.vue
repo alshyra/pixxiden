@@ -231,6 +231,7 @@
 import { Button, ProgressBar } from "@/components/ui";
 import type { UpdatePackage, UpdateProgressEvent } from "@/services/api";
 import * as api from "@/services/api";
+import { listen } from "@tauri-apps/api/event";
 import {
   AlertTriangle,
   ArrowRight,
@@ -384,7 +385,6 @@ async function installUpdates() {
 
   try {
     // Listen for progress events
-    const { listen } = await import("@tauri-apps/api/event");
     const unlisten = await listen<UpdateProgressEvent>("update-progress", (event) => {
       installProgress.value = event.payload;
     });
