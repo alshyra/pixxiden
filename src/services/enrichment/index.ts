@@ -3,6 +3,10 @@
  */
 
 export { EnrichmentService } from "./EnrichmentService";
+export { IgdbEnricher } from "./IgdbEnricher";
+export { HltbEnricher } from "./HltbEnricher";
+export { ProtonDbEnricher } from "./ProtonDbEnricher";
+export { SteamGridDbEnricher } from "./SteamGridDbEnricher";
 export type {
   EnrichmentData,
   IgdbData,

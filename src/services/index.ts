@@ -40,7 +40,13 @@ export { AuthService, WebviewAuthHandler } from "./auth";
 // Enrichment Services
 // ============================================================================
 import { EnrichmentService } from "./enrichment";
-export { EnrichmentService } from "./enrichment";
+export {
+  EnrichmentService,
+  IgdbEnricher,
+  HltbEnricher,
+  ProtonDbEnricher,
+  SteamGridDbEnricher,
+} from "./enrichment";
 export type {
   EnrichmentData,
   IgdbData,
@@ -48,6 +54,13 @@ export type {
   ProtonDbData,
   SteamGridDbData,
 } from "./enrichment";
+
+// ============================================================================
+// Installation Services
+// ============================================================================
+import { InstallationService } from "./installation";
+export { InstallationService } from "./installation";
+export type { InstallProgress } from "./installation";
 
 // ============================================================================
 // Orchestrator (point d'entrée principal pour la lib)
@@ -65,6 +78,7 @@ let initialized = false;
 // Cache pour les services instanciés (lazy loading)
 let authServiceInstance: AuthService | null = null;
 let enrichmentServiceInstance: EnrichmentService | null = null;
+let installationServiceInstance: InstallationService | null = null;
 
 /**
  * Initialise tous les services de l'application.
@@ -132,4 +146,17 @@ export function getEnrichmentService(): EnrichmentService {
  */
 export function getDatabaseService(): DatabaseService {
   return DatabaseService.getInstance();
+}
+
+/**
+ * Raccourci pour obtenir le service d'installation.
+ * Usage: const installation = getInstallationService();
+ */
+export function getInstallationService(): InstallationService {
+  if (!installationServiceInstance) {
+    const db = DatabaseService.getInstance();
+    const sidecar = SidecarService.getInstance();
+    installationServiceInstance = new InstallationService(sidecar, db);
+  }
+  return installationServiceInstance;
 }

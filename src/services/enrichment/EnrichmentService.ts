@@ -5,6 +5,10 @@
 
 import type { Game } from "@/types";
 import { DatabaseService } from "../base/DatabaseService";
+import { IgdbEnricher } from "./IgdbEnricher";
+import { HltbEnricher } from "./HltbEnricher";
+import { ProtonDbEnricher } from "./ProtonDbEnricher";
+import { SteamGridDbEnricher } from "./SteamGridDbEnricher";
 
 export interface EnrichmentData {
   igdb?: IgdbData | null;
@@ -50,7 +54,32 @@ export interface SteamGridDbData {
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export class EnrichmentService {
-  constructor(private db: DatabaseService) {}
+  private igdb: IgdbEnricher;
+  private hltb: HltbEnricher;
+  private protonDb: ProtonDbEnricher;
+  private steamGridDb: SteamGridDbEnricher;
+
+  constructor(private db: DatabaseService) {
+    this.igdb = new IgdbEnricher();
+    this.hltb = new HltbEnricher();
+    this.protonDb = new ProtonDbEnricher();
+    this.steamGridDb = new SteamGridDbEnricher();
+  }
+
+  /**
+   * Configure API credentials
+   */
+  configureApis(config: {
+    igdb?: { clientId: string; accessToken: string };
+    steamGridDb?: { apiKey: string };
+  }): void {
+    if (config.igdb) {
+      this.igdb.configure(config.igdb);
+    }
+    if (config.steamGridDb) {
+      this.steamGridDb.configure(config.steamGridDb);
+    }
+  }
 
   /**
    * Enrich a list of games with metadata
@@ -204,30 +233,41 @@ export class EnrichmentService {
     await this.db.execute("DELETE FROM enrichment_cache");
   }
 
-  // ===== API Fetchers (to be implemented) =====
+  // ===== API Fetchers =====
 
   private async fetchIgdb(title: string): Promise<IgdbData | null> {
-    // TODO: Implement IGDB API call
-    // Requires IGDB client ID and access token
-    console.log(`📡 IGDB: searching for "${title}" (not implemented)`);
-    return null;
+    try {
+      return await this.igdb.search(title);
+    } catch (error) {
+      console.warn(`⚠️ IGDB fetch failed for "${title}":`, error);
+      return null;
+    }
   }
 
   private async fetchHltb(title: string): Promise<HltbData | null> {
-    // TODO: Implement HowLongToBeat scraping/API
-    console.log(`📡 HLTB: searching for "${title}" (not implemented)`);
-    return null;
+    try {
+      return await this.hltb.search(title);
+    } catch (error) {
+      console.warn(`⚠️ HLTB fetch failed for "${title}":`, error);
+      return null;
+    }
   }
 
   private async fetchProtonDb(steamAppId: number): Promise<ProtonDbData | null> {
-    // TODO: Implement ProtonDB API call
-    console.log(`📡 ProtonDB: searching for appId ${steamAppId} (not implemented)`);
-    return null;
+    try {
+      return await this.protonDb.searchByAppId(steamAppId);
+    } catch (error) {
+      console.warn(`⚠️ ProtonDB fetch failed for appId ${steamAppId}:`, error);
+      return null;
+    }
   }
 
   private async fetchSteamGridDb(title: string): Promise<SteamGridDbData | null> {
-    // TODO: Implement SteamGridDB API call
-    console.log(`📡 SteamGridDB: searching for "${title}" (not implemented)`);
-    return null;
+    try {
+      return await this.steamGridDb.search(title);
+    } catch (error) {
+      console.warn(`⚠️ SteamGridDB fetch failed for "${title}":`, error);
+      return null;
+    }
   }
 }
