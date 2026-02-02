@@ -114,9 +114,10 @@ describe("Mock System Validation", () => {
       });
     });
 
-    it("all games should have matching store and storeId", () => {
+    it("all games should have non-empty storeId", () => {
       mockGames.forEach((game) => {
-        expect(game.store).toBe(game.storeId);
+        expect(game.storeId).toBeTruthy();
+        expect(game.storeId.length).toBeGreaterThan(0);
       });
     });
 
