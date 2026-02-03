@@ -88,7 +88,7 @@ export class LegendaryService extends GameStoreService {
   }
 
   /**
-   * Check if user is authenticated
+   * Check if user is authenticated with Epic Games
    */
   async isAuthenticated(): Promise<boolean> {
     const result = await this.sidecar.runLegendary(["status", "--json"]);
@@ -103,28 +103,11 @@ export class LegendaryService extends GameStoreService {
   }
 
   /**
-   * Get authentication URL for Epic Games
+   * Authenticate with Epic Games using authorization code
+   * Code comes from Epic OAuth redirect: https://www.epicgames.com/id/api/redirect
    */
-  async getAuthUrl(): Promise<string> {
-    const result = await this.sidecar.runLegendary(["auth", "--sid"]);
-    if (result.code !== 0) {
-      throw new Error(`Failed to get auth URL: ${result.stderr}`);
-    }
-
-    // Extract URL from output
-    const match = result.stdout.match(/https:\/\/[^\s]+/);
-    if (!match) {
-      throw new Error("Could not find auth URL in output");
-    }
-
-    return match[0];
-  }
-
-  /**
-   * Complete authentication with authorization code
-   */
-  async authenticate(code: string): Promise<void> {
-    const result = await this.sidecar.runLegendary(["auth", "--code", code]);
+  async authenticate(authorizationCode: string): Promise<void> {
+    const result = await this.sidecar.runLegendary(["auth", "--code", authorizationCode]);
     if (result.code !== 0) {
       throw new Error(`Authentication failed: ${result.stderr}`);
     }

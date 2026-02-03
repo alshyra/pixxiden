@@ -238,14 +238,14 @@ describe("Navigation", () => {
       const url = await browser.getUrl();
       expect(url.includes("/settings")).toBe(true);
 
-      // Click on accounts section using JavaScript (WebDriver click doesn't work)
-      const accountsButton = await $("button*=Comptes");
-      const exists = await accountsButton.isExisting();
+      // Click on accounts section using JavaScript - it's a RouterLink (a tag), not a button
+      const accountsLink = await $("a*=Comptes");
+      const exists = await accountsLink.isExisting();
 
       if (exists) {
-        await browser.execute((el) => el.click(), accountsButton);
+        await browser.execute((el) => el.click(), accountsLink);
         await browser.pause(1000);
-        console.log("Clicked accounts button via JS");
+        console.log("Clicked accounts link via JS");
 
         // CRITICAL: Verify accounts section has store content
         const result = await verifyViewContent(
@@ -266,10 +266,10 @@ describe("Navigation", () => {
     });
 
     it("should display Epic Games store settings", async () => {
-      // First click on Accounts (Comptes) to show store settings
-      const accountsButton = await $("button*=Comptes");
-      if (await accountsButton.isExisting()) {
-        await browser.execute((el) => el.click(), accountsButton);
+      // First click on Accounts (Comptes) to show store settings - it's a RouterLink
+      const accountsLink = await $("a*=Comptes");
+      if (await accountsLink.isExisting()) {
+        await browser.execute((el) => el.click(), accountsLink);
         await browser.pause(500);
       }
 
@@ -302,12 +302,12 @@ describe("Navigation", () => {
     });
 
     it("should show advanced section (French: Avancé)", async () => {
-      // Click on advanced section
-      const advancedButton = await $("button*=Avancé");
-      const exists = await advancedButton.isExisting();
+      // Click on advanced section - it's a RouterLink (a tag), not a button
+      const advancedLink = await $("a*=Avancé");
+      const exists = await advancedLink.isExisting();
 
       if (exists) {
-        await advancedButton.click();
+        await browser.execute((el) => el.click(), advancedLink);
         await browser.pause(1000);
         console.log("Advanced section clicked");
 

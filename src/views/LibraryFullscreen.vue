@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import { useLibraryStore } from "@/stores/library";
@@ -180,10 +180,15 @@ async function loadGames() {
   loading.value = true;
   try {
     await libraryStore.fetchGames();
+
+    // Si aucun jeu, rediriger vers settings pour configurer les stores
     if (games.value.length === 0) {
-      router.push("/settings");
+      loading.value = false;
+      router.push("/settings/store");
+      return;
     }
-    // Auto-select first game
+
+    // Auto-select first game if available
     if (filteredGames.value.length > 0) {
       selectedGame.value = filteredGames.value[0];
     }
@@ -249,13 +254,9 @@ onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
 });
 
 // Load games on mount
-watch(
-  () => libraryStore.games,
-  async () => {
-    await loadGames();
-  },
-  { immediate: true },
-);
+onMounted(async () => {
+  await loadGames();
+});
 
 // Quick filter switch with LB/RB
 function switchFilter(direction: "prev" | "next") {

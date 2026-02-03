@@ -14,6 +14,7 @@
  */
 
 import type { Game, StoreType } from "@/types";
+import { invoke } from "@tauri-apps/api/core";
 import { DatabaseService, SidecarService } from "./base";
 import { LegendaryService, GogdlService, NileService, SteamService } from "./stores";
 import { EnrichmentService } from "./enrichment";
@@ -70,23 +71,18 @@ export class GameLibraryOrchestrator {
   }
 
   /**
-   * Récupère tous les jeux de la bibliothèque (depuis DB)
-   * C'est la méthode principale pour le store Pinia
+   * Récupère tous les jeux de la bibliothèque
+   * Appelle directement le backend Tauri pour récupérer les jeux enrichis
    */
   async getAllGames(): Promise<Game[]> {
-    const games: Game[] = [];
-
-    // Récupérer les jeux de chaque store depuis la DB
-    const [epicGames, gogGames, amazonGames, steamGames] = await Promise.all([
-      this.legendary.getStoredGames(),
-      this.gogdl.getStoredGames(),
-      this.nile.getStoredGames(),
-      this.steam.getStoredGames(),
-    ]);
-
-    games.push(...epicGames, ...gogGames, ...amazonGames, ...steamGames);
-
-    return games;
+    try {
+      // Appel direct au backend Tauri qui retourne les jeux enrichis
+      const games = await invoke<Game[]>("get_games");
+      return games || [];
+    } catch (error) {
+      console.error("❌ Failed to get games from backend:", error);
+      return [];
+    }
   }
 
   /**

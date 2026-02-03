@@ -22,9 +22,7 @@ export const config: Options.Testrunner = {
   // ==================
   // Specify Test Files
   // ==================
-  // Run user journey tests by default (real data, no mocks)
-  // To run legacy mock-based tests: npx wdio --spec ./e2e/tests/0*.spec.ts
-  specs: ["./e2e/tests/user-journey.spec.ts"],
+  specs: ["./e2e/tests/**.spec.ts"],
   exclude: [],
 
   //

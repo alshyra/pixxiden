@@ -118,11 +118,23 @@ export async function countElements(selector: string): Promise<number> {
  * Navigate to a route in the app
  */
 export async function navigateTo(route: string): Promise<void> {
-  // Execute navigation via JavaScript in the app context
-  await browser.execute((path: string) => {
-    (window as any).__VUE_ROUTER__?.push(path);
-  }, route);
-  // Wait for navigation to complete
+  // Just click the navigation element instead of hacking routes
+  if (route === "/") {
+    // Click home/library button
+    const homeBtn = await $(
+      '[data-testid="nav-home"], [data-testid="nav-library"], .nav-home, .nav-library',
+    );
+    if (await homeBtn.isExisting()) {
+      await homeBtn.click();
+    }
+  } else if (route.includes("settings")) {
+    // Click settings button
+    const settingsBtn = await $('[data-testid="nav-settings"], .nav-settings');
+    if (await settingsBtn.isExisting()) {
+      await settingsBtn.click();
+    }
+  }
+
   await browser.pause(500);
 }
 

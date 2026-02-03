@@ -86,10 +86,9 @@ export class AuthService {
   }
 
   async startEpicAuth(): Promise<void> {
-    const authUrl = await this.legendary.getAuthUrl();
-    const code = await this.webviewAuth.openAuthWindow("epic", authUrl);
-    await this.legendary.authenticate(code);
-    console.log("✅ Epic authentication successful");
+    // Epic auth is handled entirely by EpicWebviewHandler
+    // This method is kept for compatibility but the webview should be opened from the modal
+    throw new Error("Use EpicAuthModal for Epic Games authentication");
   }
 
   async logoutEpic(): Promise<void> {

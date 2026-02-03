@@ -187,34 +187,6 @@ describe("LegendaryService", () => {
     });
   });
 
-  describe("getAuthUrl", () => {
-    it("should extract auth URL from output", async () => {
-      const output = `Please visit the following URL to login:
-https://www.epicgames.com/id/login?redirectUrl=https://localhost/
-
-After logging in, copy the authorization code and enter it below.`;
-
-      vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(createResult(output));
-
-      const url = await service.getAuthUrl();
-      expect(url).toBe("https://www.epicgames.com/id/login?redirectUrl=https://localhost/");
-    });
-
-    it("should throw error when auth command fails", async () => {
-      vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(
-        createResult("", 1, "Network error"),
-      );
-
-      await expect(service.getAuthUrl()).rejects.toThrow("Failed to get auth URL: Network error");
-    });
-
-    it("should throw error when no URL found in output", async () => {
-      vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(createResult("No URL here"));
-
-      await expect(service.getAuthUrl()).rejects.toThrow("Could not find auth URL in output");
-    });
-  });
-
   describe("authenticate", () => {
     it("should authenticate with code", async () => {
       vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(

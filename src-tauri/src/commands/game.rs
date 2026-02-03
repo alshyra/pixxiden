@@ -4,7 +4,7 @@ use crate::services::GameEnricher;
 use crate::store::{
     gogdl::GogdlAdapter, legendary::LegendaryAdapter, nile::NileAdapter, steam::SteamAdapter,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
@@ -31,6 +31,13 @@ pub struct GameConfig {
     pub installed: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct SyncResult {
+    pub total_synced: usize,
+    pub errors: Vec<String>,
+}
+
 /// Get all games with enriched metadata (IGDB, HLTB, ProtonDB, assets)
 #[tauri::command]
 pub async fn get_games(state: State<'_, AppState>) -> Result<Vec<EnrichedGame>, String> {
@@ -52,6 +59,37 @@ pub async fn get_games(state: State<'_, AppState>) -> Result<Vec<EnrichedGame>, 
 
     log::info!("Returning {} enriched games", enriched.len());
     Ok(enriched)
+}
+
+/// Synchronize games from configured stores (sync/refresh game library)
+#[tauri::command]
+pub async fn sync_games(state: State<'_, AppState>) -> Result<SyncResult, String> {
+    log::info!("🔄 Starting game sync...");
+    
+    let mut errors = Vec::new();
+    let mut total_synced = 0;
+
+    // For now, just get all games from database as a sync result
+    // In the future, this could re-scan all configured stores
+    
+    let db = state.db.lock().await;
+    match db.get_all_games().await {
+        Ok(games) => {
+            total_synced = games.len();
+            log::info!("🎮 Game sync complete: {} games found", total_synced);
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to fetch games from database: {}", e);
+            log::warn!("{}", error_msg);
+            errors.push(error_msg);
+        }
+    }
+    drop(db);
+    
+    Ok(SyncResult {
+        total_synced,
+        errors,
+    })
 }
 
 #[tauri::command]

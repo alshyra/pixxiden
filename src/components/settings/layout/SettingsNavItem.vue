@@ -23,12 +23,9 @@ const isActive = ref(route.path.includes(props.section.id));
 // Petit délai pour laisser la transition CSS se jouer
 watch(() => route.path, (newPath) => {
   const shouldBeActive = newPath.includes(props.section.id);
-  if (shouldBeActive !== isActive.value) {
-    // Délai pour permettre à l'ancienne animation de se terminer
-    requestAnimationFrame(() => {
-      isActive.value = shouldBeActive;
-    });
-  }
+  if (shouldBeActive === isActive.value) return
+  // Délai pour permettre à l'ancienne animation de se terminer
+  requestAnimationFrame(() => isActive.value = shouldBeActive);
 });
 
 console.log('SettingsNavItem mounted, initial isActive:', isActive.value);

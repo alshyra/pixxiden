@@ -1,12 +1,7 @@
 import { defineStore } from "pinia";
+import { ref, computed } from "vue";
 import type { AuthStatus, StoreType } from "@/types";
 import { getAuthService } from "@/services";
-
-interface AuthState {
-  stores: Record<StoreType, AuthStatus>;
-  loading: boolean;
-  error: string | null;
-}
 
 /**
  * Helper function to format error messages with context
@@ -43,250 +38,241 @@ function formatAuthError(store: string, action: string, error: unknown): string 
   return `❌ ${store} ${action} failed: ${baseMessage}`;
 }
 
-export const useAuthStore = defineStore("auth", {
-  state: (): AuthState => ({
-    stores: {
-      epic: { authenticated: false, configSource: "none" },
-      gog: { authenticated: false, configSource: "none" },
-      amazon: { authenticated: false, configSource: "none" },
-      steam: { authenticated: false, configSource: "none" },
-    },
-    loading: false,
-    error: null,
-  }),
+export const useAuthStore = defineStore("auth", () => {
+  // State
+  const stores = ref<Record<StoreType, AuthStatus>>({
+    epic: { authenticated: false, configSource: "none" },
+    gog: { authenticated: false, configSource: "none" },
+    amazon: { authenticated: false, configSource: "none" },
+    steam: { authenticated: false, configSource: "none" },
+  });
+  const loading = ref(false);
+  const error = ref<string | null>(null);
 
-  getters: {
-    /**
-     * Get authentication status for a specific store
-     */
-    getStoreStatus:
-      (state) =>
-      (store: StoreType): AuthStatus => {
-        return state.stores[store];
-      },
+  // Computed: Get authentication status for a specific store
+  const getStoreStatus = computed(() => (store: StoreType): AuthStatus => {
+    return stores.value[store];
+  });
 
-    /**
-     * Check if any store is authenticated
-     */
-    hasAnyAuthentication: (state): boolean => {
-      return Object.values(state.stores).some((status) => status.authenticated);
-    },
+  // Computed: Check if any store is authenticated
+  const hasAnyAuthentication = computed(() => {
+    return Object.values(stores.value).some((status) => status.authenticated);
+  });
 
-    /**
-     * Get list of authenticated stores
-     */
-    authenticatedStores: (state): StoreType[] => {
-      return Object.entries(state.stores)
-        .filter(([_, status]) => status.authenticated)
-        .map(([store]) => store as StoreType);
-    },
-  },
+  // Computed: Get list of authenticated stores
+  const authenticatedStores = computed(() => {
+    return Object.entries(stores.value)
+      .filter(([_, status]) => status.authenticated)
+      .map(([store]) => store as StoreType);
+  });
 
-  actions: {
-    /**
-     * Fetch authentication status for all stores
-     */
-    async fetchAuthStatus() {
-      this.loading = true;
-      this.error = null;
+  // Actions
+  async function fetchAuthStatus() {
+    loading.value = true;
+    error.value = null;
 
-      try {
-        const auth = getAuthService();
-        const statuses = await auth.getAllAuthStatus();
+    try {
+      const auth = getAuthService();
+      const statuses = await auth.getAllAuthStatus();
 
-        // Update store state
-        this.stores.epic = statuses.epic;
-        this.stores.gog = statuses.gog;
-        this.stores.amazon = statuses.amazon;
-        this.stores.steam = statuses.steam;
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to fetch auth status";
-        console.error("Error fetching auth status:", error);
-      } finally {
-        this.loading = false;
+      // Update store state
+      stores.value.epic = statuses.epic;
+      stores.value.gog = statuses.gog;
+      stores.value.amazon = statuses.amazon;
+      stores.value.steam = statuses.steam;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Failed to fetch auth status";
+      console.error("Error fetching auth status:", err);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Set authentication status for a store (used by webview handlers)
+   */
+  function setStoreAuthenticated(store: StoreType, authenticated: boolean): void {
+    stores.value[store] = {
+      authenticated,
+      configSource: authenticated ? "pixxiden" : "none",
+    };
+  }
+
+  // ===== Epic Games =====
+
+  async function loginEpic(): Promise<void> {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const auth = getAuthService();
+      await auth.startEpicAuth();
+      await fetchAuthStatus();
+    } catch (err) {
+      error.value = formatAuthError("Epic Games", "authentication", err);
+      console.error("Epic auth failed:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function logoutEpic(): Promise<void> {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const auth = getAuthService();
+      await auth.logoutEpic();
+      await fetchAuthStatus();
+    } catch (err) {
+      error.value = formatAuthError("Epic Games", "logout", err);
+      console.error("Failed to logout from Epic:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // ===== GOG =====
+
+  async function loginGOG(_code?: string): Promise<void> {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const auth = getAuthService();
+      await auth.startGogAuth();
+      await fetchAuthStatus();
+    } catch (err) {
+      error.value = formatAuthError("GOG", "authentication", err);
+      console.error("Failed to login to GOG:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function logoutGOG(): Promise<void> {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const auth = getAuthService();
+      await auth.logoutGog();
+      await fetchAuthStatus();
+    } catch (err) {
+      error.value = formatAuthError("GOG", "logout", err);
+      console.error("Failed to logout from GOG:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // ===== Amazon Games =====
+
+  async function loginAmazon(email: string, password: string): Promise<void> {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const auth = getAuthService();
+      await auth.loginAmazon(email, password);
+      await fetchAuthStatus();
+    } catch (err: unknown) {
+      // Check if error is an AuthErrorResponse (2FA required)
+      if (
+        err &&
+        typeof err === "object" &&
+        "errorType" in err &&
+        (err as { errorType: string }).errorType === "two_factor_required"
+      ) {
+        error.value = "🔒 Two-factor authentication required. Please enter your 2FA code.";
+        throw err;
       }
-    },
 
-    // ===== Epic Games =====
+      error.value = formatAuthError("Amazon Games", "authentication", err);
+      console.error("Failed to login to Amazon:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
 
-    /**
-     * Start Epic Games authentication (OAuth webview flow)
-     */
-    async loginEpic(): Promise<void> {
-      this.loading = true;
-      this.error = null;
+  async function loginAmazonWith2FA(email: string, password: string, code: string): Promise<void> {
+    loading.value = true;
+    error.value = null;
 
-      try {
-        const auth = getAuthService();
-        await auth.startEpicAuth();
-        // Refresh status after successful auth
-        await this.fetchAuthStatus();
-      } catch (error) {
-        this.error = formatAuthError("Epic Games", "authentication", error);
-        console.error("Epic auth failed:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
+    try {
+      const auth = getAuthService();
+      await auth.loginAmazonWith2FA(email, password, code);
+      await fetchAuthStatus();
+    } catch (err: unknown) {
+      error.value = formatAuthError("Amazon Games", "2FA verification", err);
+      console.error("Failed to complete Amazon 2FA:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
 
-    /**
-     * Logout from Epic Games
-     */
-    async logoutEpic(): Promise<void> {
-      this.loading = true;
-      this.error = null;
+  async function logoutAmazon(): Promise<void> {
+    loading.value = true;
+    error.value = null;
 
-      try {
-        const auth = getAuthService();
-        await auth.logoutEpic();
-        await this.fetchAuthStatus();
-      } catch (error) {
-        this.error = formatAuthError("Epic Games", "logout", error);
-        console.error("Failed to logout from Epic:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
+    try {
+      const auth = getAuthService();
+      await auth.logoutAmazon();
+      await fetchAuthStatus();
+    } catch (err) {
+      error.value = formatAuthError("Amazon Games", "logout", err);
+      console.error("Failed to logout from Amazon:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
 
-    // ===== GOG =====
+  // ===== Generic =====
 
-    /**
-     * Login to GOG - opens webview OAuth flow
-     */
-    async loginGOG(_code?: string): Promise<void> {
-      this.loading = true;
-      this.error = null;
+  async function logout(store: StoreType): Promise<void> {
+    switch (store) {
+      case "epic":
+        return logoutEpic();
+      case "gog":
+        return logoutGOG();
+      case "amazon":
+        return logoutAmazon();
+      case "steam":
+        throw new Error("Steam does not require authentication");
+    }
+  }
 
-      try {
-        const auth = getAuthService();
-        await auth.startGogAuth();
-        await this.fetchAuthStatus();
-      } catch (error) {
-        this.error = formatAuthError("GOG", "authentication", error);
-        console.error("Failed to login to GOG:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
+  function clearError(): void {
+    error.value = null;
+  }
 
-    /**
-     * Logout from GOG
-     */
-    async logoutGOG(): Promise<void> {
-      this.loading = true;
-      this.error = null;
-
-      try {
-        const auth = getAuthService();
-        await auth.logoutGog();
-        await this.fetchAuthStatus();
-      } catch (error) {
-        this.error = formatAuthError("GOG", "logout", error);
-        console.error("Failed to logout from GOG:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // ===== Amazon Games =====
-
-    /**
-     * Login to Amazon Games
-     * @throws AuthErrorResponse if 2FA is required or credentials are invalid
-     */
-    async loginAmazon(email: string, password: string): Promise<void> {
-      this.loading = true;
-      this.error = null;
-
-      try {
-        const auth = getAuthService();
-        await auth.loginAmazon(email, password);
-        await this.fetchAuthStatus();
-      } catch (error: unknown) {
-        // Check if error is an AuthErrorResponse (2FA required)
-        if (
-          error &&
-          typeof error === "object" &&
-          "errorType" in error &&
-          (error as { errorType: string }).errorType === "two_factor_required"
-        ) {
-          this.error = "🔒 Two-factor authentication required. Please enter your 2FA code.";
-          throw error; // Re-throw to let UI handle 2FA flow
-        }
-
-        this.error = formatAuthError("Amazon Games", "authentication", error);
-        console.error("Failed to login to Amazon:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    /**
-     * Login to Amazon Games with 2FA
-     */
-    async loginAmazonWith2FA(email: string, password: string, code: string): Promise<void> {
-      this.loading = true;
-      this.error = null;
-
-      try {
-        const auth = getAuthService();
-        await auth.loginAmazonWith2FA(email, password, code);
-        await this.fetchAuthStatus();
-      } catch (error: unknown) {
-        this.error = formatAuthError("Amazon Games", "2FA verification", error);
-        console.error("Failed to complete Amazon 2FA:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    /**
-     * Logout from Amazon Games
-     */
-    async logoutAmazon(): Promise<void> {
-      this.loading = true;
-      this.error = null;
-
-      try {
-        const auth = getAuthService();
-        await auth.logoutAmazon();
-        await this.fetchAuthStatus();
-      } catch (error) {
-        this.error = formatAuthError("Amazon Games", "logout", error);
-        console.error("Failed to logout from Amazon:", error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    /**
-     * Logout from a specific store
-     */
-    async logout(store: StoreType): Promise<void> {
-      switch (store) {
-        case "epic":
-          return this.logoutEpic();
-        case "gog":
-          return this.logoutGOG();
-        case "amazon":
-          return this.logoutAmazon();
-        case "steam":
-          throw new Error("Steam does not require authentication");
-      }
-    },
-
-    /**
-     * Clear error state
-     */
-    clearError() {
-      this.error = null;
-    },
-  },
+  return {
+    // State
+    stores,
+    loading,
+    error,
+    // Computed
+    getStoreStatus,
+    hasAnyAuthentication,
+    authenticatedStores,
+    // Actions
+    fetchAuthStatus,
+    setStoreAuthenticated,
+    loginEpic,
+    logoutEpic,
+    loginGOG,
+    logoutGOG,
+    loginAmazon,
+    loginAmazonWith2FA,
+    logoutAmazon,
+    logout,
+    clearError,
+  };
 });
