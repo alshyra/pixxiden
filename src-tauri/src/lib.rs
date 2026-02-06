@@ -59,6 +59,8 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_sql::Builder::default().build())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_http::init())
         .setup(|app| {
             // Initialize database and adapters in a blocking context
             let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");

@@ -26,10 +26,81 @@
     "sql:allow-select",
     "log:default",
     {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$APPCONFIG/*"
+        },
+        {
+          "path": "$APPDATA/*"
+        },
+        {
+          "path": "$HOME/.config/*"
+        },
+        {
+          "path": "$HOME/.local/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-app-read",
+      "allow": [
+        {
+          "path": "$APPCONFIG/*"
+        },
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-app-write",
+      "allow": [
+        {
+          "path": "$APPCONFIG/*"
+        },
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-app-meta",
+      "allow": [
+        {
+          "path": "$APPCONFIG/*"
+        },
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "http://*"
+        }
+      ]
+    },
+    {
       "identifier": "shell:allow-execute",
       "allow": [
         {
           "name": "binaries/legendary",
+          "sidecar": true,
+          "args": true
+        },
+        {
+          "name": "binaries/gogdl",
+          "sidecar": true,
+          "args": true
+        },
+        {
+          "name": "binaries/nile",
           "sidecar": true,
           "args": true
         }
