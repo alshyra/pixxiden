@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     globals: true,
+    setupFiles: ["./tests/helpers/setup.ts"],
     include: ["src/**/*.{test,spec}.{js,ts,vue}", "tests/**/*.{test,spec}.{js,ts}"],
     coverage: {
       reporter: ["text", "json", "html"],

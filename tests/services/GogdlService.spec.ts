@@ -1,6 +1,9 @@
 /**
  * GogdlService tests
  * Tests for GOG store service via gogdl CLI
+ *
+ * IMPORTANT: gogdl is a downloader only — it cannot list owned games.
+ * listGames() returns [] and isAuthenticated() returns false.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -26,13 +29,6 @@ const createMockDb = () =>
     queryOne: vi.fn(),
   }) as unknown as DatabaseService;
 
-// Helper to create sidecar result
-const createResult = (stdout: string, code = 0, stderr = ""): SidecarResult => ({
-  stdout,
-  stderr,
-  code,
-});
-
 describe("GogdlService", () => {
   let service: GogdlService;
   let mockSidecar: ReturnType<typeof createMockSidecar>;
@@ -54,129 +50,16 @@ describe("GogdlService", () => {
   });
 
   describe("listGames", () => {
-    it("should list games from gogdl CLI", async () => {
-      const mockGames = [
-        {
-          id: "1207658930",
-          title: "The Witcher 3: Wild Hunt",
-        },
-        {
-          id: "1495134320",
-          title: "Cyberpunk 2077",
-        },
-      ];
-
-      const mockInstalled = [
-        {
-          id: "1207658930",
-          title: "The Witcher 3: Wild Hunt",
-          is_installed: true,
-          install_path: "/home/user/Games/Witcher3",
-          install_size: 50000000000, // ~46.5 GB
-          executable: "/home/user/Games/Witcher3/bin/x64/witcher3.exe",
-        },
-      ];
-
-      vi.mocked(mockSidecar.runGogdl)
-        .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))
-        .mockResolvedValueOnce(createResult(JSON.stringify(mockInstalled)));
-
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
-
-      const games = await service.listGames();
-
-      expect(games).toHaveLength(2);
-
-      // Check Witcher 3 (installed)
-      const witcher = games.find((g) => g.storeId === "1207658930");
-      expect(witcher).toBeDefined();
-      expect(witcher?.id).toBe("gog-1207658930");
-      expect(witcher?.store).toBe("gog");
-      expect(witcher?.title).toBe("The Witcher 3: Wild Hunt");
-      expect(witcher?.installed).toBe(true);
-      expect(witcher?.installPath).toBe("/home/user/Games/Witcher3");
-      expect(witcher?.installSize).toBe("46.6 GB");
-
-      // Check Cyberpunk 2077 (not installed)
-      const cyberpunk = games.find((g) => g.storeId === "1495134320");
-      expect(cyberpunk).toBeDefined();
-      expect(cyberpunk?.installed).toBe(false);
-      expect(cyberpunk?.installPath).toBeUndefined();
-
-      // Verify sidecar was called with auth config
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
-        "--auth-config-path",
-        "~/.config/pixxiden/gog",
-        "list",
-        "--json",
-      ]);
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
-        "--auth-config-path",
-        "~/.config/pixxiden/gog",
-        "list-installed",
-        "--json",
-      ]);
-    });
-
-    it("should throw error when gogdl list fails", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(
-        createResult("", 1, "Not authenticated"),
-      );
-
-      await expect(service.listGames()).rejects.toThrow("gogdl list failed: Not authenticated");
-    });
-
-    it("should throw error when JSON parsing fails", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(createResult("invalid json"));
-
-      await expect(service.listGames()).rejects.toThrow("Failed to parse gogdl output");
-    });
-
-    it("should handle empty game list", async () => {
-      vi.mocked(mockSidecar.runGogdl)
-        .mockResolvedValueOnce(createResult("[]"))
-        .mockResolvedValueOnce(createResult("[]"));
-
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
-
+    it("should return empty array (gogdl cannot list games)", async () => {
       const games = await service.listGames();
       expect(games).toHaveLength(0);
-    });
-
-    it("should continue if list-installed fails", async () => {
-      const mockGames = [{ id: "123", title: "Test Game" }];
-
-      vi.mocked(mockSidecar.runGogdl)
-        .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))
-        .mockResolvedValueOnce(createResult("", 1, "Error"));
-
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
-
-      const games = await service.listGames();
-      expect(games).toHaveLength(1);
-      expect(games[0].installed).toBe(false);
+      // Should NOT call sidecar at all
+      expect(mockSidecar.runGogdl).not.toHaveBeenCalled();
     });
   });
 
   describe("isAuthenticated", () => {
-    it("should return true when auth check succeeds", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(createResult("Authenticated"));
-
-      const result = await service.isAuthenticated();
-      expect(result).toBe(true);
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
-        "--auth-config-path",
-        "~/.config/pixxiden/gog",
-        "auth",
-        "--check",
-      ]);
-    });
-
-    it("should return false when auth check fails", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(
-        createResult("", 1, "Not authenticated"),
-      );
-
+    it("should return false (gogdl has no auth check)", async () => {
       const result = await service.isAuthenticated();
       expect(result).toBe(false);
     });
@@ -192,9 +75,11 @@ describe("GogdlService", () => {
 
   describe("authenticate", () => {
     it("should authenticate with code", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(
-        createResult("Successfully authenticated"),
-      );
+      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce({
+        stdout: "Successfully authenticated",
+        stderr: "",
+        code: 0,
+      });
 
       await expect(service.authenticate("auth-code-123")).resolves.toBeUndefined();
 
@@ -208,7 +93,11 @@ describe("GogdlService", () => {
     });
 
     it("should throw error when authentication fails", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(createResult("", 1, "Invalid code"));
+      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce({
+        stdout: "",
+        stderr: "Invalid code",
+        code: 1,
+      });
 
       await expect(service.authenticate("invalid")).rejects.toThrow(
         "GOG authentication failed: Invalid code",
@@ -217,22 +106,8 @@ describe("GogdlService", () => {
   });
 
   describe("logout", () => {
-    it("should logout successfully", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(createResult("Logged out"));
-
+    it("should resolve without error (gogdl has no logout)", async () => {
       await expect(service.logout()).resolves.toBeUndefined();
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
-        "--auth-config-path",
-        "~/.config/pixxiden/gog",
-        "auth",
-        "--logout",
-      ]);
-    });
-
-    it("should throw error when logout fails", async () => {
-      vi.mocked(mockSidecar.runGogdl).mockResolvedValueOnce(createResult("", 1, "Error"));
-
-      await expect(service.logout()).rejects.toThrow("GOG logout failed: Error");
     });
   });
 });

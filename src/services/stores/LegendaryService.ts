@@ -4,17 +4,22 @@
 
 import type { Game } from "@/types";
 import { GameStoreService } from "./GameStoreService";
+import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
+/**
+ * Legendary JSON output structure (from `legendary list --json`)
+ * Fields: app_name, app_title, metadata.developer, asset_infos, etc.
+ */
 interface LegendaryGame {
   app_name: string;
-  title: string;
-  is_installed: boolean;
-  install_path?: string;
-  install_size?: number;
-  executable?: string;
-  version?: string;
-  developer?: string;
-  cloud_saves_supported?: boolean;
+  app_title: string;
+  metadata?: {
+    title?: string;
+    developer?: string;
+    customAttributes?: Record<string, unknown>;
+  };
+  asset_infos?: Record<string, unknown>;
+  dlcs?: unknown[];
 }
 
 export class LegendaryService extends GameStoreService {
@@ -27,7 +32,7 @@ export class LegendaryService extends GameStoreService {
     const listResult = await this.sidecar.runLegendary(["list", "--json"]);
 
     if (listResult.code !== 0) {
-      console.error("❌ Legendary list failed:", listResult.stderr);
+      await logError(`Legendary list failed: ${listResult.stderr}`);
       throw new Error(`Legendary list failed: ${listResult.stderr}`);
     }
 
@@ -35,51 +40,55 @@ export class LegendaryService extends GameStoreService {
     try {
       rawGames = JSON.parse(listResult.stdout);
     } catch {
-      console.error("❌ Failed to parse Legendary output");
+      await logError("Failed to parse Legendary output");
       throw new Error("Failed to parse Legendary output");
     }
 
     // Get installed games for more details
     const installedResult = await this.sidecar.runLegendary(["list-installed", "--json"]);
-    const installedGames: Record<string, LegendaryGame> = {};
+    const installedGames: Record<string, LegendaryInstalledGame> = {};
 
     if (installedResult.code === 0) {
       try {
-        const installed: LegendaryGame[] = JSON.parse(installedResult.stdout);
+        const installed: LegendaryInstalledGame[] = JSON.parse(installedResult.stdout);
         for (const game of installed) {
           installedGames[game.app_name] = game;
         }
       } catch {
-        console.warn("⚠️ Could not parse installed games");
+        await warn("Could not parse installed games");
       }
     }
 
     const now = new Date().toISOString();
 
-    // Map to Game interface
-    const games: Game[] = rawGames.map((g) => {
-      const installed = installedGames[g.app_name];
-      const isInstalled = Boolean(installed);
+    // Map to Game interface — legendary uses app_title (not title)
+    const games: Game[] = rawGames
+      .filter((g) => g.app_title) // skip entries with no title
+      .map((g) => {
+        const installed = installedGames[g.app_name];
+        const isInstalled = Boolean(installed);
 
-      return {
-        id: `epic-${g.app_name}`,
-        storeId: g.app_name,
-        store: "epic" as const,
-        title: g.title,
-        installed: isInstalled,
-        installPath: installed?.install_path,
-        installSize: installed?.install_size ? this.formatSize(installed.install_size) : undefined,
-        executablePath: installed?.executable,
-        developer: g.developer,
-        genres: [],
-        playTimeMinutes: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-    });
+        return {
+          id: `epic-${g.app_name}`,
+          storeId: g.app_name,
+          store: "epic" as const,
+          title: g.app_title,
+          installed: isInstalled,
+          installPath: installed?.install_path,
+          installSize: installed?.install_size
+            ? this.formatSize(installed.install_size)
+            : undefined,
+          executablePath: installed?.executable,
+          developer: g.metadata?.developer,
+          genres: [],
+          playTimeMinutes: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
+      });
 
-    console.log(
-      `✅ Legendary: found ${games.length} games (${Object.keys(installedGames).length} installed)`,
+    await debug(
+      `Legendary: found ${games.length} games (${Object.keys(installedGames).length} installed)`,
     );
     return games;
   }
@@ -132,4 +141,14 @@ export class LegendaryService extends GameStoreService {
     const gb = bytes / (1024 * 1024 * 1024);
     return `${gb.toFixed(1)} GB`;
   }
+}
+
+/** Separate interface for list-installed output (different shape) */
+interface LegendaryInstalledGame {
+  app_name: string;
+  title?: string;
+  install_path?: string;
+  install_size?: number;
+  executable?: string;
+  version?: string;
 }

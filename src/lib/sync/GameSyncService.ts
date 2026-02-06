@@ -16,6 +16,7 @@
  */
 
 import { emit } from "@tauri-apps/api/event";
+import { debug, info, warn } from "@tauri-apps/plugin-log";
 import type { Game, StoreType } from "@/types";
 import { GameRepository } from "../database";
 import { DatabaseService, SidecarService } from "@/services/base";
@@ -107,7 +108,7 @@ export class GameSyncService {
       duration: 0,
     };
 
-    console.log(`🔄 Starting sync for stores: ${storesToSync.join(", ")}`);
+    await info(`Starting sync for stores: ${storesToSync.join(", ")}`);
 
     // Get existing game IDs to track new vs updated
     const existingIds = new Set((await this.gameRepo.getAllGames()).map((g) => g.id));
@@ -141,7 +142,7 @@ export class GameSyncService {
           }
 
           allFetchedGames.push(...games);
-          console.log(`✅ ${this.getStoreName(store)}: ${games.length} games`);
+          await info(`${this.getStoreName(store)}: ${games.length} games`);
         }
 
         await this.emitProgress({
@@ -154,7 +155,7 @@ export class GameSyncService {
         });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`⚠️ Failed to sync ${store}: ${msg}`);
+        await warn(`Failed to sync ${store}: ${msg}`);
         result.errors.push({ store, phase: "fetch", message: msg });
       }
     }
@@ -181,8 +182,8 @@ export class GameSyncService {
       message: `Synchronisation terminée (${result.total} jeux)`,
     });
 
-    console.log(
-      `✅ Sync complete: ${result.total} total, ${result.added} added, ` +
+    await info(
+      `Sync complete: ${result.total} total, ${result.added} added, ` +
         `${result.updated} updated, ${result.enriched} enriched ` +
         `(${result.duration}ms, ${result.errors.length} errors)`,
     );
@@ -201,7 +202,7 @@ export class GameSyncService {
       case "epic": {
         const isAuth = await this.legendary.isAuthenticated();
         if (!isAuth) {
-          console.log("⏭️ Epic Games: not authenticated, skipping");
+          await debug("Epic Games: not authenticated, skipping");
           return [];
         }
         return await this.legendary.listGames();
@@ -209,7 +210,7 @@ export class GameSyncService {
       case "gog": {
         const isAuth = await this.gogdl.isAuthenticated();
         if (!isAuth) {
-          console.log("⏭️ GOG: not authenticated, skipping");
+          await debug("GOG: not authenticated, skipping");
           return [];
         }
         return await this.gogdl.listGames();
@@ -217,7 +218,7 @@ export class GameSyncService {
       case "amazon": {
         const isAuth = await this.nile.isAuthenticated();
         if (!isAuth) {
-          console.log("⏭️ Amazon: not authenticated, skipping");
+          await debug("Amazon: not authenticated, skipping");
           return [];
         }
         return await this.nile.listGames();
@@ -248,11 +249,11 @@ export class GameSyncService {
     const gamesToEnrich = forceEnrich ? games : games.filter((g) => !g.enrichedAt);
 
     if (gamesToEnrich.length === 0) {
-      console.log("📋 All games already enriched, skipping");
+      await debug("All games already enriched, skipping");
       return 0;
     }
 
-    console.log(`🔍 Enriching ${gamesToEnrich.length} games...`);
+    await info(`Enriching ${gamesToEnrich.length} games...`);
     let enrichedCount = 0;
 
     for (let i = 0; i < gamesToEnrich.length; i++) {
@@ -299,7 +300,7 @@ export class GameSyncService {
         enrichedCount++;
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`⚠️ Failed to enrich "${game.title}": ${msg}`);
+        await warn(`Failed to enrich "${game.title}": ${msg}`);
         errors.push({ gameTitle: game.title, phase: "enrich", message: msg });
         // Continue with next game — don't stop on enrichment failure
       }
@@ -325,13 +326,13 @@ export class GameSyncService {
         steamGridDb: apiKeys.steamgriddbApiKey ? { apiKey: apiKeys.steamgriddbApiKey } : undefined,
       });
 
-      console.log(
-        `🔑 Enrichment configured: ` +
+      await debug(
+        `Enrichment configured: ` +
           `IGDB=${apiKeys.hasIgdb ? "✅" : "❌"} ` +
           `SteamGridDB=${apiKeys.hasSteamgriddb ? "✅" : "❌"}`,
       );
     } catch (error) {
-      console.warn("⚠️ Failed to configure enrichment APIs:", error);
+      await warn(`Failed to configure enrichment APIs: ${error}`);
     }
   }
 

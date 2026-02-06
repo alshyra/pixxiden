@@ -4,6 +4,7 @@
  */
 
 import { Command } from "@tauri-apps/plugin-shell";
+import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
 export interface SidecarResult {
   stdout: string;
@@ -33,7 +34,7 @@ export class SidecarService {
    */
   private async run(sidecar: SidecarName, args: string[]): Promise<SidecarResult> {
     try {
-      console.log(`🔧 Running ${sidecar} with args:`, args);
+      await debug(`Running ${sidecar} with args: ${JSON.stringify(args)}`);
       // pas touche ca marche
       const command = Command.sidecar(`binaries/${sidecar}`, args);
       const output = await command.execute();
@@ -45,12 +46,16 @@ export class SidecarService {
       };
 
       if (result.code !== 0) {
-        console.warn(`⚠️ ${sidecar} exited with code ${result.code}:`, result.stderr);
+        await warn(
+          `${sidecar} exited with code ${result.code}: ${result.stderr.substring(0, 200)}`,
+        );
       }
 
       return result;
     } catch (error) {
-      console.error(`❌ ${sidecar} execution failed:`, error);
+      await logError(
+        `${sidecar} execution failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return {
         stdout: "",
         stderr: error instanceof Error ? error.message : String(error),
@@ -119,7 +124,7 @@ export class SidecarService {
    */
   async runCommand(command: string, args: string[]): Promise<SidecarResult> {
     try {
-      console.log(`🔧 Running command: ${command} with args:`, args);
+      await debug(`Running command: ${command} with args: ${JSON.stringify(args)}`);
 
       const cmd = Command.create(command, args);
       const output = await cmd.execute();
@@ -131,12 +136,16 @@ export class SidecarService {
       };
 
       if (result.code !== 0) {
-        console.warn(`⚠️ ${command} exited with code ${result.code}:`, result.stderr);
+        await warn(
+          `${command} exited with code ${result.code}: ${result.stderr.substring(0, 200)}`,
+        );
       }
 
       return result;
     } catch (error) {
-      console.error(`❌ ${command} execution failed:`, error);
+      await logError(
+        `${command} execution failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return {
         stdout: "",
         stderr: error instanceof Error ? error.message : String(error),

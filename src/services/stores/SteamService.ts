@@ -5,6 +5,7 @@
 
 import type { Game } from "@/types";
 import { GameStoreService } from "./GameStoreService";
+import { warn } from "@tauri-apps/plugin-log";
 
 export class SteamService extends GameStoreService {
   get storeName(): Game["store"] {
@@ -22,7 +23,7 @@ export class SteamService extends GameStoreService {
     // 2. Reading steamapps/libraryfolders.vdf for library paths
     // 3. Reading appmanifest_*.acf files for installed games
 
-    console.log("⚠️ Steam service: not yet implemented (requires filesystem access)");
+    await warn("Steam service: not yet implemented (requires filesystem access)");
     return [];
   }
 

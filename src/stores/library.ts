@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { debug, info, error as logError } from "@tauri-apps/plugin-log";
 import type { Game } from "@/types";
 import { getOrchestrator, initializeServices, type SyncResult } from "@/services";
 
@@ -29,10 +30,10 @@ export const useLibraryStore = defineStore("library", () => {
     try {
       await initializeServices();
       initialized.value = true;
-      console.log("🎮 Services initialized");
+      await info("Library store: services initialized");
     } catch (err) {
       error.value = "Failed to initialize services";
-      console.error("🎮 Init error:", err);
+      await logError(`Library store init error: ${err}`);
     }
   }
 
@@ -41,7 +42,7 @@ export const useLibraryStore = defineStore("library", () => {
    * Initial sync is handled by SplashScreen, so this just reads from DB.
    */
   async function fetchGames() {
-    console.log("🎮 fetchGames()");
+    await debug("fetchGames()");
     loading.value = true;
     error.value = null;
 
@@ -50,11 +51,11 @@ export const useLibraryStore = defineStore("library", () => {
 
       const orchestrator = getOrchestrator();
       const data = await orchestrator.getAllGames();
-      console.log("🎮 Got", data.length, "games from DB");
+      await info(`Got ${data.length} games from DB`);
       games.value = data;
     } catch (err) {
       error.value = "Failed to fetch games";
-      console.error("🎮 Error:", err);
+      await logError(`fetchGames error: ${err}`);
     } finally {
       loading.value = false;
     }
@@ -65,7 +66,7 @@ export const useLibraryStore = defineStore("library", () => {
    * Delegates to GameSyncService via the orchestrator
    */
   async function syncLibrary() {
-    console.log("🎮 syncLibrary()");
+    await debug("syncLibrary()");
     syncing.value = true;
     loading.value = true;
     error.value = null;
@@ -77,7 +78,7 @@ export const useLibraryStore = defineStore("library", () => {
       const orchestrator = getOrchestrator();
       const result: SyncResult = await orchestrator.syncLibrary();
 
-      console.log("🎮 Sync result:", result);
+      await info(`Sync result: ${result.total} total, ${result.errors.length} errors`);
       syncErrors.value = result.errors.map(
         (e) => `${e.store || e.gameTitle || "unknown"}: ${e.message}`,
       );
@@ -86,10 +87,10 @@ export const useLibraryStore = defineStore("library", () => {
       // Refresh games from DB after sync
       const data = await orchestrator.getAllGames();
       games.value = data;
-      console.log("🎮 Loaded", data.length, "games");
+      await info(`Loaded ${data.length} games after sync`);
     } catch (err) {
       error.value = "Failed to sync library";
-      console.error("🎮 Sync error:", err);
+      await logError(`Sync error: ${err}`);
     } finally {
       loading.value = false;
       syncing.value = false;
@@ -128,7 +129,7 @@ export const useLibraryStore = defineStore("library", () => {
       }
     } catch (err) {
       error.value = "Failed to launch game";
-      console.error(err);
+      await logError(`Launch error: ${err}`);
       throw err;
     }
   }
@@ -146,7 +147,7 @@ export const useLibraryStore = defineStore("library", () => {
       await invoke("install_game", { id: gameId });
     } catch (err) {
       error.value = "Failed to install game";
-      console.error(err);
+      await logError(`Install error: ${err}`);
       throw err;
     }
   }
@@ -164,14 +165,14 @@ export const useLibraryStore = defineStore("library", () => {
       }
     } catch (err) {
       error.value = "Failed to uninstall game";
-      console.error(err);
+      await logError(`Uninstall error: ${err}`);
       throw err;
     }
   }
 
   // TODO: Migrer scan GOG vers GogdlService
   async function scanGogInstalled() {
-    console.log("🎮 scanGogInstalled() - TODO: migrate to services");
+    await debug("scanGogInstalled() - TODO: migrate to services");
     // Temporairement désactivé pendant la migration
   }
 

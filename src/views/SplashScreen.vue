@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { debug, info, warn, error as logError } from "@tauri-apps/plugin-log";
 import { PixxidenLogo } from "@/components/ui";
 import { initializeServices } from "@/services";
 import { GameSyncService } from "@/lib/sync";
@@ -64,7 +65,7 @@ onMounted(async () => {
   // Listen for progress events from GameSyncService
   try {
     unlistenProgress = await listen<SyncProgressPayload>("splash-progress", (event) => {
-      console.log("📊 Splash progress:", event.payload);
+      debug(`Splash progress: ${event.payload.phase} - ${event.payload.message}`);
       const { gameTitle, current, total, phase, message } = event.payload;
 
       statusMessage.value = message || "Synchronisation...";
@@ -80,7 +81,7 @@ onMounted(async () => {
       }
     });
   } catch (e) {
-    console.warn("Failed to setup splash progress listener:", e);
+    warn(`Failed to setup splash progress listener: ${e}`);
   }
 
   try {
@@ -98,7 +99,7 @@ onMounted(async () => {
     // Step 3: If no games, perform initial sync
     if (gamesCount === 0) {
       try {
-        console.log("🎮 No games found, starting initial sync...");
+        await info("No games found, starting initial sync...");
         statusMessage.value = "Synchronisation des jeux...";
         progress.value = 40;
         // GameSyncService handles everything: fetch → enrich → persist
@@ -106,14 +107,13 @@ onMounted(async () => {
         const syncService = GameSyncService.getInstance();
         await syncService.sync();
       } catch (error) {
-        console.warn(
-          "🎮 Initial sync failed (may need authentication or stores not configured):",
-          error,
+        await warn(
+          `Initial sync failed (may need authentication or stores not configured): ${error}`,
         );
         // Don't block — continue with empty library
       }
     } else {
-      console.log(`🎮 Found ${gamesCount} games in database`);
+      await info(`Found ${gamesCount} games in database`);
       progress.value = 90;
     }
 
@@ -121,7 +121,7 @@ onMounted(async () => {
     statusMessage.value = "Lancement...";
     progress.value = 100;
   } catch (error) {
-    console.error("🎮 Error during splash screen initialization:", error);
+    await logError(`Error during splash screen initialization: ${error}`);
     statusMessage.value = "Chargement terminé";
     progress.value = 100;
     // Continue anyway

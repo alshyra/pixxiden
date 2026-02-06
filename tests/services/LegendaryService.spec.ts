@@ -55,18 +55,17 @@ describe("LegendaryService", () => {
 
   describe("listGames", () => {
     it("should list games from legendary CLI", async () => {
+      // Real legendary output uses app_name, app_title, metadata.developer
       const mockGames = [
         {
           app_name: "Fortnite",
-          title: "Fortnite",
-          is_installed: false,
-          developer: "Epic Games",
+          app_title: "Fortnite",
+          metadata: { developer: "Epic Games" },
         },
         {
           app_name: "RocketLeague",
-          title: "Rocket League",
-          is_installed: false,
-          developer: "Psyonix",
+          app_title: "Rocket League",
+          metadata: { developer: "Psyonix" },
         },
       ];
 
@@ -74,7 +73,6 @@ describe("LegendaryService", () => {
         {
           app_name: "Fortnite",
           title: "Fortnite",
-          is_installed: true,
           install_path: "/home/user/Games/Fortnite",
           install_size: 32212254720, // 30 GB
           executable: "/home/user/Games/Fortnite/FortniteClient-Linux-Shipping",
@@ -138,7 +136,7 @@ describe("LegendaryService", () => {
     });
 
     it("should continue if list-installed fails", async () => {
-      const mockGames = [{ app_name: "TestGame", title: "Test Game", is_installed: false }];
+      const mockGames = [{ app_name: "TestGame", app_title: "Test Game" }];
 
       vi.mocked(mockSidecar.runLegendary)
         .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))

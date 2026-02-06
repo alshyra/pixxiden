@@ -21,6 +21,7 @@
 import { ref, provide, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 import { GameOverlay } from "@/components/game";
 import { ConsoleFooter } from "@/components/layout";
 import { SetupWizard } from "@/components/ui";
@@ -52,23 +53,23 @@ onMounted(async () => {
     const needsSetup = await api.needsSetup();
     showSetupWizard.value = needsSetup;
   } catch (error) {
-    console.error("Failed to check setup status:", error);
+    await logError(`Failed to check setup status: ${error}`);
     // Don't show wizard on error - user can configure later in settings
   }
 
   // Listen for game launch events
   try {
     unlistenGameLaunched = await listen("game-launched", () => {
-      console.log("🎮 Game launched - PS button now controls game overlay");
+      debug("Game launched - PS button now controls game overlay");
       isGameRunning.value = true;
     });
 
     unlistenGameError = await listen("game-launch-error", () => {
-      console.log("🎮 Game launch failed - resetting game state");
+      debug("Game launch failed - resetting game state");
       isGameRunning.value = false;
     });
   } catch (e) {
-    console.warn("Failed to setup game event listeners:", e);
+    await warn(`Failed to setup game event listeners: ${e}`);
   }
 
   // Handle PS/Guide button: toggle settings when no game is running

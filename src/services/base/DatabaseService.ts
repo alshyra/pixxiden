@@ -4,6 +4,7 @@
  */
 
 import Database from "@tauri-apps/plugin-sql";
+import { info, error as logError } from "@tauri-apps/plugin-log";
 import { SCHEMA, MIGRATIONS } from "./schema";
 
 export interface QueryResult<T> {
@@ -50,9 +51,9 @@ export class DatabaseService {
       }
 
       this.initialized = true;
-      console.log("✅ Database initialized successfully");
+      await info("Database initialized successfully");
     } catch (error) {
-      console.error("❌ Database initialization failed:", error);
+      await logError(`Database initialization failed: ${error}`);
       throw error;
     }
   }

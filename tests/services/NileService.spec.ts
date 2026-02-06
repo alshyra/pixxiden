@@ -1,6 +1,17 @@
 /**
  * NileService tests
  * Tests for Amazon Games store service via nile CLI
+ *
+ * CLI commands (actual):
+ * - `nile library sync` - sync library metadata
+ * - `nile library list` - list owned games (text output)
+ * - `nile library list --installed` - list installed games
+ * - `nile auth --login --non-interactive` - login
+ * - `nile auth --logout` - logout
+ * - `nile register --code <code>` - 2FA registration
+ *
+ * Note: nile has no `auth --check` flag. isAuthenticated uses `library list` as proxy.
+ * Output format: "Game Title (ASIN: B0XXXXXX)" per line.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -54,112 +65,113 @@ describe("NileService", () => {
   });
 
   describe("listGames", () => {
-    it("should list games from nile CLI", async () => {
-      const mockGames = [
-        {
-          app_name: "NewWorldAmazon",
-          title: "New World",
-          developer: "Amazon Games",
-        },
-        {
-          app_name: "LostArkAmazon",
-          title: "Lost Ark",
-          developer: "Smilegate RPG",
-        },
-      ];
+    it("should parse text output from nile library list", async () => {
+      const listOutput = ["New World (ASIN: B08CF3J4R2)", "Lost Ark (ASIN: B09NQGDZZ6)"].join("\n");
 
-      const mockInstalled = [
-        {
-          app_name: "NewWorldAmazon",
-          title: "New World",
-          is_installed: true,
-          install_path: "/home/user/Games/NewWorld",
-          install_size: 85000000000, // ~79 GB
-          executable: "/home/user/Games/NewWorld/NewWorld.exe",
-        },
-      ];
+      const installedOutput = "New World (ASIN: B08CF3J4R2)\n";
 
+      // sync → list → list --installed
       vi.mocked(mockSidecar.runNile)
-        .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))
-        .mockResolvedValueOnce(createResult(JSON.stringify(mockInstalled)));
-
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+        .mockResolvedValueOnce(createResult("")) // library sync
+        .mockResolvedValueOnce(createResult(listOutput)) // library list
+        .mockResolvedValueOnce(createResult(installedOutput)); // library list --installed
 
       const games = await service.listGames();
 
       expect(games).toHaveLength(2);
 
       // Check New World (installed)
-      const newWorld = games.find((g) => g.storeId === "NewWorldAmazon");
+      const newWorld = games.find((g) => g.storeId === "B08CF3J4R2");
       expect(newWorld).toBeDefined();
-      expect(newWorld?.id).toBe("amazon-NewWorldAmazon");
+      expect(newWorld?.id).toBe("amazon-B08CF3J4R2");
       expect(newWorld?.store).toBe("amazon");
       expect(newWorld?.title).toBe("New World");
       expect(newWorld?.installed).toBe(true);
-      expect(newWorld?.installPath).toBe("/home/user/Games/NewWorld");
-      expect(newWorld?.installSize).toBe("79.2 GB");
 
       // Check Lost Ark (not installed)
-      const lostArk = games.find((g) => g.storeId === "LostArkAmazon");
+      const lostArk = games.find((g) => g.storeId === "B09NQGDZZ6");
       expect(lostArk).toBeDefined();
       expect(lostArk?.installed).toBe(false);
-      expect(lostArk?.installPath).toBeUndefined();
 
-      // Verify sidecar was called correctly
-      expect(mockSidecar.runNile).toHaveBeenCalledWith(["library", "--json"]);
-      expect(mockSidecar.runNile).toHaveBeenCalledWith(["list-installed", "--json"]);
+      // Verify sidecar calls
+      expect(mockSidecar.runNile).toHaveBeenCalledWith(["library", "sync"]);
+      expect(mockSidecar.runNile).toHaveBeenCalledWith(["library", "list"]);
+      expect(mockSidecar.runNile).toHaveBeenCalledWith(["library", "list", "--installed"]);
     });
 
-    it("should throw error when nile list fails", async () => {
-      vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(
-        createResult("", 1, "Not authenticated"),
-      );
-
-      await expect(service.listGames()).rejects.toThrow("nile list failed: Not authenticated");
-    });
-
-    it("should throw error when JSON parsing fails", async () => {
-      vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(createResult("invalid json"));
-
-      await expect(service.listGames()).rejects.toThrow("Failed to parse nile output");
-    });
-
-    it("should handle empty game list", async () => {
+    it("should throw error when nile library list fails", async () => {
       vi.mocked(mockSidecar.runNile)
-        .mockResolvedValueOnce(createResult("[]"))
-        .mockResolvedValueOnce(createResult("[]"));
+        .mockResolvedValueOnce(createResult("")) // sync
+        .mockResolvedValueOnce(createResult("", 1, "Not authenticated")); // list
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      await expect(service.listGames()).rejects.toThrow(
+        "nile library list failed: Not authenticated",
+      );
+    });
+
+    it("should handle empty output", async () => {
+      vi.mocked(mockSidecar.runNile)
+        .mockResolvedValueOnce(createResult("")) // sync
+        .mockResolvedValueOnce(createResult("")) // list (empty)
+        .mockResolvedValueOnce(createResult("")); // list --installed
 
       const games = await service.listGames();
       expect(games).toHaveLength(0);
     });
 
-    it("should continue if list-installed fails", async () => {
-      const mockGames = [{ app_name: "TestGame", title: "Test Game" }];
+    it("should continue if sync fails", async () => {
+      const listOutput = "Test Game (ASIN: B0TEST1234)\n";
 
       vi.mocked(mockSidecar.runNile)
-        .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))
-        .mockResolvedValueOnce(createResult("", 1, "Error"));
+        .mockResolvedValueOnce(createResult("", 1, "sync error")) // sync fails
+        .mockResolvedValueOnce(createResult(listOutput)) // list still works
+        .mockResolvedValueOnce(createResult("")); // list --installed
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      const games = await service.listGames();
+      expect(games).toHaveLength(1);
+      expect(games[0].title).toBe("Test Game");
+    });
+
+    it("should continue if list-installed fails", async () => {
+      const listOutput = "Test Game (ASIN: B0TEST1234)\n";
+
+      vi.mocked(mockSidecar.runNile)
+        .mockResolvedValueOnce(createResult("")) // sync
+        .mockResolvedValueOnce(createResult(listOutput)) // list
+        .mockResolvedValueOnce(createResult("", 1, "Error")); // list --installed fails
 
       const games = await service.listGames();
       expect(games).toHaveLength(1);
       expect(games[0].installed).toBe(false);
     });
+
+    it("should parse alternate ASIN format (dash separator)", async () => {
+      const listOutput = "Test Game - ASIN: B0TEST1234\n";
+
+      vi.mocked(mockSidecar.runNile)
+        .mockResolvedValueOnce(createResult("")) // sync
+        .mockResolvedValueOnce(createResult(listOutput)) // list
+        .mockResolvedValueOnce(createResult("")); // list --installed
+
+      const games = await service.listGames();
+      expect(games).toHaveLength(1);
+      expect(games[0].title).toBe("Test Game");
+      expect(games[0].storeId).toBe("B0TEST1234");
+    });
   });
 
   describe("isAuthenticated", () => {
-    it("should return true when auth check succeeds", async () => {
-      vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(createResult("Authenticated"));
+    it("should return true when library list succeeds (exit code 0)", async () => {
+      vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(
+        createResult("Test Game (ASIN: B0TEST)"),
+      );
 
       const result = await service.isAuthenticated();
       expect(result).toBe(true);
-      expect(mockSidecar.runNile).toHaveBeenCalledWith(["auth", "--check"]);
+      expect(mockSidecar.runNile).toHaveBeenCalledWith(["library", "list"]);
     });
 
-    it("should return false when auth check fails", async () => {
+    it("should return false when library list fails", async () => {
       vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(
         createResult("", 1, "Not authenticated"),
       );
@@ -167,23 +179,24 @@ describe("NileService", () => {
       const result = await service.isAuthenticated();
       expect(result).toBe(false);
     });
+
+    it("should return false on sidecar exception", async () => {
+      vi.mocked(mockSidecar.runNile).mockRejectedValueOnce(new Error("Binary not found"));
+
+      const result = await service.isAuthenticated();
+      expect(result).toBe(false);
+    });
   });
 
   describe("login", () => {
-    it("should login successfully with email and password", async () => {
+    it("should login successfully", async () => {
       vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(createResult("Successfully logged in"));
 
       const result = await service.login("user@example.com", "password123");
 
       expect(result.success).toBe(true);
       expect(result.requires2FA).toBeUndefined();
-      expect(mockSidecar.runNile).toHaveBeenCalledWith([
-        "auth",
-        "--email",
-        "user@example.com",
-        "--password",
-        "password123",
-      ]);
+      expect(mockSidecar.runNile).toHaveBeenCalledWith(["auth", "--login", "--non-interactive"]);
     });
 
     it("should detect 2FA requirement", async () => {
@@ -222,21 +235,13 @@ describe("NileService", () => {
   });
 
   describe("loginWith2FA", () => {
-    it("should login with 2FA code", async () => {
+    it("should register with 2FA code", async () => {
       vi.mocked(mockSidecar.runNile).mockResolvedValueOnce(createResult("Successfully logged in"));
 
       const result = await service.loginWith2FA("user@example.com", "password123", "123456");
 
       expect(result.success).toBe(true);
-      expect(mockSidecar.runNile).toHaveBeenCalledWith([
-        "auth",
-        "--email",
-        "user@example.com",
-        "--password",
-        "password123",
-        "--2fa-code",
-        "123456",
-      ]);
+      expect(mockSidecar.runNile).toHaveBeenCalledWith(["register", "--code", "123456"]);
     });
 
     it("should return error on invalid 2FA code", async () => {

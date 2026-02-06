@@ -18,6 +18,7 @@
 // Base Services (bas niveau)
 // ============================================================================
 import { DatabaseService, SidecarService } from "./base";
+import { info, warn } from "@tauri-apps/plugin-log";
 export { DatabaseService, SidecarService, SCHEMA, MIGRATIONS } from "./base";
 
 // ============================================================================
@@ -99,11 +100,11 @@ let installationServiceInstance: InstallationService | null = null;
  */
 export async function initializeServices(): Promise<void> {
   if (initialized) {
-    console.warn("[Services] Already initialized");
+    await warn("[Services] Already initialized");
     return;
   }
 
-  console.log("[Services] Initializing...");
+  await info("[Services] Initializing...");
 
   // 1. Initialiser la base de données (crée les tables si nécessaire)
   const db = DatabaseService.getInstance();
@@ -113,7 +114,7 @@ export async function initializeServices(): Promise<void> {
   // Les autres services sont créés à la demande
 
   initialized = true;
-  console.log("[Services] Initialization complete");
+  await info("[Services] Initialization complete");
 }
 
 /**

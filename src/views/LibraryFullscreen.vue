@@ -77,6 +77,7 @@ import { useGamepad } from "@/composables/useGamepad";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 import { Button } from "@/components/ui";
 import { RefreshCw, Package } from "lucide-vue-next";
+import { warn } from "@tauri-apps/plugin-log";
 import type { Game } from "@/types";
 import GameCarousel from "@/components/game/GameCarousel.vue";
 import { HeroBanner } from "@/components/game";
@@ -181,19 +182,12 @@ async function loadGames() {
   try {
     await libraryStore.fetchGames();
 
-    // Si aucun jeu, rediriger vers settings pour configurer les stores
-    if (games.value.length === 0) {
-      loading.value = false;
-      router.push("/settings/store");
-      return;
-    }
-
     // Auto-select first game if available
     if (filteredGames.value.length > 0) {
       selectedGame.value = filteredGames.value[0];
     }
   } catch (error) {
-    console.error("Failed to load games:", error);
+    await warn(`Failed to load games: ${error}`);
   } finally {
     loading.value = false;
   }
