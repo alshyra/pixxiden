@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS games (
   background_url TEXT,
   
   -- User data
+  is_favorite INTEGER DEFAULT 0,
   play_time_minutes INTEGER DEFAULT 0,
   last_played TEXT,
   downloading INTEGER DEFAULT 0,
@@ -100,6 +101,6 @@ CREATE INDEX IF NOT EXISTS idx_enrichment_cache_game_id ON enrichment_cache(game
 `;
 
 export const MIGRATIONS: string[] = [
-  // Future migrations will be added here
-  // Each migration should be idempotent
+  // Migration 1: Add is_favorite column for game favorites
+  `ALTER TABLE games ADD COLUMN is_favorite INTEGER DEFAULT 0`,
 ];

@@ -83,8 +83,6 @@ export class NileService extends GameStoreService {
     });
 
     // Save to database
-    await this.saveGames(games);
-
     console.log(
       `✅ nile: found ${games.length} games (${Object.keys(installedGames).length} installed)`,
     );

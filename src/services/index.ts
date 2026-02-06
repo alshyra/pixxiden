@@ -10,6 +10,8 @@
  * - auth/        → AuthService, WebviewAuthHandler
  * - enrichment/  → EnrichmentService
  * - orchestrator → GameLibraryOrchestrator (agrège tout)
+ * - lib/database → GameRepository, CacheRepository (pure TS CRUD)
+ * - lib/sync     → GameSyncService (sync + enrichment pipeline)
  */
 
 // ============================================================================
@@ -67,7 +69,18 @@ export type { InstallProgress } from "./installation";
 // ============================================================================
 import { GameLibraryOrchestrator } from "./GameLibraryOrchestrator";
 export { GameLibraryOrchestrator } from "./GameLibraryOrchestrator";
-export type { LibrarySyncResult, StoreStatus } from "./GameLibraryOrchestrator";
+export type { StoreStatus, SyncResult, SyncOptions } from "./GameLibraryOrchestrator";
+
+// ============================================================================
+// New: Database Repositories (pure TypeScript CRUD)
+// ============================================================================
+export { GameRepository, CacheRepository } from "@/lib/database";
+
+// ============================================================================
+// New: Sync Service (JS-first sync pipeline)
+// ============================================================================
+export { GameSyncService } from "@/lib/sync";
+export type { SyncError, SyncProgressEvent } from "@/lib/sync";
 
 // ============================================================================
 // Factory / Initialization
@@ -82,7 +95,7 @@ let installationServiceInstance: InstallationService | null = null;
 
 /**
  * Initialise tous les services de l'application.
- * Doit être appelé une seule fois au démarrage (main.ts ou App.vue).
+ * Doit être appelé une seule fois au démarrage (SplashScreen).
  */
 export async function initializeServices(): Promise<void> {
   if (initialized) {
@@ -96,7 +109,7 @@ export async function initializeServices(): Promise<void> {
   const db = DatabaseService.getInstance();
   await db.init();
 
-  // 2. L'orchestrateur est maintenant prêt
+  // 2. L'orchestrateur et GameSyncService sont maintenant prêts
   // Les autres services sont créés à la demande
 
   initialized = true;

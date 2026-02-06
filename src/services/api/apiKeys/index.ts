@@ -6,11 +6,11 @@ import { SteamGridDBStore } from "./SteamGridDBStore";
 import { IGDBStore } from "./IGDBStore";
 import { SteamStore } from "./SteamStore";
 import { loadConfig, saveConfig } from "./ConfigManager";
-import type {
-  ApiKeysConfig,
-  ApiKeysUpdateRequest,
-  ApiKeyTestResults,
-} from "./types";
+import type { ApiKeysConfig, ApiKeysUpdateRequest, ApiKeyTestResults } from "./types";
+
+// Re-export types for external use
+export type { ApiKeysConfig, ApiKeysUpdateRequest, ApiKeyTestResults } from "./types";
+export type { ApiKeyTestResult } from "./types";
 
 // Initialize stores
 const steamGridDBStore = new SteamGridDBStore();
@@ -40,9 +40,7 @@ export async function needsSetup(): Promise<boolean> {
 /**
  * Save API keys config to file
  */
-export async function saveApiKeys(
-  request: ApiKeysUpdateRequest
-): Promise<ApiKeysConfig> {
+export async function saveApiKeys(request: ApiKeysUpdateRequest): Promise<ApiKeysConfig> {
   try {
     const currentConfig = await getApiKeys();
     console.log("📝 [apiKeys] Current config loaded");
@@ -92,9 +90,7 @@ export async function skipSetup(): Promise<void> {
 /**
  * Test API keys connectivity
  */
-export async function testApiKeys(
-  request: ApiKeysUpdateRequest
-): Promise<ApiKeyTestResults> {
+export async function testApiKeys(request: ApiKeysUpdateRequest): Promise<ApiKeyTestResults> {
   const results: ApiKeyTestResults = {
     steamgriddbValid: false,
     steamgriddbMessage: null,
@@ -127,7 +123,7 @@ export async function testApiKeys(
       try {
         const accessToken = await igdbStore.getAccessToken(
           request.igdbClientId,
-          request.igdbClientSecret
+          request.igdbClientSecret,
         );
         const config = await getApiKeys();
         config.igdbAccessToken = accessToken;
@@ -177,7 +173,7 @@ export async function getIGDBAccessToken(): Promise<string | null> {
   try {
     const accessToken = await igdbStore.getAccessToken(
       config.igdbClientId,
-      config.igdbClientSecret
+      config.igdbClientSecret,
     );
     config.igdbAccessToken = accessToken;
     config.igdbTokenExpiresAt = Date.now() + 60 * 24 * 60 * 60 * 1000; // 60 days

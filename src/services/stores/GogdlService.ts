@@ -86,8 +86,6 @@ export class GogdlService extends GameStoreService {
     });
 
     // Save to database
-    await this.saveGames(games);
-
     console.log(
       `✅ gogdl: found ${games.length} games (${Object.keys(installedGames).length} installed)`,
     );

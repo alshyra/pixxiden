@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import type { Game } from "@/types";
-import { getOrchestrator, initializeServices, type LibrarySyncResult } from "@/services";
+import { getOrchestrator, initializeServices, type SyncResult } from "@/services";
 
 export const useLibraryStore = defineStore("library", () => {
   // All games
@@ -36,6 +36,10 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
+  /**
+   * Fetch games from SQLite (pure TypeScript — no Rust invoke)
+   * Initial sync is handled by SplashScreen, so this just reads from DB.
+   */
   async function fetchGames() {
     console.log("🎮 fetchGames()");
     loading.value = true;
@@ -47,14 +51,6 @@ export const useLibraryStore = defineStore("library", () => {
       const orchestrator = getOrchestrator();
       const data = await orchestrator.getAllGames();
       console.log("🎮 Got", data.length, "games from DB");
-
-      // If no games in DB and never synced, auto-sync
-      if (data.length === 0 && !hasSynced.value) {
-        console.log("🎮 No games, triggering sync...");
-        await syncLibrary();
-        return;
-      }
-
       games.value = data;
     } catch (err) {
       error.value = "Failed to fetch games";
@@ -64,6 +60,10 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
+  /**
+   * Sync library with all authenticated stores
+   * Delegates to GameSyncService via the orchestrator
+   */
   async function syncLibrary() {
     console.log("🎮 syncLibrary()");
     syncing.value = true;
@@ -75,13 +75,15 @@ export const useLibraryStore = defineStore("library", () => {
       if (!initialized.value) await initialize();
 
       const orchestrator = getOrchestrator();
-      const result: LibrarySyncResult = await orchestrator.syncLibrary();
+      const result: SyncResult = await orchestrator.syncLibrary();
 
       console.log("🎮 Sync result:", result);
-      syncErrors.value = result.errors.map((e) => `${e.store}: ${e.error}`);
+      syncErrors.value = result.errors.map(
+        (e) => `${e.store || e.gameTitle || "unknown"}: ${e.message}`,
+      );
       hasSynced.value = true;
 
-      // Refresh games after sync
+      // Refresh games from DB after sync
       const data = await orchestrator.getAllGames();
       games.value = data;
       console.log("🎮 Loaded", data.length, "games");

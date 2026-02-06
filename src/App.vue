@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="min-h-screen bg-black text-white">
-    <SplashScreen v-if="isSplashScreen" />
+    <SplashScreen v-if="isSplashScreen" @ready="onSplashReady" />
     <template v-if="!isSplashScreen">
       <!-- Setup Wizard (first-run) -->
       <SetupWizard v-if="showSetupWizard" @complete="onSetupComplete" @skip="onSetupSkip" />
@@ -35,9 +35,9 @@ const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null);
 const showSetupWizard = ref(false);
 const isSplashScreen = ref(true)
 
-setTimeout(() => {
+function onSplashReady() {
   isSplashScreen.value = false;
-}, 3000);
+}
 
 // Track if a game is currently running (for PS/Guide button behavior)
 const isGameRunning = ref(false);

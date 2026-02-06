@@ -40,9 +40,13 @@ export class DatabaseService {
       // Apply schema
       await this.db.execute(SCHEMA);
 
-      // Apply any pending migrations
+      // Apply any pending migrations (errors are expected if already applied)
       for (const migration of MIGRATIONS) {
-        await this.db.execute(migration);
+        try {
+          await this.db.execute(migration);
+        } catch {
+          // Migration likely already applied — safe to ignore
+        }
       }
 
       this.initialized = true;

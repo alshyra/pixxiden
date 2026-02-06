@@ -1,31 +1,22 @@
 /**
- * GameLibraryOrchestrator - Orchestrateur principal de la bibliothèque
+ * GameLibraryOrchestrator - Main facade for game library operations
  *
- * Responsabilités:
- * - Agrège les jeux de tous les stores
- * - Applique l'enrichissement
- * - Gère le refresh/sync de la bibliothèque
- * - Interface principale pour les stores Pinia
+ * Delegates to:
+ * - GameRepository (all database reads/writes — pure TypeScript)
+ * - GameSyncService (sync + enrichment pipeline)
+ * - Store services (authentication status checks)
  *
- * Dépendances unidirectionnelles:
- * - stores/* (Legendary, Gogdl, Nile, Steam)
- * - enrichment/EnrichmentService
- * - base/DatabaseService
+ * This orchestrator contains NO Rust invoke calls.
+ * All data flows through SQLite via @tauri-apps/plugin-sql.
  */
 
 import type { Game, StoreType } from "@/types";
-import { invoke } from "@tauri-apps/api/core";
+import { GameRepository } from "@/lib/database";
+import { GameSyncService, type SyncOptions, type SyncResult } from "@/lib/sync";
 import { DatabaseService, SidecarService } from "./base";
-import { LegendaryService, GogdlService, NileService, SteamService } from "./stores";
-import { EnrichmentService } from "./enrichment";
+import { LegendaryService, GogdlService, NileService } from "./stores";
 
-export interface LibrarySyncResult {
-  total: number;
-  added: number;
-  updated: number;
-  removed: number;
-  errors: { store: StoreType; error: string }[];
-}
+export type { SyncResult, SyncOptions };
 
 export interface StoreStatus {
   store: StoreType;
@@ -37,23 +28,21 @@ export interface StoreStatus {
 export class GameLibraryOrchestrator {
   private static instance: GameLibraryOrchestrator | null = null;
 
+  private gameRepo: GameRepository;
+  private syncService: GameSyncService;
   private legendary: LegendaryService;
   private gogdl: GogdlService;
   private nile: NileService;
-  private steam: SteamService;
-  private enrichment: EnrichmentService;
-  private db: DatabaseService;
-  private sidecar: SidecarService;
 
   private constructor() {
-    this.db = DatabaseService.getInstance();
-    this.sidecar = SidecarService.getInstance();
-    // Créer les instances des services avec Sidecar + DB
-    this.legendary = new LegendaryService(this.sidecar, this.db);
-    this.gogdl = new GogdlService(this.sidecar, this.db);
-    this.nile = new NileService(this.sidecar, this.db);
-    this.steam = new SteamService(this.sidecar, this.db);
-    this.enrichment = new EnrichmentService(this.db);
+    const db = DatabaseService.getInstance();
+    const sidecar = SidecarService.getInstance();
+
+    this.gameRepo = GameRepository.getInstance();
+    this.syncService = GameSyncService.getInstance();
+    this.legendary = new LegendaryService(sidecar, db);
+    this.gogdl = new GogdlService(sidecar, db);
+    this.nile = new NileService(sidecar, db);
   }
 
   static getInstance(): GameLibraryOrchestrator {
@@ -64,204 +53,115 @@ export class GameLibraryOrchestrator {
   }
 
   /**
-   * Initialise l'orchestrateur et la base de données
+   * Initialize the orchestrator and database
    */
   async initialize(): Promise<void> {
-    await this.db.init();
+    await DatabaseService.getInstance().init();
   }
 
+  // ===== Game Queries (pure SQLite reads) =====
+
   /**
-   * Récupère tous les jeux de la bibliothèque
-   * Appelle directement le backend Tauri pour récupérer les jeux enrichis
+   * Get all games from SQLite — no Rust invoke needed
    */
   async getAllGames(): Promise<Game[]> {
-    try {
-      // Appel direct au backend Tauri qui retourne les jeux enrichis
-      const games = await invoke<Game[]>("get_games");
-      return games || [];
-    } catch (error) {
-      console.error("❌ Failed to get games from backend:", error);
-      return [];
-    }
+    return this.gameRepo.getAllGames();
   }
 
   /**
-   * Synchronise la bibliothèque avec tous les stores authentifiés
-   * Fetch depuis les CLIs + enrichissement + sauvegarde DB
+   * Get a single game by ID
    */
-  async syncLibrary(options?: {
-    stores?: StoreType[];
-    forceEnrich?: boolean;
-  }): Promise<LibrarySyncResult> {
-    const result: LibrarySyncResult = {
-      total: 0,
-      added: 0,
-      updated: 0,
-      removed: 0,
-      errors: [],
-    };
-
-    const storesToSync: StoreType[] = options?.stores ?? ["epic", "gog", "amazon", "steam"];
-
-    // Récupérer les jeux existants pour comparer
-    const existingGames = await this.getAllGames();
-    const existingIds = new Set(existingGames.map((g) => g.id));
-
-    const newGames: Game[] = [];
-
-    // Sync chaque store en parallèle
-    const syncPromises = storesToSync.map(async (store) => {
-      try {
-        const games = await this.syncStore(store);
-        return { store, games, error: null };
-      } catch (error) {
-        return {
-          store,
-          games: [] as Game[],
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
-
-    const results = await Promise.all(syncPromises);
-
-    for (const { store, games, error } of results) {
-      if (error) {
-        result.errors.push({ store, error });
-      } else {
-        for (const game of games) {
-          if (existingIds.has(game.id)) {
-            result.updated++;
-          } else {
-            result.added++;
-          }
-          newGames.push(game);
-        }
-      }
-    }
-
-    // Enrichir les nouveaux jeux ou ceux forcés
-    if (newGames.length > 0) {
-      await this.enrichment.enrichGames(newGames);
-    }
-
-    result.total = newGames.length;
-    return result;
+  async getGameById(gameId: string): Promise<Game | null> {
+    return this.gameRepo.getGameById(gameId);
   }
 
   /**
-   * Sync un store spécifique
+   * Get games by store
    */
-  private async syncStore(store: StoreType): Promise<Game[]> {
-    switch (store) {
-      case "epic": {
-        const isAuth = await this.legendary.isAuthenticated();
-        if (!isAuth) return [];
-        const games = await this.legendary.listGames();
-        await this.legendary.persistGames(games);
-        return games;
-      }
-      case "gog": {
-        const isAuth = await this.gogdl.isAuthenticated();
-        if (!isAuth) return [];
-        const games = await this.gogdl.listGames();
-        await this.gogdl.persistGames(games);
-        return games;
-      }
-      case "amazon": {
-        const isAuth = await this.nile.isAuthenticated();
-        if (!isAuth) return [];
-        const games = await this.nile.listGames();
-        await this.nile.persistGames(games);
-        return games;
-      }
-      case "steam": {
-        const games = await this.steam.listGames();
-        await this.steam.persistGames(games);
-        return games;
-      }
-      default:
-        return [];
-    }
+  async getGamesByStore(store: StoreType): Promise<Game[]> {
+    return this.gameRepo.getGamesByStore(store);
   }
 
   /**
-   * Récupère le statut de tous les stores
+   * Search games by title or developer (SQL LIKE query)
+   */
+  async searchGames(query: string): Promise<Game[]> {
+    return this.gameRepo.searchGames(query);
+  }
+
+  /**
+   * Get recently played games
+   */
+  async getRecentlyPlayed(limit: number = 10): Promise<Game[]> {
+    return this.gameRepo.getRecentlyPlayed(limit);
+  }
+
+  /**
+   * Get favorite games
+   */
+  async getFavorites(): Promise<Game[]> {
+    return this.gameRepo.getFavorites();
+  }
+
+  // ===== Sync (delegates to GameSyncService) =====
+
+  /**
+   * Sync library with all authenticated stores
+   * Fetches games, enriches metadata, persists to SQLite
+   */
+  async syncLibrary(options?: SyncOptions): Promise<SyncResult> {
+    return this.syncService.sync(options);
+  }
+
+  // ===== Store Status =====
+
+  /**
+   * Get authentication and games status for all stores
    */
   async getStoresStatus(): Promise<StoreStatus[]> {
-    const statuses: StoreStatus[] = [];
-
     const [epicAuth, gogAuth, amazonAuth] = await Promise.all([
       this.legendary.isAuthenticated(),
       this.gogdl.isAuthenticated(),
       this.nile.isAuthenticated(),
     ]);
 
-    const [epicGames, gogGames, amazonGames, steamGames] = await Promise.all([
-      this.legendary.getStoredGames(),
-      this.gogdl.getStoredGames(),
-      this.nile.getStoredGames(),
-      this.steam.getStoredGames(),
+    const [epicCount, gogCount, amazonCount, steamCount] = await Promise.all([
+      this.gameRepo.getGamesByStore("epic").then((g) => g.length),
+      this.gameRepo.getGamesByStore("gog").then((g) => g.length),
+      this.gameRepo.getGamesByStore("amazon").then((g) => g.length),
+      this.gameRepo.getGamesByStore("steam").then((g) => g.length),
     ]);
 
-    // Pour lastSync, on pourrait stocker ça dans settings
-    // Pour l'instant on met null
-    statuses.push(
-      {
-        store: "epic",
-        authenticated: epicAuth,
-        gamesCount: epicGames.length,
-        lastSync: null,
-      },
-      {
-        store: "gog",
-        authenticated: gogAuth,
-        gamesCount: gogGames.length,
-        lastSync: null,
-      },
-      {
-        store: "amazon",
-        authenticated: amazonAuth,
-        gamesCount: amazonGames.length,
-        lastSync: null,
-      },
-      {
-        store: "steam",
-        authenticated: true, // Steam n'a pas d'auth via CLI
-        gamesCount: steamGames.length,
-        lastSync: null,
-      },
-    );
-
-    return statuses;
+    return [
+      { store: "epic", authenticated: epicAuth, gamesCount: epicCount, lastSync: null },
+      { store: "gog", authenticated: gogAuth, gamesCount: gogCount, lastSync: null },
+      { store: "amazon", authenticated: amazonAuth, gamesCount: amazonCount, lastSync: null },
+      { store: "steam", authenticated: true, gamesCount: steamCount, lastSync: null },
+    ];
   }
 
+  // ===== Game Launch =====
+
   /**
-   * Lance un jeu - prépare toutes les données pour le launch Rust
+   * Prepare game launch data (command + env vars)
    */
   async prepareGameLaunch(gameId: string): Promise<{
     game: Game;
     launchCommand: string[];
     env: Record<string, string>;
   }> {
-    // Récupérer le jeu depuis la DB
-    const allGames = await this.getAllGames();
-    const game = allGames.find((g) => g.id === gameId);
-
+    const game = await this.gameRepo.getGameById(gameId);
     if (!game) {
       throw new Error(`Game not found: ${gameId}`);
     }
 
-    // Construire la commande de lancement selon le store
-    const launchCommand = this.buildLaunchCommand(game);
-    const env = this.buildLaunchEnv(game);
-
-    return { game, launchCommand, env };
+    return {
+      game,
+      launchCommand: this.buildLaunchCommand(game),
+      env: this.buildLaunchEnv(game),
+    };
   }
 
-  /**
-   * Construit la commande de lancement pour un jeu
-   */
   private buildLaunchCommand(game: Game): string[] {
     switch (game.store) {
       case "epic":
@@ -277,61 +177,14 @@ export class GameLibraryOrchestrator {
     }
   }
 
-  /**
-   * Construit les variables d'environnement pour le lancement
-   */
   private buildLaunchEnv(_game: Game): Record<string, string> {
-    // Variables d'environnement communes pour les jeux
-    // Pourrait être étendu avec Proton, Mangohud, etc.
-    return {
-      // STEAM_COMPAT_DATA_PATH: ...,
-      // PROTON_USE_WINED3D: "1",
-    };
+    return {};
   }
 
-  /**
-   * Recherche dans la bibliothèque
-   */
-  async searchGames(query: string): Promise<Game[]> {
-    const allGames = await this.getAllGames();
-    const lowerQuery = query.toLowerCase();
-
-    return allGames.filter(
-      (game) =>
-        game.title.toLowerCase().includes(lowerQuery) ||
-        game.developer?.toLowerCase().includes(lowerQuery),
-    );
-  }
+  // ===== Game Metadata Updates =====
 
   /**
-   * Filtre les jeux par store
-   */
-  async getGamesByStore(store: StoreType): Promise<Game[]> {
-    switch (store) {
-      case "epic":
-        return this.legendary.getStoredGames();
-      case "gog":
-        return this.gogdl.getStoredGames();
-      case "amazon":
-        return this.nile.getStoredGames();
-      case "steam":
-        return this.steam.getStoredGames();
-      default:
-        return [];
-    }
-  }
-
-  /**
-   * Récupère un jeu par son ID
-   */
-  async getGameById(gameId: string): Promise<Game | null> {
-    const allGames = await this.getAllGames();
-    return allGames.find((g) => g.id === gameId) ?? null;
-  }
-
-  /**
-   * Met à jour les métadonnées d'un jeu (ex: favoris, temps de jeu)
-   * Note: Les colonnes DB utilisent snake_case
+   * Update game metadata (favorites, playtime, last played)
    */
   async updateGameMetadata(
     gameId: string,
@@ -341,70 +194,13 @@ export class GameLibraryOrchestrator {
       lastPlayed?: string;
     },
   ): Promise<void> {
-    const setClauses: string[] = [];
-    const values: unknown[] = [];
-
-    if (updates.isFavorite !== undefined) {
-      setClauses.push("is_favorite = ?");
-      values.push(updates.isFavorite ? 1 : 0);
-    }
-    if (updates.playTimeMinutes !== undefined) {
-      setClauses.push("play_time_minutes = ?");
-      values.push(updates.playTimeMinutes);
-    }
-    if (updates.lastPlayed !== undefined) {
-      setClauses.push("last_played = ?");
-      values.push(updates.lastPlayed);
-    }
-
-    if (setClauses.length > 0) {
-      values.push(gameId);
-      await this.db.execute(
-        `UPDATE games SET ${setClauses.join(", ")}, updated_at = datetime('now') WHERE id = ?`,
-        values,
-      );
-    }
+    await this.gameRepo.updateMetadata(gameId, updates);
   }
 
   /**
-   * Supprime un jeu de la bibliothèque (ne le désinstalle pas)
+   * Remove a game from library (does not uninstall)
    */
   async removeGameFromLibrary(gameId: string): Promise<void> {
-    await this.db.execute("DELETE FROM games WHERE id = ?", [gameId]);
-  }
-
-  /**
-   * Récupère les jeux récemment joués
-   */
-  async getRecentlyPlayed(limit: number = 10): Promise<Game[]> {
-    const allGames = await this.getAllGames();
-
-    return allGames
-      .filter((g) => g.lastPlayed)
-      .sort((a, b) => {
-        const dateA = new Date(a.lastPlayed!).getTime();
-        const dateB = new Date(b.lastPlayed!).getTime();
-        return dateB - dateA;
-      })
-      .slice(0, limit);
-  }
-
-  /**
-   * Récupère les jeux favoris
-   * Note: isFavorite doit être ajouté au type Game si utilisé
-   */
-  async getFavorites(): Promise<Game[]> {
-    // Query directe sur la DB pour les IDs des favoris
-    const rows = await this.db.select<Record<string, unknown>>(
-      "SELECT id FROM games WHERE is_favorite = 1",
-      [],
-    );
-
-    if (rows.length === 0) return [];
-
-    // Récupérer les jeux complets et filtrer sur les IDs
-    const allGames = await this.getAllGames();
-    const favoriteIds = new Set(rows.map((r) => r.id as string));
-    return allGames.filter((g) => favoriteIds.has(g.id));
+    await this.gameRepo.deleteGame(gameId);
   }
 }
