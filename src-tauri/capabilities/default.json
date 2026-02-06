@@ -65,6 +65,15 @@
       ]
     },
     {
+      "identifier": "fs:allow-appconfig-write-recursive",
+      "allow": [
+        {
+          "path": "$APPCONFIG/*",
+          "recursive": true
+        }
+      ]
+    },
+    {
       "identifier": "fs:allow-app-meta",
       "allow": [
         {
