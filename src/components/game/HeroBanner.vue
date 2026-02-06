@@ -3,9 +3,9 @@
     <!-- Background Image with Blur -->
     <div class="absolute inset-0">
       <img
-        v-if="game?.backgroundUrl"
-        :src="game.backgroundUrl"
-        :alt="game.title"
+        v-if="heroImageSrc"
+        :src="heroImageSrc"
+        :alt="game?.title"
         class="w-full h-full object-cover scale-110 object-[center_10%]"
       />
       <div
@@ -30,7 +30,7 @@
           <Badge variant="outline">PC (Windows)</Badge>
           <img v-if="storeIcon" :src="storeIcon" class="w-5 h-5" :alt="game.storeId" />
           <Badge v-if="releaseYear" variant="outline">{{ releaseYear }}</Badge>
-          <Badge v-if="metacritic" variant="success">{{ metacritic }}</Badge>
+          <Badge v-if="score" variant="success">{{ score }}</Badge>
         </div>
 
         <!-- Genres -->
@@ -46,32 +46,42 @@
 import { computed } from "vue";
 import type { Game } from "@/types";
 import { Badge } from "@/components/ui";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 const props = defineProps<{
   game: Game | null;
-  metadata?: {
-    releaseDate?: string;
-    genres?: string[];
-    metacritic?: number;
-  };
 }>();
 
 const emit = defineEmits<{
   openDetails: [];
 }>();
 
-const releaseYear = computed(() => {
-  if (props.metadata?.releaseDate) {
-    return new Date(props.metadata.releaseDate).getFullYear();
+const heroImageSrc = computed(() => {
+  if (!props.game) return "";
+  // Prefer local heroPath, then fallback to backgroundUrl
+  if (props.game.heroPath) {
+    try {
+      return convertFileSrc(props.game.heroPath);
+    } catch {
+      return props.game.backgroundUrl || "";
+    }
   }
-  return null;
+  return props.game.backgroundUrl || "";
 });
 
-const metacritic = computed(() => props.metadata?.metacritic || null);
+const releaseYear = computed(() => {
+  if (!props.game?.releaseDate) return null;
+  return new Date(props.game.releaseDate).getFullYear();
+});
+
+const score = computed(() => {
+  if (!props.game) return null;
+  return props.game.metacriticScore || Math.round(props.game.igdbRating || 0) || null;
+});
 
 const genres = computed(() => {
-  if (props.metadata?.genres?.length) {
-    return props.metadata.genres.slice(0, 3).join(" | ");
+  if (props.game?.genres?.length) {
+    return props.game.genres.slice(0, 3).join(" | ");
   }
   return null;
 });

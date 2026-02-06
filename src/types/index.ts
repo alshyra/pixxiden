@@ -46,9 +46,11 @@ export interface Game {
 
   // Assets (local file paths - use convertFileSrc to load)
   heroPath?: string;
+  coverPath?: string;
   gridPath?: string;
   logoPath?: string;
   iconPath?: string;
+  screenshotPaths?: string[]; // Local paths to cached screenshots
 
   // Legacy URL assets (for backwards compatibility)
   coverUrl?: string;

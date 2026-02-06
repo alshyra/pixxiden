@@ -290,9 +290,11 @@ export class GameSyncService {
           protonTrendingTier: enriched.protonTrendingTier,
           steamAppId: enriched.steamAppId,
           heroPath: enriched.heroPath,
+          coverPath: enriched.coverPath,
           gridPath: enriched.gridPath,
           logoPath: enriched.logoPath,
           iconPath: enriched.iconPath,
+          screenshotPaths: enriched.screenshotPaths,
           coverUrl: enriched.coverUrl,
           enrichedAt: enriched.enrichedAt,
         });

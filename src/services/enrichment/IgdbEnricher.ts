@@ -4,6 +4,7 @@
  */
 
 import { fetch } from "@tauri-apps/plugin-http";
+import { debug, error as logError } from "@tauri-apps/plugin-log";
 import type { IgdbData } from "./EnrichmentService";
 
 interface IgdbConfig {
@@ -77,16 +78,16 @@ export class IgdbEnricher {
       const games: IgdbGame[] = await response.json();
 
       if (games.length === 0) {
-        console.log(`📡 IGDB: No results for "${title}"`);
+        await debug(`IGDB: No results for "${title}"`);
         return null;
       }
 
       const game = games[0];
-      console.log(`✅ IGDB: Found "${game.name}"`);
+      await debug(`IGDB: Found "${game.name}"`);
 
       return this.mapToIgdbData(game);
     } catch (error) {
-      console.error(`❌ IGDB error for "${title}":`, error);
+      await logError(`IGDB error for "${title}": ${error}`);
       throw error;
     }
   }
@@ -132,7 +133,7 @@ export class IgdbEnricher {
 
       return this.mapToIgdbData(games[0]);
     } catch (error) {
-      console.error(`❌ IGDB error for ID ${igdbId}:`, error);
+      await logError(`IGDB error for ID ${igdbId}: ${error}`);
       throw error;
     }
   }

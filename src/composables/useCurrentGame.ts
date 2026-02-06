@@ -4,6 +4,7 @@ import { useLibraryStore } from "@/stores/library";
 import type { Game } from "@/types";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 type UnlistenFn = () => void;
 
@@ -56,6 +57,33 @@ export function useCurrentGame() {
       }
     }
     return game.value.backgroundUrl || "";
+  });
+
+  const coverImage = computed(() => {
+    if (!game.value) return "";
+    // Prefer local cover, then local grid, then legacy URL
+    const localPath = game.value.coverPath || game.value.gridPath;
+    if (localPath) {
+      try {
+        return convertFileSrc(localPath);
+      } catch {
+        return game.value.coverUrl || "";
+      }
+    }
+    return game.value.coverUrl || "";
+  });
+
+  const screenshots = computed(() => {
+    if (!game.value?.screenshotPaths?.length) return [];
+    return game.value.screenshotPaths
+      .map((path) => {
+        try {
+          return convertFileSrc(path);
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean);
   });
 
   const releaseYear = computed(() => {
@@ -135,7 +163,7 @@ export function useCurrentGame() {
       await libraryStore.launchGame(game.value.id);
     } catch (error: any) {
       launchError.value = error?.message || error?.toString() || "Unknown error";
-      console.error("Failed to launch game:", error);
+      logError(`Failed to launch game: ${error}`);
     }
   }
 
@@ -145,7 +173,7 @@ export function useCurrentGame() {
     try {
       await invoke("force_close_game", { gameId: game.value.id });
     } catch (error) {
-      console.error("Failed to force close game:", error);
+      logError(`Failed to force close game: ${error}`);
     } finally {
       isLaunching.value = false;
       launchError.value = null;
@@ -161,7 +189,7 @@ export function useCurrentGame() {
     try {
       await libraryStore.installGame(game.value.id, installPath);
     } catch (error) {
-      console.error("Failed to start installation:", error);
+      logError(`Failed to start installation: ${error}`);
       isDownloading.value = false;
     }
   }
@@ -220,7 +248,7 @@ export function useCurrentGame() {
     await safeListen("game-install-failed", (event: any) => {
       if (event.payload?.gameId === gameId.value) {
         isDownloading.value = false;
-        console.error("Install failed:", event.payload?.error);
+        logError(`Install failed: ${event.payload?.error}`);
       }
     });
   }
@@ -237,6 +265,8 @@ export function useCurrentGame() {
 
     // Computed data
     heroImage,
+    coverImage,
+    screenshots,
     releaseYear,
     score,
     gameDuration,

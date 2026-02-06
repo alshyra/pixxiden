@@ -47,9 +47,11 @@ CREATE TABLE IF NOT EXISTS games (
   
   -- Assets (local file paths)
   hero_path TEXT,
+  cover_path TEXT,
   grid_path TEXT,
   logo_path TEXT,
   icon_path TEXT,
+  screenshot_paths TEXT DEFAULT '[]',
   
   -- Legacy URL assets
   cover_url TEXT,
@@ -103,4 +105,8 @@ CREATE INDEX IF NOT EXISTS idx_enrichment_cache_game_id ON enrichment_cache(game
 export const MIGRATIONS: string[] = [
   // Migration 1: Add is_favorite column for game favorites
   `ALTER TABLE games ADD COLUMN is_favorite INTEGER DEFAULT 0`,
+  // Migration 2: Add cover_path for locally cached cover image
+  `ALTER TABLE games ADD COLUMN cover_path TEXT`,
+  // Migration 3: Add screenshot_paths for locally cached screenshots
+  `ALTER TABLE games ADD COLUMN screenshot_paths TEXT DEFAULT '[]'`,
 ];

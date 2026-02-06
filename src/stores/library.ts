@@ -97,6 +97,42 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
+  /**
+   * Force re-sync: re-fetches games and forces re-enrichment of all games
+   * Useful for updating metadata after initial sync or fixing broken data
+   */
+  async function resyncLibrary() {
+    await debug("resyncLibrary()");
+    syncing.value = true;
+    loading.value = true;
+    error.value = null;
+    syncErrors.value = [];
+
+    try {
+      if (!initialized.value) await initialize();
+
+      const orchestrator = getOrchestrator();
+      const result: SyncResult = await orchestrator.resyncLibrary();
+
+      await info(`Re-sync result: ${result.total} total, ${result.enriched} enriched, ${result.errors.length} errors`);
+      syncErrors.value = result.errors.map(
+        (e) => `${e.store || e.gameTitle || "unknown"}: ${e.message}`,
+      );
+      hasSynced.value = true;
+
+      // Refresh games from DB after sync
+      const data = await orchestrator.getAllGames();
+      games.value = data;
+      await info(`Loaded ${data.length} games after re-sync`);
+    } catch (err) {
+      error.value = "Failed to re-sync library";
+      await logError(`Re-sync error: ${err}`);
+    } finally {
+      loading.value = false;
+      syncing.value = false;
+    }
+  }
+
   async function launchGame(gameId: string) {
     try {
       if (!initialized.value) await initialize();
@@ -238,6 +274,7 @@ export const useLibraryStore = defineStore("library", () => {
     initialize,
     fetchGames,
     syncLibrary,
+    resyncLibrary,
     scanGogInstalled,
     launchGame,
     installGame,

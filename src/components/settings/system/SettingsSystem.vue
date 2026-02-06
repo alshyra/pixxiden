@@ -77,6 +77,64 @@
         <SystemUpdates />
       </Card>
 
+      <!-- Library Sync Card -->
+      <Card variant="glass">
+        <h3 class="text-[10px] uppercase tracking-[0.4em] text-[#5e5ce6] font-black mb-6">
+          Bibliothèque
+        </h3>
+
+        <div class="divide-y divide-white/8">
+          <div class="flex justify-between items-center py-4">
+            <div>
+              <span class="text-sm text-white font-medium">Synchronisation rapide</span>
+              <p class="text-xs text-white/40 mt-0.5">Détecte les nouveaux jeux et enrichit les jeux sans métadonnées.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="syncing"
+              @click="handleSync"
+            >
+              <template v-if="syncing">
+                <div class="w-4 h-4 border-2 border-white/10 border-t-[#5e5ce6] rounded-full animate-spin mr-2" />
+                Synchronisation...
+              </template>
+              <template v-else>
+                <RefreshCw class="w-4 h-4 mr-2" />
+                Synchroniser
+              </template>
+            </Button>
+          </div>
+
+          <div class="flex justify-between items-center py-4">
+            <div>
+              <span class="text-sm text-white font-medium">Re-synchronisation complète</span>
+              <p class="text-xs text-white/40 mt-0.5">Force le rechargement de toutes les métadonnées et images.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="syncing"
+              @click="handleResync"
+            >
+              <template v-if="syncing">
+                <div class="w-4 h-4 border-2 border-white/10 border-t-[#5e5ce6] rounded-full animate-spin mr-2" />
+                Re-synchronisation...
+              </template>
+              <template v-else>
+                <RefreshCw class="w-4 h-4 mr-2" />
+                Tout resynchroniser
+              </template>
+            </Button>
+          </div>
+        </div>
+
+        <!-- Sync result toast -->
+        <div v-if="syncMessage" class="mt-4 p-3 rounded-lg text-sm" :class="syncMessageClass">
+          {{ syncMessage }}
+        </div>
+      </Card>
+
       <!-- Action Button -->
       <div class="flex justify-end">
         <Button
@@ -96,10 +154,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { Card, Button, ProgressBar } from "@/components/ui";
-import { Power as PowerIcon } from "lucide-vue-next";
+import { Power as PowerIcon, RefreshCw } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
+import { useLibraryStore } from "@/stores/library";
 import SystemUpdates from "./system-updates/SystemUpdates.vue";
 import * as api from "@/services/api";
 
@@ -118,18 +177,55 @@ interface DiskInfo {
 
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
+const libraryStore = useLibraryStore();
+
 // System state
 const systemInfo = ref<SystemInfo | null>(null);
 const diskInfo = ref<DiskInfo[]>([]);
 const loading = ref(false);
+
+// Sync state
+const syncing = computed(() => libraryStore.syncing);
+const syncMessage = ref<string | null>(null);
+const syncSuccess = ref(true);
+
+const syncMessageClass = computed(() =>
+  syncSuccess.value
+    ? "bg-green-500/10 border border-green-500/20 text-green-400"
+    : "bg-red-500/10 border border-red-500/20 text-red-400",
+);
+
+async function handleSync() {
+  syncMessage.value = null;
+  try {
+    await libraryStore.syncLibrary();
+    syncMessage.value = `Synchronisation terminée — ${libraryStore.games.length} jeux dans la bibliothèque.`;
+    syncSuccess.value = true;
+  } catch {
+    syncMessage.value = "Échec de la synchronisation.";
+    syncSuccess.value = false;
+  }
+}
+
+async function handleResync() {
+  syncMessage.value = null;
+  try {
+    await libraryStore.resyncLibrary();
+    syncMessage.value = `Re-synchronisation terminée — ${libraryStore.games.length} jeux enrichis.`;
+    syncSuccess.value = true;
+  } catch {
+    syncMessage.value = "Échec de la re-synchronisation.";
+    syncSuccess.value = false;
+  }
+}
 
 // Shutdown system
 async function shutdown() {
   if (confirm("Êtes-vous sûr de vouloir éteindre la machine ?")) {
     try {
       await api.shutdownSystem();
-    } catch (error) {
-      console.error("Failed to shutdown:", error);
+    } catch (_error) {
+      // Shutdown failed silently
     }
   }
 }
@@ -148,8 +244,8 @@ async function loadSystemInfo() {
   try {
     systemInfo.value = await api.getSystemInfo();
     diskInfo.value = await api.getDiskInfo();
-  } catch (error) {
-    console.error("Failed to load system info:", error);
+  } catch (_error) {
+    // Failed to load system info
   } finally {
     loading.value = false;
   }

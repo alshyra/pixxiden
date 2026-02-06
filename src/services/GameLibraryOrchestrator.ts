@@ -113,6 +113,13 @@ export class GameLibraryOrchestrator {
     return this.syncService.sync(options);
   }
 
+  /**
+   * Force re-sync: clears enrichment cache and re-enriches all games
+   */
+  async resyncLibrary(): Promise<SyncResult> {
+    return this.syncService.sync({ forceEnrich: true });
+  }
+
   // ===== Store Status =====
 
   /**

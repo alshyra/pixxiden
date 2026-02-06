@@ -7,6 +7,7 @@ export { IgdbEnricher } from "./IgdbEnricher";
 export { HltbEnricher } from "./HltbEnricher";
 export { ProtonDbEnricher } from "./ProtonDbEnricher";
 export { SteamGridDbEnricher } from "./SteamGridDbEnricher";
+export { ImageCacheService } from "./ImageCacheService";
 export type {
   EnrichmentData,
   IgdbData,
@@ -14,3 +15,4 @@ export type {
   ProtonDbData,
   SteamGridDbData,
 } from "./EnrichmentService";
+export type { CachedImagePaths } from "./ImageCacheService";

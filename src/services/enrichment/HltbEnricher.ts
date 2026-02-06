@@ -1,9 +1,10 @@
 /**
  * HltbEnricher - Fetches game completion time data from HowLongToBeat
- * Uses the howlongtobeat npm package for easy API access
+ * Updated to work with current HLTB API requirements
  */
 
 import { fetch } from "@tauri-apps/plugin-http";
+import { debug, error as logError } from "@tauri-apps/plugin-log";
 import type { HltbData } from "./EnrichmentService";
 
 interface HltbSearchResult {
@@ -18,13 +19,14 @@ interface HltbSearchResult {
 
 export class HltbEnricher {
   private static readonly API_URL = "https://howlongtobeat.com/api/search";
+  private static readonly USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
   /**
    * Search for a game's completion time
    */
   async search(title: string): Promise<HltbData | null> {
     try {
-      console.log(`📡 HLTB: Searching for "${title}"`);
+      await debug(`HLTB: Searching for "${title}"`);
 
       // HowLongToBeat API expects a specific payload format
       const payload = {
@@ -62,7 +64,15 @@ export class HltbEnricher {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Referer: "https://howlongtobeat.com",
+          "User-Agent": HltbEnricher.USER_AGENT,
+          "Accept": "*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Origin": "https://howlongtobeat.com",
+          "Referer": "https://howlongtobeat.com/",
+          // CRITICAL: HLTB now requires this header
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "same-origin",
         },
         body: JSON.stringify(payload),
       });
@@ -74,7 +84,7 @@ export class HltbEnricher {
       const data = await response.json();
 
       if (!data.data || data.data.length === 0) {
-        console.log(`📡 HLTB: No results for "${title}"`);
+        await debug(`HLTB: No results for "${title}"`);
         return null;
       }
 
@@ -82,14 +92,16 @@ export class HltbEnricher {
       const bestMatch = this.findBestMatch(title, data.data);
 
       if (!bestMatch) {
+        await debug(`HLTB: No good match for "${title}"`);
         return null;
       }
 
-      console.log(`✅ HLTB: Found "${bestMatch.game_name}"`);
+      const similarity = bestMatch.similarity ?? 0;
+      await debug(`HLTB: Found "${bestMatch.game_name}" (similarity: ${(similarity * 100).toFixed(0)}%)`);
 
       return this.mapToHltbData(bestMatch);
     } catch (error) {
-      console.error(`❌ HLTB error for "${title}":`, error);
+      await logError(`HLTB error for "${title}": ${error}`);
       throw error;
     }
   }
@@ -191,7 +203,14 @@ export class HltbEnricher {
       const response = await fetch(`https://howlongtobeat.com/api/game/${hltbId}`, {
         method: "GET",
         headers: {
-          Referer: "https://howlongtobeat.com",
+          "User-Agent": HltbEnricher.USER_AGENT,
+          "Accept": "*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Origin": "https://howlongtobeat.com",
+          "Referer": "https://howlongtobeat.com/",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "same-origin",
         },
       });
 
@@ -207,7 +226,7 @@ export class HltbEnricher {
 
       return this.mapToHltbData(data.data[0]);
     } catch (error) {
-      console.error(`❌ HLTB error for ID ${hltbId}:`, error);
+      await logError(`HLTB error for ID ${hltbId}: ${error}`);
       throw error;
     }
   }

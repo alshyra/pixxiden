@@ -4,6 +4,7 @@
  */
 
 import { fetch } from "@tauri-apps/plugin-http";
+import { debug, error as logError } from "@tauri-apps/plugin-log";
 import type { SteamGridDbData } from "./EnrichmentService";
 
 interface SteamGridDbConfig {
@@ -51,17 +52,17 @@ export class SteamGridDbEnricher {
     }
 
     try {
-      console.log(`📡 SteamGridDB: Searching for "${title}"`);
+      await debug(`SteamGridDB: Searching for "${title}"`);
 
       // First, search for the game to get its ID
       const gameId = await this.searchGameId(title);
 
       if (!gameId) {
-        console.log(`📡 SteamGridDB: No results for "${title}"`);
+        await debug(`SteamGridDB: No results for "${title}"`);
         return null;
       }
 
-      console.log(`✅ SteamGridDB: Found game ID ${gameId}`);
+      await debug(`SteamGridDB: Found game ID ${gameId}`);
 
       // Fetch all artwork types for this game
       const [hero, grid, logo, icon] = await Promise.all([
@@ -78,7 +79,7 @@ export class SteamGridDbEnricher {
         icon,
       };
     } catch (error) {
-      console.error(`❌ SteamGridDB error for "${title}":`, error);
+      await logError(`SteamGridDB error for "${title}": ${error}`);
       throw error;
     }
   }
@@ -191,7 +192,7 @@ export class SteamGridDbEnricher {
     }
 
     try {
-      console.log(`📡 SteamGridDB: Searching for Steam ID ${steamAppId}`);
+      await debug(`SteamGridDB: Searching for Steam ID ${steamAppId}`);
 
       const response = await fetch(`${SteamGridDbEnricher.API_URL}/games/steam/${steamAppId}`, {
         method: "GET",
@@ -202,7 +203,7 @@ export class SteamGridDbEnricher {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`📡 SteamGridDB: No results for Steam ID ${steamAppId}`);
+          await debug(`SteamGridDB: No results for Steam ID ${steamAppId}`);
           return null;
         }
         throw new Error(`SteamGridDB API error: ${response.status}`);
@@ -215,7 +216,7 @@ export class SteamGridDbEnricher {
       }
 
       const gameId = data.data.id;
-      console.log(`✅ SteamGridDB: Found game ID ${gameId} for Steam ID ${steamAppId}`);
+      await debug(`SteamGridDB: Found game ID ${gameId} for Steam ID ${steamAppId}`);
 
       // Fetch all artwork types
       const [hero, grid, logo, icon] = await Promise.all([
@@ -232,7 +233,7 @@ export class SteamGridDbEnricher {
         icon,
       };
     } catch (error) {
-      console.error(`❌ SteamGridDB error for Steam ID ${steamAppId}:`, error);
+      await logError(`SteamGridDB error for Steam ID ${steamAppId}: ${error}`);
       throw error;
     }
   }

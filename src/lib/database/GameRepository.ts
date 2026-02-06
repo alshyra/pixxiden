@@ -182,9 +182,11 @@ export class GameRepository {
       protonTrendingTier: "proton_trending_tier",
       steamAppId: "steam_app_id",
       heroPath: "hero_path",
+      coverPath: "cover_path",
       gridPath: "grid_path",
       logoPath: "logo_path",
       iconPath: "icon_path",
+      screenshotPaths: "screenshot_paths",
       coverUrl: "cover_url",
       backgroundUrl: "background_url",
       enrichedAt: "enriched_at",
@@ -194,7 +196,7 @@ export class GameRepository {
       const value = data[camelKey as keyof Game];
       if (value !== undefined) {
         setClauses.push(`${snakeKey} = ?`);
-        if (camelKey === "genres" && Array.isArray(value)) {
+        if ((camelKey === "genres" || camelKey === "screenshotPaths") && Array.isArray(value)) {
           values.push(JSON.stringify(value));
         } else {
           values.push(value);
@@ -291,9 +293,11 @@ export class GameRepository {
       achievementsTotal: row.achievements_total as number | undefined,
       achievementsUnlocked: row.achievements_unlocked as number | undefined,
       heroPath: row.hero_path as string | undefined,
+      coverPath: row.cover_path as string | undefined,
       gridPath: row.grid_path as string | undefined,
       logoPath: row.logo_path as string | undefined,
       iconPath: row.icon_path as string | undefined,
+      screenshotPaths: JSON.parse((row.screenshot_paths as string) || '[]'),
       coverUrl: row.cover_url as string | undefined,
       backgroundUrl: row.background_url as string | undefined,
       playTimeMinutes: (row.play_time_minutes as number) || 0,

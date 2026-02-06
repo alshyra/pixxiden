@@ -7,8 +7,8 @@
         class="w-24 h-24 shrink-0 bg-[#1a1a1e] rounded-lg overflow-hidden border border-white/10 shadow-xl"
       >
         <img
-          v-if="game?.coverUrl"
-          :src="game.coverUrl"
+          v-if="coverImage"
+          :src="coverImage"
           :alt="game?.title"
           class="w-full h-full object-cover"
         />
@@ -86,6 +86,7 @@ import GameActions from "./GameActions.vue";
 
 const {
   game,
+  coverImage,
   releaseYear,
   score,
   formattedPlayTime,

@@ -1,6 +1,7 @@
 /**
  * EnrichmentService - Enriches games with metadata from external APIs
  * Uses caching to avoid redundant API calls
+ * Downloads images locally via ImageCacheService to avoid CDN rate limits
  */
 
 import type { Game } from "@/types";
@@ -9,6 +10,8 @@ import { IgdbEnricher } from "./IgdbEnricher";
 import { HltbEnricher } from "./HltbEnricher";
 import { ProtonDbEnricher } from "./ProtonDbEnricher";
 import { SteamGridDbEnricher } from "./SteamGridDbEnricher";
+import { ImageCacheService } from "./ImageCacheService";
+import { info, warn } from "@tauri-apps/plugin-log";
 
 export interface EnrichmentData {
   igdb?: IgdbData | null;
@@ -58,12 +61,14 @@ export class EnrichmentService {
   private hltb: HltbEnricher;
   private protonDb: ProtonDbEnricher;
   private steamGridDb: SteamGridDbEnricher;
+  private imageCache: ImageCacheService;
 
   constructor(private db: DatabaseService) {
     this.igdb = new IgdbEnricher();
     this.hltb = new HltbEnricher();
     this.protonDb = new ProtonDbEnricher();
     this.steamGridDb = new SteamGridDbEnricher();
+    this.imageCache = ImageCacheService.getInstance();
   }
 
   /**
@@ -91,7 +96,7 @@ export class EnrichmentService {
       try {
         enriched.push(await this.enrichGame(game));
       } catch (error) {
-        console.warn(`⚠️ Failed to enrich ${game.title}:`, error);
+        await warn(`Failed to enrich ${game.title}: ${error}`);
         enriched.push(game);
       }
     }
@@ -109,7 +114,7 @@ export class EnrichmentService {
       return this.applyEnrichment(game, cached.data);
     }
 
-    console.log(`🔍 Enriching: ${game.title}`);
+    await info(`Enriching: ${game.title}`);
 
     // Fetch from APIs
     const enrichment: EnrichmentData = {
@@ -121,62 +126,132 @@ export class EnrichmentService {
       steamGridDb: await this.fetchSteamGridDb(game.title).catch(() => null),
     };
 
-    // Save to cache
+    // Save raw API data to cache
     await this.saveToCache(game.id, enrichment);
 
+    // Apply enrichment (including image downloads)
     return this.applyEnrichment(game, enrichment);
   }
 
   /**
    * Apply enrichment data to a game
+   * Downloads images locally and stores local paths
    */
-  private applyEnrichment(game: Game, data: EnrichmentData): Game {
+  private async applyEnrichment(game: Game, data: EnrichmentData): Promise<Game> {
     const enriched = { ...game };
 
+    // ===== IGDB Data =====
     if (data.igdb) {
       enriched.description = data.igdb.summary;
+      enriched.summary = data.igdb.summary;
       enriched.igdbRating = data.igdb.rating ? Math.round(data.igdb.rating) : undefined;
       enriched.metacriticScore = data.igdb.aggregated_rating
         ? Math.round(data.igdb.aggregated_rating)
         : undefined;
 
-      if (data.igdb.genres) {
+      // Genres
+      if (data.igdb.genres && data.igdb.genres.length > 0) {
         enriched.genres = data.igdb.genres.map((g) => g.name);
       }
 
+      // Companies (developer & publisher)
       if (data.igdb.involved_companies) {
         const developer = data.igdb.involved_companies.find((c) => c.developer);
         const publisher = data.igdb.involved_companies.find((c) => c.publisher);
-        enriched.developer = developer?.company.name;
-        enriched.publisher = publisher?.company.name;
+        if (developer) enriched.developer = developer.company.name;
+        if (publisher) enriched.publisher = publisher.company.name;
       }
 
+      // Release date
       if (data.igdb.first_release_date) {
         enriched.releaseDate = new Date(data.igdb.first_release_date * 1000).toISOString();
       }
-
-      if (data.igdb.cover?.url) {
-        enriched.coverUrl = data.igdb.cover.url.replace("t_thumb", "t_cover_big");
-      }
     }
 
+    // ===== HLTB Data =====
     if (data.hltb) {
       enriched.hltbMain = data.hltb.gameplayMain;
       enriched.hltbMainExtra = data.hltb.gameplayMainExtra;
       enriched.hltbComplete = data.hltb.gameplayCompletionist;
     }
 
+    // ===== ProtonDB Data =====
     if (data.protonDb) {
       enriched.protonTier = data.protonDb.tier as Game["protonTier"];
       enriched.protonConfidence = data.protonDb.confidence;
       enriched.protonTrendingTier = data.protonDb.trendingTier;
     }
 
-    if (data.steamGridDb) {
-      enriched.heroPath = data.steamGridDb.hero;
-      enriched.gridPath = data.steamGridDb.grid;
-      enriched.logoPath = data.steamGridDb.logo;
-      enriched.iconPath = data.steamGridDb.icon;
+    // ===== Download & cache images locally =====
+    try {
+      // Collect all image URLs to download
+      const imageUrls: {
+        hero?: string;
+        cover?: string;
+        grid?: string;
+        logo?: string;
+        icon?: string;
+        screenshots?: string[];
+      } = {};
+
+      // SteamGridDB images
+      if (data.steamGridDb) {
+        imageUrls.hero = data.steamGridDb.hero;
+        imageUrls.grid = data.steamGridDb.grid;
+        imageUrls.logo = data.steamGridDb.logo;
+        imageUrls.icon = data.steamGridDb.icon;
+      }
+
+      // IGDB cover (use as cover if SteamGridDB grid not available)
+      if (data.igdb?.cover?.url) {
+        const coverUrl = data.igdb.cover.url.replace("t_thumb", "t_cover_big");
+        if (!imageUrls.grid) {
+          // Use IGDB cover as grid (box art) fallback
+          imageUrls.cover = coverUrl;
+        } else {
+          imageUrls.cover = coverUrl;
+        }
+      }
+
+      // IGDB screenshots (convert to full resolution)
+      if (data.igdb?.screenshots && data.igdb.screenshots.length > 0) {
+        imageUrls.screenshots = data.igdb.screenshots.map((s) =>
+          s.url
+            .replace("t_thumb", "t_screenshot_big")
+            .replace("t_cover_big", "t_screenshot_big")
+            .replace(/^\/\//, "https://"),
+        );
+      }
+
+      // Download all images to local filesystem
+      const hasAnyUrl = Object.values(imageUrls).some(
+        (v) => v !== undefined && (typeof v === "string" || (Array.isArray(v) && v.length > 0)),
+      );
+
+      if (hasAnyUrl) {
+        const cached = await this.imageCache.cacheGameImages(game.id, imageUrls);
+
+        if (cached.heroPath) enriched.heroPath = cached.heroPath;
+        if (cached.coverPath) enriched.coverPath = cached.coverPath;
+        if (cached.gridPath) enriched.gridPath = cached.gridPath;
+        if (cached.logoPath) enriched.logoPath = cached.logoPath;
+        if (cached.iconPath) enriched.iconPath = cached.iconPath;
+        if (cached.screenshotPaths && cached.screenshotPaths.length > 0) {
+          enriched.screenshotPaths = cached.screenshotPaths;
+        }
+      }
+    } catch (err) {
+      await warn(`Image caching failed for ${game.title}: ${err}`);
+      // Fallback: store URLs directly (legacy behavior)
+      if (data.steamGridDb) {
+        enriched.heroPath = data.steamGridDb.hero;
+        enriched.gridPath = data.steamGridDb.grid;
+        enriched.logoPath = data.steamGridDb.logo;
+        enriched.iconPath = data.steamGridDb.icon;
+      }
+      if (data.igdb?.cover?.url) {
+        enriched.coverUrl = data.igdb.cover.url.replace("t_thumb", "t_cover_big");
+      }
     }
 
     enriched.enrichedAt = new Date().toISOString();
@@ -224,6 +299,7 @@ export class EnrichmentService {
    */
   async clearCache(gameId: string): Promise<void> {
     await this.db.execute("DELETE FROM enrichment_cache WHERE game_id = ?", [gameId]);
+    await this.imageCache.clearGameCache(gameId);
   }
 
   /**
@@ -231,6 +307,7 @@ export class EnrichmentService {
    */
   async clearAllCache(): Promise<void> {
     await this.db.execute("DELETE FROM enrichment_cache");
+    await this.imageCache.clearAllCache();
   }
 
   // ===== API Fetchers =====
@@ -239,7 +316,7 @@ export class EnrichmentService {
     try {
       return await this.igdb.search(title);
     } catch (error) {
-      console.warn(`⚠️ IGDB fetch failed for "${title}":`, error);
+      await warn(`IGDB fetch failed for "${title}": ${error}`);
       return null;
     }
   }
@@ -248,7 +325,7 @@ export class EnrichmentService {
     try {
       return await this.hltb.search(title);
     } catch (error) {
-      console.warn(`⚠️ HLTB fetch failed for "${title}":`, error);
+      await warn(`HLTB fetch failed for "${title}": ${error}`);
       return null;
     }
   }
@@ -257,7 +334,7 @@ export class EnrichmentService {
     try {
       return await this.protonDb.searchByAppId(steamAppId);
     } catch (error) {
-      console.warn(`⚠️ ProtonDB fetch failed for appId ${steamAppId}:`, error);
+      await warn(`ProtonDB fetch failed for appId ${steamAppId}: ${error}`);
       return null;
     }
   }
@@ -266,7 +343,7 @@ export class EnrichmentService {
     try {
       return await this.steamGridDb.search(title);
     } catch (error) {
-      console.warn(`⚠️ SteamGridDB fetch failed for "${title}":`, error);
+      await warn(`SteamGridDB fetch failed for "${title}": ${error}`);
       return null;
     }
   }

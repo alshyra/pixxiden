@@ -4,6 +4,7 @@
  */
 
 import { fetch } from "@tauri-apps/plugin-http";
+import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 import type { ProtonDbData } from "./EnrichmentService";
 
 interface ProtonDbResponse {
@@ -23,7 +24,7 @@ export class ProtonDbEnricher {
    */
   async searchByAppId(steamAppId: number): Promise<ProtonDbData | null> {
     try {
-      console.log(`📡 ProtonDB: Searching for appId ${steamAppId}`);
+      await debug(`ProtonDB: Searching for appId ${steamAppId}`);
 
       const response = await fetch(`${ProtonDbEnricher.API_URL}/${steamAppId}.json`, {
         method: "GET",
@@ -34,7 +35,7 @@ export class ProtonDbEnricher {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`📡 ProtonDB: No data for appId ${steamAppId}`);
+          await debug(`ProtonDB: No data for appId ${steamAppId}`);
           return null;
         }
         throw new Error(`ProtonDB API error: ${response.status}`);
@@ -43,15 +44,15 @@ export class ProtonDbEnricher {
       const data: ProtonDbResponse = await response.json();
 
       if (!data.tier) {
-        console.log(`📡 ProtonDB: No tier data for appId ${steamAppId}`);
+        await debug(`ProtonDB: No tier data for appId ${steamAppId}`);
         return null;
       }
 
-      console.log(`✅ ProtonDB: Found tier "${data.tier}" for appId ${steamAppId}`);
+      await debug(`ProtonDB: Found tier "${data.tier}" for appId ${steamAppId}`);
 
       return this.mapToProtonDbData(data);
     } catch (error) {
-      console.error(`❌ ProtonDB error for appId ${steamAppId}:`, error);
+      await logError(`ProtonDB error for appId ${steamAppId}: ${error}`);
       throw error;
     }
   }
@@ -61,8 +62,8 @@ export class ProtonDbEnricher {
    * Note: ProtonDB primarily uses Steam App IDs, so this is less reliable
    */
   async searchByTitle(title: string): Promise<ProtonDbData | null> {
-    console.warn(
-      `⚠️ ProtonDB: Searching by title "${title}" is not officially supported. Use Steam App ID instead.`,
+    await warn(
+      `ProtonDB: Searching by title "${title}" is not officially supported. Use Steam App ID instead.`,
     );
     // ProtonDB doesn't have a title search API
     // Would need to scrape or use a different approach

@@ -1,12 +1,12 @@
 <template>
   <div
-    class="group relative aspect-[2/3] overflow-hidden rounded-xl border-2 border-transparent bg-[#1a1a1c] bg-cover bg-center transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) cursor-pointer hover:scale-105 hover:border-remix-accent hover:shadow-[0_0_30px_rgba(94,92,230,0.4)] hover:z-10 focus:scale-105 focus:border-remix-accent focus:shadow-[0_0_30px_rgba(94,92,230,0.4)] focus:z-10"
+    class="group relative aspect-[2/3] overflow-hidden rounded-xl border-2 bg-[#1a1a1c] bg-cover bg-center transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) cursor-pointer hover:scale-105 hover:border-remix-accent hover:shadow-[0_0_30px_rgba(94,92,230,0.4)] hover:z-10 focus:scale-105 focus:border-remix-accent focus:shadow-[0_0_30px_rgba(94,92,230,0.4)] focus:z-10"
     :class="{
       'selected': selected,
       'border-remix-accent shadow-[0_0_40px_rgba(94,92,230,0.6)]': selected,
     }" :style="cardStyle" :data-id="game.id">
     <!-- Placeholder background when no image -->
-    <div v-if="!game.backgroundUrl && !game.coverUrl"
+    <div v-if="!hasImage"
       class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black to-[#0a0a0a]">
       <PixxidenLogo :size="80" :glow="false" />
       <div class="absolute w-[150px] h-[150px] bg-remix-accent blur-[70px] opacity-20"></div>
@@ -54,6 +54,7 @@ import { computed } from "vue";
 import type { Game } from "@/types";
 import { PixxidenLogo } from "@/components/ui";
 import { Check } from "lucide-vue-next";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface Props {
   game: Game;
@@ -64,15 +65,38 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Use backgroundUrl or coverUrl for the card background
+/**
+ * Resolve the best available image for the card background.
+ * Priority: local gridPath → local coverPath → local heroPath → legacy URL
+ */
 const cardStyle = computed(() => {
+  // Prefer local paths (grid = vertical box art, best for 2:3 cards)
+  const localPath = props.game.gridPath || props.game.coverPath || props.game.heroPath;
+  if (localPath) {
+    try {
+      const src = convertFileSrc(localPath);
+      return { backgroundImage: `url(${src})` };
+    } catch {
+      // fall through to legacy URLs
+    }
+  }
+
+  // Fallback to legacy remote URLs
   const imageUrl = props.game.backgroundUrl || props.game.coverUrl;
   if (imageUrl) {
-    return {
-      backgroundImage: `url(${imageUrl})`,
-    };
+    return { backgroundImage: `url(${imageUrl})` };
   }
   return {};
+});
+
+const hasImage = computed(() => {
+  return !!(
+    props.game.gridPath ||
+    props.game.coverPath ||
+    props.game.heroPath ||
+    props.game.backgroundUrl ||
+    props.game.coverUrl
+  );
 });
 
 // Store badge text
