@@ -70,7 +70,6 @@ import { ref, onMounted } from "vue";
 import { Card, Button } from "@/components/ui";
 import { Info } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
-import { useAuthStore } from "@/stores/auth";
 import { useLibraryStore } from "@/stores/library";
 import * as api from "@/services/api";
 import EpicAuthModal from "./EpicAuthModal.vue";
@@ -87,7 +86,6 @@ export interface StoreAccount {
 
 const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
-const authStore = useAuthStore();
 const libraryStore = useLibraryStore();
 const loading = ref(false);
 
@@ -108,16 +106,8 @@ const stores = ref<StoreAccount[]>([
 async function loadStoreStatus() {
   loading.value = true;
   try {
-    const storeStatuses = await api.getStoreStatus();
-    storeStatuses.forEach((status) => {
-      const store = stores.value.find((s) => s.id === status.name);
-      if (store) {
-        store.available = status.available;
-        store.authenticated = status.authenticated;
-        store.username = status.username || "";
-      }
-    });
-    console.log("🏪 Store status loaded:", storeStatuses);
+    stores.value = await api.getStoreStatus();
+    console.log("🏪 Store status loaded:", stores.value);
   } catch (error) {
     console.error("Failed to load store status:", error);
   } finally {

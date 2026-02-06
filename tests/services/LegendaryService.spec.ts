@@ -152,6 +152,13 @@ describe("LegendaryService", () => {
     });
   });
 
+  describe("getAuthUrl", () => {
+    it("should return the Epic Games authentication URL", () => {
+      const url = service.getAuthUrl();
+      expect(url).toBe("https://legendary.gl/epiclogin");
+    });
+  });
+
   describe("isAuthenticated", () => {
     it("should return true when user has account", async () => {
       vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(

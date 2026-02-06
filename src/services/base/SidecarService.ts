@@ -34,7 +34,7 @@ export class SidecarService {
   private async run(sidecar: SidecarName, args: string[]): Promise<SidecarResult> {
     try {
       console.log(`🔧 Running ${sidecar} with args:`, args);
-
+      // pas touche ca marche
       const command = Command.sidecar(`binaries/${sidecar}`, args);
       const output = await command.execute();
 

@@ -92,8 +92,10 @@ bun run test:build        # Build + E2E (full pipeline)
 
 - **Pattern**: Use **Page Object Model (POM)** and **Scenarios** to separate business rules from implementation.
 - **Location**: Scenarios in `e2e/scenarios/`, Page Objects in `e2e/page-objects/`.
-- **Must build first:** E2E tests run against `src-tauri/target/release/Pixxiden` binary.
-- **AI Agent Rule**: Never pipe test commands (e.g., `bun run test | cat`). Errors might be hidden. Prefer polling or direct execution.
+- **Must build first**: E2E tests run against `src-tauri/target/release/Pixxiden` binary.
+- **AI Agent Critical Rules**:
+  1. **Validation Mandate**: You MUST ALWAYS validate your changes by running at least one relevant unit test or E2E scenario. Never consider a task complete without verification.
+  2. **No Piped Outputs**: Never pipe test commands (e.g., `bun run test | cat`). Errors might be hidden. Prefer polling or direct execution.
 
 ### Code Quality
 

@@ -25,27 +25,45 @@ e2e/
 
 ## Scénarios
 
+Chaque scénario est **indépendant** et peut être exécuté en isolation ou en parallèle.
+Chaque scénario contient **un seul test significatif** au niveau métier.
+
 ### 01 - API Keys Setup
 
-- Vérification de l'affichage du modal de configuration des clés API
-- Test du bouton "Passer" pour ignorer la configuration
+**Test** : `should show API keys modal and allow skipping configuration`
 
-### 02 - Store Configuration
+Teste le flow initial de configuration des clés API :
 
-- Redirection vers settings/store quand aucun store configuré
-- Navigation vers l'onglet "Comptes"
-- Affichage des options de connexion (Epic, GOG, Amazon, Steam)
+1. Attendre que l'app soit prête
+2. Vérifier l'affichage du modal (si applicable)
+3. Ignorer la configuration
+4. Vérifier que l'app répond
 
-### 03 - Epic Authentication
+### 02 - Store Configuration & Authentication
 
-- Clic sur le bouton de connexion Epic Games
-- Déclenchement du flow OAuth (webview interne Tauri)
-- Vérification du statut de connexion
+**Test** : `should configure Epic Games store and verify authentication flow`
+
+Teste la configuration et authentification d'un store (Epic Games) :
+
+1. Attendre que l'app soit prête
+2. Vérifier la redirection vers settings/store (quand pas de stores)
+3. Naviguer vers l'onglet "Comptes"
+4. Vérifier l'affichage de l'UI de configuration
+5. Cliquer sur le bouton "CONNEXION" d'Epic Games
+6. Vérifier que le flow d'authentification est déclenché
+7. Vérifier le statut de connexion après 3 secondes
 
 ### 04 - Library & Games
 
-- Vérification du chargement des jeux
-- Affichage de l'UI de la bibliothèque
+**Test** : `should display library and load games if configured`
+
+Teste l'affichage de la bibliothèque et le chargement des jeux :
+
+1. Attendre que l'app soit prête
+2. Naviguer vers la page d'accueil de la bibliothèque
+3. Vérifier l'existence de l'UI de la bibliothèque
+4. Vérifier l'état des jeux (empty state ou games UI)
+5. Vérifier la réactivité de l'app
 
 ## Page Objects
 

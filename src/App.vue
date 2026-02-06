@@ -46,16 +46,6 @@ provide("isGameRunning", isGameRunning);
 let unlistenGameLaunched: UnlistenFn | null = null;
 let unlistenGameError: UnlistenFn | null = null;
 
-// Generate stable key for routes - settings routes share the same key
-function getRouteKey(route: any) {
-  // Pour les routes settings, utiliser une clé commune
-  if (route.path.startsWith('/settings')) {
-    return 'settings';
-  }
-  // Pour les autres routes, utiliser le path complet
-  return route.path;
-}
-
 // Check if setup wizard is needed on mount
 onMounted(async () => {
   try {

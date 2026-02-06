@@ -15,32 +15,25 @@
     "core:window:allow-close",
     "core:window:allow-show",
     "core:window:allow-hide",
+    "core:webview:allow-create-webview-window",
     "core:event:default",
-    "shell:allow-execute",
+    "shell:allow-spawn",
     "shell:allow-open",
+    "log:allow-log",
     "sql:default",
     "sql:allow-load",
     "sql:allow-execute",
-    "sql:allow-select"
-  ],
-  "scope": {
-    "allow": [
-      "$HOME/.config/pixiden/**",
-      "$HOME/.config/legendary/**",
-      "$HOME/.config/gogdl/**",
-      "$HOME/.config/nile/**",
-      "$HOME/.config/heroic/**",
-      "$HOME/.local/share/pixiden/**",
-      "$HOME/.local/share/wine-ge/**",
-      "$HOME/.local/share/proton-ge/**",
-      "$HOME/GOG Games/**",
-      "$HOME/Games/**",
-      "$RESOURCE/binaries/*"
-    ],
-    "sidecar": [
-      "binaries/legendary",
-      "binaries/nile",
-      "binaries/gogdl"
-    ]
-  }
+    "sql:allow-select",
+    "log:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/legendary",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
+  ]
 }

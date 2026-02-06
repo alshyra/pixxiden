@@ -88,6 +88,14 @@ export class LegendaryService extends GameStoreService {
   }
 
   /**
+   * Get Epic Games authentication URL
+   * Returns the URL that users should open in their browser to authenticate
+   */
+  getAuthUrl(): string {
+    return "https://legendary.gl/epiclogin";
+  }
+
+  /**
    * Check if user is authenticated with Epic Games
    */
   async isAuthenticated(): Promise<boolean> {

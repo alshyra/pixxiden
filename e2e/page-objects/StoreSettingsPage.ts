@@ -5,49 +5,34 @@
 
 export class StoreSettingsPage {
   /**
-   * Find a store by name and return its connection button
+   * Find a store connection button by data-testid
    */
   async findStoreConnectionButton(
-    storeName: "Epic Games" | "GOG Galaxy" | "Amazon Games" | "Steam",
+    storeName: "epic" | "gog" | "amazon" | "steam",
   ): Promise<WebdriverIO.Element | null> {
-    const buttons = await $$("button");
-
-    for (const btn of buttons) {
-      try {
-        const text = await btn.getText();
-        const parent = await btn.parentElement();
-        const parentText = await parent.getText();
-
-        if (
-          (text.includes("CONNEXION") || text.includes("CONNECT")) &&
-          (parentText.includes(storeName) || parentText.includes(storeName.split(" ")[0]))
-        ) {
-          return btn;
-        }
-      } catch (e) {
-        // Skip on error
+    const selector = `[data-testid="${storeName}-connect-button"]`;
+    try {
+      const button = await $(selector);
+      const isDisplayed = await button.isDisplayed();
+      if (isDisplayed) {
+        return button;
       }
+    } catch (error) {
+      console.log(`  [DEBUG] Button ${selector} not found or not displayed`);
     }
-
-    // Fallback: find first CONNEXION button
-    for (const btn of buttons) {
-      const text = await btn.getText();
-      if (text.includes("CONNEXION")) {
-        return btn;
-      }
-    }
-
     return null;
   }
 
   /**
    * Click on a store's connection button
    */
-  async clickStoreConnection(storeName: "Epic Games" | "GOG Galaxy" | "Amazon Games" | "Steam") {
+  async clickStoreConnection(storeName: "epic" | "gog" | "amazon" | "steam") {
     const button = await this.findStoreConnectionButton(storeName);
     expect(button).not.toBeNull();
-    await button!.click();
-    await browser.pause(1500);
+    if (button) {
+      await button.click();
+      await browser.pause(1500);
+    }
   }
 
   /**

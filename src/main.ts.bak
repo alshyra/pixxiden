@@ -1,0 +1,31 @@
+import { attachConsole, debug } from "@tauri-apps/plugin-log";
+import { Command } from "@tauri-apps/plugin-shell";
+import "./style.css";
+
+const main = async () => {
+  try {
+    await attachConsole();
+    await debug("🚀 App initialized");
+
+    // Get the absolute path - in dev we use the workspace directory
+    // const workspacePath = "/home/asavajols@DOMNA.TEN/workspace/perso/pixxiden";
+    // const binaryPath = `${workspacePath}/src-tauri/binaries/legendary-x86_64-unknown-linux-gnu`;
+    // await debug(`Binary path: ${binaryPath}`);
+
+    const command = Command.sidecar('binaries/legendary', [
+      "auth",
+      "--code",
+      "0d98fac16ab644e8a69ef3b9330e838c",
+    ]);
+
+    const output = await command.execute();
+    await debug(`Command exit code: ${output.code}`);
+    await debug(`stdout: ${output.stdout}`);
+    await debug(`stderr: ${output.stderr}`);
+  } catch (error) {
+    console.error("Error in main:", error);
+    await debug(`Error: ${String(error)}`);
+  }
+};
+
+main();

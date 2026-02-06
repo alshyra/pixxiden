@@ -100,14 +100,14 @@ export const useAuthStore = defineStore("auth", () => {
 
   // ===== Epic Games =====
 
-  async function loginEpic(): Promise<void> {
+  async function loginEpic(): Promise<string> {
     loading.value = true;
     error.value = null;
 
     try {
       const auth = getAuthService();
-      await auth.startEpicAuth();
-      await fetchAuthStatus();
+      const authUrl = await auth.startEpicAuth();
+      return authUrl;
     } catch (err) {
       error.value = formatAuthError("Epic Games", "authentication", err);
       console.error("Epic auth failed:", err);

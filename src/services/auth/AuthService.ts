@@ -85,10 +85,14 @@ export class AuthService {
     };
   }
 
-  async startEpicAuth(): Promise<void> {
-    // Epic auth is handled entirely by EpicWebviewHandler
-    // This method is kept for compatibility but the webview should be opened from the modal
-    throw new Error("Use EpicAuthModal for Epic Games authentication");
+  async startEpicAuth(): Promise<string> {
+    // Return the authentication URL that users should open in their browser
+    return this.legendary.getAuthUrl();
+  }
+
+  async completeEpicAuth(authorizationCode: string): Promise<void> {
+    await this.legendary.authenticate(authorizationCode);
+    console.log("✅ Epic authentication successful");
   }
 
   async logoutEpic(): Promise<void> {

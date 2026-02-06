@@ -1,6 +1,7 @@
 /**
  * Scenario 4: Library and Games
- * Tests game library loading and display
+ * Tests game library display and readiness
+ * Each test is independent and can run in isolation
  */
 
 import { waitForAppReady } from "../helpers";
@@ -8,42 +9,42 @@ import { LibraryPage } from "../page-objects/LibraryPage";
 import { SettingsPage } from "../page-objects/SettingsPage";
 
 describe("Scenario 4: Library and Games", () => {
-  let libraryPage: LibraryPage;
-  let settingsPage: SettingsPage;
+  it("should display library and load games if configured", async () => {
+    console.log("\n📚 Starting library display test...");
 
-  before(async () => {
+    // 1. Wait for app ready
     await waitForAppReady();
-    libraryPage = new LibraryPage();
-    settingsPage = new SettingsPage();
-  });
+    const libraryPage = new LibraryPage();
+    const settingsPage = new SettingsPage();
 
-  it("should check if games were loaded", async () => {
-    console.log("\n🎮 Checking if games were loaded...");
-
-    // Try to navigate to home if possible
+    // 2. Navigate to library home
     await libraryPage.navigateHome();
+    console.log("✅ Navigated to library home");
 
+    // 3. Check library UI exists
+    const hasLibraryUI = await libraryPage.hasLibraryUI();
+    expect(hasLibraryUI).toBe(true);
+    console.log("✅ Library UI is displayed");
+
+    await settingsPage.takeScreenshot("04-library-ui");
+
+    // 4. Check game loading state
     const hasEmptyState = await libraryPage.hasEmptyState();
     const hasGamesUI = await libraryPage.hasGamesUI();
 
-    await settingsPage.takeScreenshot("09-library-check");
-
-    console.log(`Has empty state: ${hasEmptyState}`);
-    console.log(`Has games UI: ${hasGamesUI}`);
-
     if (hasEmptyState) {
-      console.log("⚠️ No games loaded (Epic authentication may have failed)");
+      console.log("⚠️ No games loaded (expected if stores not connected or games not synced)");
+    } else if (hasGamesUI) {
+      console.log("✅ Games loaded and library is ready");
+    } else {
+      console.log("ℹ️ Library UI present but game state unclear");
     }
-  });
 
-  it("should display library UI", async () => {
-    console.log("\n📊 Verifying library UI...");
+    await settingsPage.takeScreenshot("04-library-state");
 
-    const hasUI = await libraryPage.hasLibraryUI();
-
-    await settingsPage.takeScreenshot("10-library-ui");
-
-    expect(hasUI).toBe(true);
-    console.log("✅ Library UI is displayed");
+    // 5. Verify app didn't crash and library is responsive
+    const bodyText = await $("body").getText();
+    expect(bodyText.length).toBeGreaterThan(0);
+    console.log("✅ Library is responsive");
   });
 });
