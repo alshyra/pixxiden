@@ -90,13 +90,12 @@ const {
   isLaunching,
   playGame,
   forceCloseGame,
-  startInstallation,
 } = useCurrentGame();
 
 const showInstallModal = ref(false);
 
-function handleInstallStarted(config: { installPath: string }) {
+function handleInstallStarted() {
+  // Close modal immediately — actual installation is handled by InstallModal via InstallationService
   showInstallModal.value = false;
-  startInstallation(config.installPath);
 }
 </script>

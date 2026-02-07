@@ -143,22 +143,22 @@ export async function launchGame(gameId: string): Promise<void> {
   }
 }
 
-export async function installGame(gameId: string, _installPath?: string): Promise<void> {
-  try {
-    await invoke("install_game", { id: gameId });
-  } catch (error) {
-    console.error("Failed to install game:", error);
-    throw error;
-  }
+/**
+ * @deprecated Use InstallationService.installGame() instead — install_game Rust command does not exist
+ */
+export async function installGame(_gameId: string, _installPath?: string): Promise<void> {
+  throw new Error(
+    "installGame via Rust invoke is removed. Use InstallationService.installGame() instead.",
+  );
 }
 
-export async function uninstallGame(gameId: string): Promise<void> {
-  try {
-    await invoke("uninstall_game", { id: gameId });
-  } catch (error) {
-    console.error("Failed to uninstall game:", error);
-    throw error;
-  }
+/**
+ * @deprecated Use InstallationService.uninstallGame() instead — uninstall_game Rust command does not exist
+ */
+export async function uninstallGame(_gameId: string): Promise<void> {
+  throw new Error(
+    "uninstallGame via Rust invoke is removed. Use InstallationService.uninstallGame() instead.",
+  );
 }
 
 export async function getGameConfig(id: string): Promise<GameConfig> {

@@ -110,13 +110,13 @@ onMounted(async () => {
         await info(`Found ${gamesCount} games in database, syncing for updates...`);
       } else {
         await info("No games found, starting initial sync...");
+        statusMessage.value = "Synchronisation des jeux...";
+        progress.value = 40;
+        // GameSyncService handles everything: fetch → enrich → persist
+        // Progress events are emitted automatically
+        const syncService = GameSyncService.getInstance();
+        await syncService.sync();
       }
-      statusMessage.value = "Synchronisation des jeux...";
-      progress.value = 40;
-      // GameSyncService handles everything: fetch → enrich → persist
-      // Progress events are emitted automatically
-      const syncService = GameSyncService.getInstance();
-      await syncService.sync();
     } catch (error) {
       await warn(`Sync failed (may need authentication or stores not configured): ${error}`);
       // Don't block — continue with current library

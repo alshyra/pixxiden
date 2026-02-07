@@ -17,7 +17,7 @@ export class LegendaryInstallation extends GameInstallationService {
       progress: 0,
     });
 
-    const args = ["install", storeId];
+    const args = ["install", storeId, "-y"];
 
     if (options.installPath) {
       args.push("--base-path", options.installPath);

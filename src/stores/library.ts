@@ -3,7 +3,12 @@ import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { debug, info, error as logError } from "@tauri-apps/plugin-log";
 import type { Game } from "@/types";
-import { getOrchestrator, initializeServices, type SyncResult } from "@/services";
+import {
+  getOrchestrator,
+  getInstallationService,
+  initializeServices,
+  type SyncResult,
+} from "@/services";
 
 export const useLibraryStore = defineStore("library", () => {
   // All games
@@ -172,17 +177,28 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
-  // TODO: Migrer install/uninstall vers les nouveaux services
-  async function installGame(gameId: string, _installPath?: string) {
+  async function installGame(gameId: string, installPath?: string) {
     try {
       const game = games.value.find((g) => g.id === gameId || g.storeData.storeId === gameId);
-      if (game) {
-        game.gameCompletion.downloading = true;
-        game.gameCompletion.downloadProgress = 0;
-      }
+      if (!game) throw new Error(`Game not found: ${gameId}`);
 
-      // Pour l'instant, on garde l'ancien invoke Rust
-      await invoke("install_game", { id: gameId });
+      game.gameCompletion.downloading = true;
+      game.gameCompletion.downloadProgress = 0;
+
+      const installationService = getInstallationService();
+      await installationService.installGame(game.id, game.storeData.store, {
+        installPath,
+        onProgress: (progress) => {
+          game.gameCompletion.downloadProgress = progress.progress;
+          if (progress.status === "completed") {
+            game.gameCompletion.downloading = false;
+            game.installation.installed = true;
+            if (installPath) game.installation.installPath = installPath;
+          } else if (progress.status === "error") {
+            game.gameCompletion.downloading = false;
+          }
+        },
+      });
     } catch (err) {
       error.value = "Failed to install game";
       await logError(`Install error: ${err}`);
@@ -192,15 +208,15 @@ export const useLibraryStore = defineStore("library", () => {
 
   async function uninstallGame(gameId: string) {
     try {
-      // Pour l'instant, on garde l'ancien invoke Rust
-      await invoke("uninstall_game", { id: gameId });
+      const game = games.value.find((g) => g.id === gameId || g.storeData.storeId === gameId);
+      if (!game) throw new Error(`Game not found: ${gameId}`);
+
+      const installationService = getInstallationService();
+      await installationService.uninstallGame(game.id, game.storeData.store);
 
       // Update game state
-      const game = games.value.find((g) => g.id === gameId || g.storeData.storeId === gameId);
-      if (game) {
-        game.installation.installed = false;
-        game.installation.installPath = "";
-      }
+      game.installation.installed = false;
+      game.installation.installPath = "";
     } catch (err) {
       error.value = "Failed to uninstall game";
       await logError(`Uninstall error: ${err}`);

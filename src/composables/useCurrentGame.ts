@@ -5,6 +5,7 @@ import type { Game } from "@/types";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { error as logError } from "@tauri-apps/plugin-log";
+import { getInstallationService } from "@/services";
 
 type UnlistenFn = () => void;
 
@@ -188,7 +189,19 @@ export function useCurrentGame() {
     downloadProgress.value = 0;
 
     try {
-      await libraryStore.installGame(game.value.id, installPath);
+      const installationService = getInstallationService();
+      await installationService.installGame(game.value.id, game.value.storeData.store, {
+        installPath,
+        onProgress: (progress) => {
+          downloadProgress.value = progress.progress;
+          if (progress.status === "completed") {
+            isDownloading.value = false;
+            libraryStore.fetchGames();
+          } else if (progress.status === "error") {
+            isDownloading.value = false;
+          }
+        },
+      });
     } catch (error) {
       logError(`Failed to start installation: ${error}`);
       isDownloading.value = false;

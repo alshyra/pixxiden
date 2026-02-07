@@ -287,6 +287,7 @@ async function confirmInstall() {
       addToSteam: addToSteam.value,
     };
 
+    // Notify parent that install is starting (for UI state: close modal, show progress bar)
     emit("install-started", installConfig);
 
     // Start installation via InstallationService (JS-first)
@@ -294,13 +295,12 @@ async function confirmInstall() {
     await installationService.installGame(props.game.id, props.game.storeData.store, {
       installPath: installPath.value,
     });
-
-    // Close modal
-    showInstallModal.value = false;
   } catch (error) {
     console.error("Failed to start installation:", error);
   } finally {
     installing.value = false;
+    // Close modal after install finishes (or fails)
+    showInstallModal.value = false;
   }
 }
 

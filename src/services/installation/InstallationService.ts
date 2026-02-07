@@ -31,11 +31,7 @@ export class InstallationService {
   /**
    * Install a game from a specific store
    */
-  async installGame(
-    gameId: string,
-    store: StoreType,
-    options: InstallOptions = {},
-  ): Promise<void> {
+  async installGame(gameId: string, store: StoreType, options: InstallOptions = {}): Promise<void> {
     const abortController = new AbortController();
     this.activeInstalls.set(gameId, abortController);
 
