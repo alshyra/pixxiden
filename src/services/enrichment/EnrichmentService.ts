@@ -278,7 +278,9 @@ export class EnrichmentService {
       const parsed = JSON.parse(row.data);
       // Invalidate cache if version doesn't match (schema changed)
       if (parsed._cacheVersion !== CACHE_VERSION) {
-        await info(`Cache version mismatch for ${gameId} (v${parsed._cacheVersion ?? 1} → v${CACHE_VERSION}), re-enriching`);
+        await info(
+          `Cache version mismatch for ${gameId} (v${parsed._cacheVersion ?? 1} → v${CACHE_VERSION}), re-enriching`,
+        );
         return null;
       }
       return {

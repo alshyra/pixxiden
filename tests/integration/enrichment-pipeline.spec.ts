@@ -10,7 +10,12 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EnrichmentService } from "@/services/enrichment/EnrichmentService";
-import type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "@/services/enrichment/EnrichmentService";
+import type {
+  EnrichmentData,
+  IgdbData,
+  ProtonDbData,
+  SteamGridDbData,
+} from "@/services/enrichment/EnrichmentService";
 import type { DatabaseService } from "@/services/base/DatabaseService";
 import type { Game } from "@/types";
 import { createGame } from "@/types";
@@ -74,13 +79,11 @@ const MOCK_IGDB: IgdbData = {
   ],
   first_release_date: 1431993600, // 2015-05-19
   cover: { url: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg" },
-  screenshots: [
-    { url: "https://images.igdb.com/igdb/image/upload/t_screenshot_big/sc1.jpg" },
-  ],
+  screenshots: [{ url: "https://images.igdb.com/igdb/image/upload/t_screenshot_big/sc1.jpg" }],
   steamAppId: 292030,
   timeToBeat: {
-    hastily: 26.3,  // hours
-    normally: 51.5,  // hours
+    hastily: 26.3, // hours
+    normally: 51.5, // hours
     completely: 103.8, // hours
   },
 };
@@ -469,7 +472,7 @@ describe("Enrichment Pipeline Integration", () => {
       const igdbWithRawSeconds: IgdbData = {
         ...MOCK_IGDB,
         timeToBeat: {
-          hastily: 26.3,   // Already in hours from IgdbEnricher
+          hastily: 26.3, // Already in hours from IgdbEnricher
           normally: 51.5,
           completely: 103.8,
         },
