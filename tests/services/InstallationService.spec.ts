@@ -35,6 +35,7 @@ describe("InstallationService", () => {
     it("should install an Epic game successfully", async () => {
       const gameId = "epic-test-game";
       const store = "epic";
+      const installPath = "/games/epic";
 
       vi.spyOn(mockSidecar, "runLegendary").mockResolvedValue({
         code: 0,
@@ -44,10 +45,15 @@ describe("InstallationService", () => {
 
       vi.spyOn(mockDb, "execute").mockResolvedValue();
 
-      await installationService.installGame(gameId, store);
+      await installationService.installGame(gameId, store, { installPath });
 
       // CLI receives the raw store ID (without the "epic-" prefix)
-      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["install", "test-game"]);
+      expect(mockSidecar.runLegendary).toHaveBeenCalledWith([
+        "install",
+        "test-game",
+        "--base-path",
+        installPath,
+      ]);
       expect(mockDb.execute).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE games SET installed = 1"),
         expect.any(Array),
@@ -69,12 +75,14 @@ describe("InstallationService", () => {
 
       await installationService.installGame(gameId, store, { installPath });
 
-      // CLI receives --auth-config-path before subcommand, and raw store ID
+      // CLI receives --auth-config-path before subcommand, --platform linux, and raw store ID
       expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
         "--auth-config-path",
         expect.any(String),
         "download",
         "test-game",
+        "--platform",
+        "linux",
         "--path",
         installPath,
       ]);

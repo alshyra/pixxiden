@@ -1,30 +1,32 @@
 /**
- * InstallationService - Handles game installation and uninstallation
- * Coordinates between different store services and emits progress events
+ * InstallationService - Orchestrator for game installations
+ * Delegates to store-specific installation services
  */
 
 import type { StoreType } from "@/types";
 import { SidecarService } from "../base/SidecarService";
 import { DatabaseService } from "../base/DatabaseService";
-import { appConfigDir } from "@tauri-apps/api/path";
-import { join } from "@tauri-apps/api/path";
+import { LegendaryInstallation } from "./LegendaryInstallation";
+import { GogdlInstallation } from "./GogdlInstallation";
+import { NileInstallation } from "./NileInstallation";
+import { SteamInstallation } from "./SteamInstallation";
+import type { InstallProgress, InstallOptions } from "./GameInstallationService";
 
-export interface InstallProgress {
-  gameId: string;
-  status: "queued" | "downloading" | "installing" | "completed" | "error";
-  progress: number; // 0-100
-  downloadSpeed?: number; // MB/s
-  eta?: number; // seconds
-  error?: string;
-}
+export type { InstallProgress, InstallOptions } from "./GameInstallationService";
 
 export class InstallationService {
   private activeInstalls = new Map<string, AbortController>();
+  private legendary: LegendaryInstallation;
+  private gogdl: GogdlInstallation;
+  private nile: NileInstallation;
+  private steam: SteamInstallation;
 
-  constructor(
-    private sidecar: SidecarService,
-    private db: DatabaseService,
-  ) {}
+  constructor(sidecar: SidecarService, db: DatabaseService) {
+    this.legendary = new LegendaryInstallation(sidecar, db);
+    this.gogdl = new GogdlInstallation(sidecar, db);
+    this.nile = new NileInstallation(sidecar, db);
+    this.steam = new SteamInstallation(sidecar, db);
+  }
 
   /**
    * Install a game from a specific store
@@ -32,10 +34,7 @@ export class InstallationService {
   async installGame(
     gameId: string,
     store: StoreType,
-    options: {
-      installPath?: string;
-      onProgress?: (progress: InstallProgress) => void;
-    } = {},
+    options: InstallOptions = {},
   ): Promise<void> {
     const abortController = new AbortController();
     this.activeInstalls.set(gameId, abortController);
@@ -48,29 +47,26 @@ export class InstallationService {
         progress: 0,
       });
 
+      // Extract raw store ID (remove "epic-", "gog-", etc. prefix)
+      const storeId = this.extractStoreId(gameId);
+
       // Route to appropriate store service
       switch (store) {
         case "epic":
-          await this.installEpicGame(gameId, options);
+          await this.legendary.install(gameId, storeId, options);
           break;
         case "gog":
-          await this.installGogGame(gameId, options);
+          await this.gogdl.install(gameId, storeId, options);
           break;
         case "amazon":
-          await this.installAmazonGame(gameId, options);
+          await this.nile.install(gameId, storeId, options);
           break;
         case "steam":
-          await this.installSteamGame(gameId, options);
+          await this.steam.install(gameId, storeId, options);
           break;
         default:
           throw new Error(`Unsupported store: ${store}`);
       }
-
-      // Update database
-      await this.db.execute(`UPDATE games SET installed = 1, install_path = ? WHERE id = ?`, [
-        options.installPath || "",
-        gameId,
-      ]);
 
       // Emit completion
       options.onProgress?.({
@@ -109,28 +105,26 @@ export class InstallationService {
         progress: 0,
       });
 
+      // Extract raw store ID (remove "epic-", "gog-", etc. prefix)
+      const storeId = this.extractStoreId(gameId);
+
       // Route to appropriate store service
       switch (store) {
         case "epic":
-          await this.uninstallEpicGame(gameId);
+          await this.legendary.uninstall(gameId, storeId);
           break;
         case "gog":
-          await this.uninstallGogGame(gameId);
+          await this.gogdl.uninstall(gameId, storeId);
           break;
         case "amazon":
-          await this.uninstallAmazonGame(gameId);
+          await this.nile.uninstall(gameId, storeId);
           break;
         case "steam":
-          await this.uninstallSteamGame(gameId);
+          await this.steam.uninstall(gameId, storeId);
           break;
         default:
           throw new Error(`Unsupported store: ${store}`);
       }
-
-      // Update database
-      await this.db.execute(`UPDATE games SET installed = 0, install_path = NULL WHERE id = ?`, [
-        gameId,
-      ]);
 
       options.onProgress?.({
         gameId,
@@ -184,185 +178,5 @@ export class InstallationService {
   private extractStoreId(gameId: string): string {
     const idx = gameId.indexOf("-");
     return idx !== -1 ? gameId.substring(idx + 1) : gameId;
-  }
-
-  /**
-   * Get the gogdl auth config path.
-   * Mirrors GogdlService.getAuthConfigPath().
-   */
-  private async getGogAuthConfigPath(): Promise<string> {
-    try {
-      const configDir = await appConfigDir();
-      return await join(configDir, "gog_auth.json");
-    } catch {
-      return "~/.config/pixxiden/gog_auth.json";
-    }
-  }
-
-  // ===== Store-specific implementations =====
-
-  private async installEpicGame(
-    gameId: string,
-    options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
-  ): Promise<void> {
-    const storeId = this.extractStoreId(gameId);
-    const args = ["install", storeId];
-
-    if (options.installPath) {
-      args.push("--base-path", options.installPath);
-    }
-
-    const result = await this.sidecar.runLegendary(args);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to install Epic game: ${result.stderr}`);
-    }
-
-    // Parse output for progress (could emit events here if needed)
-    // For now, just update status
-    if (result.stdout.includes("Progress")) {
-      const progressMatch = result.stdout.match(/Progress: (\d+)%/);
-      if (progressMatch) {
-        options.onProgress?.({
-          gameId,
-          status: "downloading",
-          progress: parseInt(progressMatch[1]),
-        });
-      }
-    }
-  }
-
-  private async uninstallEpicGame(gameId: string): Promise<void> {
-    const storeId = this.extractStoreId(gameId);
-    const result = await this.sidecar.runLegendary(["uninstall", storeId, "--yes"]);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to uninstall Epic game: ${result.stderr}`);
-    }
-  }
-
-  private async installGogGame(
-    gameId: string,
-    options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
-  ): Promise<void> {
-    // gogdl uses "download" command, not "install"
-    // --auth-config-path must come BEFORE the subcommand
-    const storeId = this.extractStoreId(gameId);
-    const authPath = await this.getGogAuthConfigPath();
-    const args = ["--auth-config-path", authPath, "download", storeId];
-
-    if (options.installPath) {
-      args.push("--path", options.installPath);
-    }
-
-    const result = await this.sidecar.runGogdl(args);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to download GOG game: ${result.stderr}`);
-    }
-
-    // Parse output for progress
-    if (result.stdout.includes("%")) {
-      const progressMatch = result.stdout.match(/(\d+)%/);
-      if (progressMatch) {
-        options.onProgress?.({
-          gameId,
-          status: "downloading",
-          progress: parseInt(progressMatch[1]),
-        });
-      }
-    }
-  }
-
-  private async uninstallGogGame(gameId: string): Promise<void> {
-    // gogdl doesn't have a dedicated uninstall command
-    // Game files can be deleted directly from the install path
-    // For now, just update the DB status
-    await this.db.execute(`UPDATE games SET installed = 0, install_path = NULL WHERE id = ?`, [
-      gameId,
-    ]);
-  }
-
-  private async installAmazonGame(
-    gameId: string,
-    options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
-  ): Promise<void> {
-    const storeId = this.extractStoreId(gameId);
-    const args = ["install", storeId];
-
-    if (options.installPath) {
-      args.push("--path", options.installPath);
-    }
-
-    const result = await this.sidecar.runNile(args);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to install Amazon game: ${result.stderr}`);
-    }
-
-    // Parse output for progress
-    if (result.stdout.includes("%")) {
-      const progressMatch = result.stdout.match(/(\d+)%/);
-      if (progressMatch) {
-        options.onProgress?.({
-          gameId,
-          status: "downloading",
-          progress: parseInt(progressMatch[1]),
-        });
-      }
-    }
-  }
-
-  private async uninstallAmazonGame(gameId: string): Promise<void> {
-    const storeId = this.extractStoreId(gameId);
-    const result = await this.sidecar.runNile(["uninstall", storeId, "--yes"]);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to uninstall Amazon game: ${result.stderr}`);
-    }
-  }
-
-  private async installSteamGame(
-    gameId: string,
-    options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
-  ): Promise<void> {
-    // Steam games are installed through Steam client
-    // We just need to trigger the steam:// protocol
-    const appId = gameId.replace("steam-", "");
-
-    options.onProgress?.({
-      gameId,
-      status: "downloading",
-      progress: 50,
-    });
-
-    // Open steam installation link (using xdg-open)
-    const result = await SidecarService.getInstance().runCommand("xdg-open", [
-      `steam://install/${appId}`,
-    ]);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to trigger Steam installation: ${result.stderr}`);
-    }
-
-    // Note: Steam handles the actual download, we can't track progress
-    options.onProgress?.({
-      gameId,
-      status: "downloading",
-      progress: 100,
-    });
-  }
-
-  private async uninstallSteamGame(gameId: string): Promise<void> {
-    // Steam games are uninstalled through Steam client
-    const appId = gameId.replace("steam-", "");
-
-    const result = await SidecarService.getInstance().runCommand("xdg-open", [
-      `steam://uninstall/${appId}`,
-    ]);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to trigger Steam uninstallation: ${result.stderr}`);
-    }
   }
 }
