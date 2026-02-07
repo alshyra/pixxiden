@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS games (
   genres TEXT DEFAULT '[]',
   release_date TEXT,
   
-  -- Playtime (from HowLongToBeat)
+  -- Time to beat (from IGDB game_time_to_beats — hours)
   hltb_main REAL,
   hltb_main_extra REAL,
   hltb_complete REAL,

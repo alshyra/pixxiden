@@ -56,6 +56,16 @@ export interface SteamGridDbData {
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+/**
+ * Cache version — increment when enrichment data shape changes.
+ * Old cache entries with a different version are automatically invalidated.
+ *
+ * History:
+ *  v1 — initial (manual IGDB, separate HLTB, no external_games)
+ *  v2 — IGDB time_to_beats + external_games for Steam App ID (2025-06)
+ */
+const CACHE_VERSION = 2;
+
 export class EnrichmentService {
   private igdb: IgdbEnricher;
   private protonDb: ProtonDbEnricher;
@@ -265,8 +275,14 @@ export class EnrichmentService {
     if (!row) return null;
 
     try {
+      const parsed = JSON.parse(row.data);
+      // Invalidate cache if version doesn't match (schema changed)
+      if (parsed._cacheVersion !== CACHE_VERSION) {
+        await info(`Cache version mismatch for ${gameId} (v${parsed._cacheVersion ?? 1} → v${CACHE_VERSION}), re-enriching`);
+        return null;
+      }
       return {
-        data: JSON.parse(row.data),
+        data: parsed,
         fetchedAt: row.fetched_at,
       };
     } catch {
@@ -275,10 +291,11 @@ export class EnrichmentService {
   }
 
   private async saveToCache(gameId: string, data: EnrichmentData): Promise<void> {
+    const versioned = { ...data, _cacheVersion: CACHE_VERSION };
     await this.db.execute(
       `INSERT OR REPLACE INTO enrichment_cache (game_id, provider, data, fetched_at)
        VALUES (?, 'all', ?, CURRENT_TIMESTAMP)`,
-      [gameId, JSON.stringify(data)],
+      [gameId, JSON.stringify(versioned)],
     );
   }
 

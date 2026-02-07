@@ -1,6 +1,5 @@
 <template>
-  carousel
-  <div><img v-for="screenshotPath in screenshots" :src="screenshotPath" alt="" srcset=""></div>
+  <Carousel :images="screenshots" />
   <div class="grid grid-cols-4 gap-4">
     <StatCard label="Taille" :value="game?.installation.installSize" color="cyan" />
     <StatCard label="Durée" :value="gameDuration" color="pink" />
@@ -15,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { StatCard } from "@/components/ui";
+import { Carousel, StatCard } from "@/components/ui";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 
 /**
