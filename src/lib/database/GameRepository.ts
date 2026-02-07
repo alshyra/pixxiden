@@ -116,8 +116,9 @@ export class GameRepository {
     await this.db.execute(
       `INSERT INTO games (
         id, store_id, store, title, installed, install_path, install_size,
-        executable_path, developer, genres, play_time_minutes, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        executable_path, developer, genres, play_time_minutes, cloud_save_support,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         installed = excluded.installed,
@@ -125,6 +126,7 @@ export class GameRepository {
         install_size = excluded.install_size,
         executable_path = excluded.executable_path,
         developer = COALESCE(games.developer, excluded.developer),
+        cloud_save_support = excluded.cloud_save_support,
         updated_at = excluded.updated_at`,
       [
         game.id,
@@ -138,6 +140,7 @@ export class GameRepository {
         game.info.developer || null,
         JSON.stringify(game.info.genres || []),
         game.gameCompletion.playTimeMinutes || 0,
+        game.installation.cloudSaveSupport ? 1 : 0,
         game.createdAt || new Date().toISOString(),
         game.updatedAt || new Date().toISOString(),
       ],
@@ -264,6 +267,7 @@ export class GameRepository {
         executablePath: (row.executable_path as string) || "",
         customExecutablePath: "",
         runner: (row.runner as string) || "",
+        cloudSaveSupport: Boolean(row.cloud_save_support),
       },
       gameCompletion: {
         timeToBeatHastily: (row.hltb_main as number) || 0,

@@ -20,6 +20,10 @@ class TestStoreService extends GameStoreService {
     return [];
   }
 
+  async isAuthenticated(): Promise<boolean> {
+    return true;
+  }
+
   // Expose protected methods for testing
   async testSaveGames(games: Game[]): Promise<void> {
     return this.saveGames(games);

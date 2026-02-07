@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS games (
   wine_version TEXT,
   runner TEXT,
   
+  -- Cloud save support flag
+  cloud_save_support INTEGER DEFAULT 0,
+  
   -- Metadata (from IGDB)
   description TEXT,
   summary TEXT,
@@ -109,4 +112,6 @@ export const MIGRATIONS: string[] = [
   `ALTER TABLE games ADD COLUMN cover_path TEXT`,
   // Migration 3: Add screenshot_paths for locally cached screenshots
   `ALTER TABLE games ADD COLUMN screenshot_paths TEXT DEFAULT '[]'`,
+  // Migration 4: Add cloud_save_support flag
+  `ALTER TABLE games ADD COLUMN cloud_save_support INTEGER DEFAULT 0`,
 ];

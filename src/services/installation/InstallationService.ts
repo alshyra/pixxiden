@@ -216,7 +216,9 @@ export class InstallationService {
     gameId: string,
     options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
   ): Promise<void> {
-    const args = ["install", gameId];
+    // gogdl uses "download" command, not "install"
+    // It also requires --auth-config-path before the subcommand
+    const args = ["download", gameId];
 
     if (options.installPath) {
       args.push("--path", options.installPath);
@@ -225,7 +227,7 @@ export class InstallationService {
     const result = await this.sidecar.runGogdl(args);
 
     if (result.code !== 0) {
-      throw new Error(`Failed to install GOG game: ${result.stderr}`);
+      throw new Error(`Failed to download GOG game: ${result.stderr}`);
     }
 
     // Parse output for progress
@@ -242,11 +244,12 @@ export class InstallationService {
   }
 
   private async uninstallGogGame(gameId: string): Promise<void> {
-    const result = await this.sidecar.runGogdl(["uninstall", gameId]);
-
-    if (result.code !== 0) {
-      throw new Error(`Failed to uninstall GOG game: ${result.stderr}`);
-    }
+    // gogdl doesn't have a dedicated uninstall command
+    // Game files can be deleted directly from the install path
+    // For now, just update the DB status
+    await this.db.execute(`UPDATE games SET installed = 0, install_path = NULL WHERE id = ?`, [
+      gameId,
+    ]);
   }
 
   private async installAmazonGame(

@@ -136,13 +136,24 @@ export const useAuthStore = defineStore("auth", () => {
 
   // ===== GOG =====
 
-  async function loginGOG(_code?: string): Promise<void> {
+  /**
+   * Get the GOG OAuth authorization URL (to open in browser)
+   */
+  function getGOGAuthUrl(): string {
+    const auth = getAuthService();
+    return auth.getGogAuthUrl();
+  }
+
+  /**
+   * Complete GOG login with the authorization code pasted by the user
+   */
+  async function loginGOG(code: string): Promise<void> {
     loading.value = true;
     error.value = null;
 
     try {
       const auth = getAuthService();
-      await auth.startGogAuth();
+      await auth.completeGogAuth(code);
       await fetchAuthStatus();
     } catch (err) {
       error.value = formatAuthError("GOG", "authentication", err);
@@ -267,6 +278,7 @@ export const useAuthStore = defineStore("auth", () => {
     setStoreAuthenticated,
     loginEpic,
     logoutEpic,
+    getGOGAuthUrl,
     loginGOG,
     logoutGOG,
     loginAmazon,

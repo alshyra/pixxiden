@@ -15,6 +15,7 @@ import { GameRepository } from "@/lib/database";
 import { GameSyncService, type SyncOptions, type SyncResult } from "@/lib/sync";
 import { DatabaseService, SidecarService } from "./base";
 import { LegendaryService, GogdlService, NileService } from "./stores";
+import type { StoreCapabilities } from "./stores";
 
 export type { SyncResult, SyncOptions };
 
@@ -23,6 +24,7 @@ export interface StoreStatus {
   authenticated: boolean;
   gamesCount: number;
   lastSync: Date | null;
+  capabilities: StoreCapabilities;
 }
 
 export class GameLibraryOrchestrator {
@@ -140,10 +142,40 @@ export class GameLibraryOrchestrator {
     ]);
 
     return [
-      { store: "epic", authenticated: epicAuth, gamesCount: epicCount, lastSync: null },
-      { store: "gog", authenticated: gogAuth, gamesCount: gogCount, lastSync: null },
-      { store: "amazon", authenticated: amazonAuth, gamesCount: amazonCount, lastSync: null },
-      { store: "steam", authenticated: true, gamesCount: steamCount, lastSync: null },
+      {
+        store: "epic",
+        authenticated: epicAuth,
+        gamesCount: epicCount,
+        lastSync: null,
+        capabilities: this.legendary.getCapabilities(),
+      },
+      {
+        store: "gog",
+        authenticated: gogAuth,
+        gamesCount: gogCount,
+        lastSync: null,
+        capabilities: this.gogdl.getCapabilities(),
+      },
+      {
+        store: "amazon",
+        authenticated: amazonAuth,
+        gamesCount: amazonCount,
+        lastSync: null,
+        capabilities: this.nile.getCapabilities(),
+      },
+      {
+        store: "steam",
+        authenticated: true,
+        gamesCount: steamCount,
+        lastSync: null,
+        capabilities: {
+          canListGames: false,
+          canInstall: true,
+          canLaunch: true,
+          canGetInfo: false,
+          canSyncSaves: false,
+        },
+      },
     ];
   }
 
@@ -164,17 +196,20 @@ export class GameLibraryOrchestrator {
 
     return {
       game,
-      launchCommand: this.buildLaunchCommand(game),
+      launchCommand: await this.buildLaunchCommand(game),
       env: this.buildLaunchEnv(game),
     };
   }
 
-  private buildLaunchCommand(game: Game): string[] {
+  private async buildLaunchCommand(game: Game): Promise<string[]> {
     switch (game.storeData.store) {
       case "epic":
         return ["legendary", "launch", game.storeData.storeId];
-      case "gog":
-        return ["gogdl", "launch", game.storeData.storeId];
+      case "gog": {
+        // gogdl requires --auth-config-path before the subcommand
+        const configPath = await this.gogdl.getAuthConfigPathPublic();
+        return ["gogdl", "--auth-config-path", configPath, "launch", game.storeData.storeId];
+      }
       case "amazon":
         return ["nile", "launch", game.storeData.storeId];
       case "steam":
@@ -186,6 +221,20 @@ export class GameLibraryOrchestrator {
 
   private buildLaunchEnv(_game: Game): Record<string, string> {
     return {};
+  }
+
+  // ===== Cloud Save Sync =====
+
+  /**
+   * Sync cloud saves for a game (currently only GOG via gogdl save-sync)
+   */
+  async syncSaves(gameId: string): Promise<void> {
+    const game = await this.gameRepo.getGameById(gameId);
+    if (!game) throw new Error(`Game not found: ${gameId}`);
+
+    if (game.storeData.store === "gog" && game.installation.installed) {
+      await this.gogdl.syncSaves(game.storeData.storeId, game.installation.installPath);
+    }
   }
 
   // ===== Game Metadata Updates =====

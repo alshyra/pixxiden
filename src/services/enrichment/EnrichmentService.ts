@@ -306,6 +306,53 @@ export class EnrichmentService {
     return Date.now() - fetchedTime < CACHE_TTL_MS;
   }
 
+  /**
+   * Invalidate outdated cache entries (wrong version) and reset enriched_at
+   * for affected games so they get re-enriched on next sync.
+   *
+   * Called automatically at the start of enrichGames().
+   * Returns the number of invalidated entries.
+   */
+  async invalidateOutdatedCache(): Promise<number> {
+    // Find all cache entries without the current version
+    const rows = await this.db.select<{ game_id: string; data: string }>(
+      `SELECT game_id, data FROM enrichment_cache WHERE provider = 'all'`,
+    );
+
+    const outdatedIds: string[] = [];
+    for (const row of rows) {
+      try {
+        const parsed = JSON.parse(row.data);
+        if (parsed._cacheVersion !== CACHE_VERSION) {
+          outdatedIds.push(row.game_id);
+        }
+      } catch {
+        outdatedIds.push(row.game_id);
+      }
+    }
+
+    if (outdatedIds.length === 0) return 0;
+
+    await info(
+      `Invalidating ${outdatedIds.length} outdated cache entries (upgrading to v${CACHE_VERSION})`,
+    );
+
+    // Delete outdated cache entries
+    const placeholders = outdatedIds.map(() => "?").join(",");
+    await this.db.execute(
+      `DELETE FROM enrichment_cache WHERE game_id IN (${placeholders}) AND provider = 'all'`,
+      outdatedIds,
+    );
+
+    // Reset enriched_at for those games so GameSyncService re-enriches them
+    await this.db.execute(
+      `UPDATE games SET enriched_at = NULL WHERE id IN (${placeholders})`,
+      outdatedIds,
+    );
+
+    return outdatedIds.length;
+  }
+
   async clearCache(gameId: string): Promise<void> {
     await this.db.execute("DELETE FROM enrichment_cache WHERE game_id = ?", [gameId]);
     await this.imageCache.clearGameCache(gameId);

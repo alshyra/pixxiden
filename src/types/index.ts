@@ -32,6 +32,8 @@ export interface InstallationData {
   executablePath: string;
   customExecutablePath: string;
   runner: string;
+  /** Whether this game supports cloud save sync (e.g. gogdl save-sync) */
+  cloudSaveSupport: boolean;
 }
 
 export interface GameCompletionData {
@@ -130,6 +132,7 @@ export function defaultInstallationData(): InstallationData {
     executablePath: "",
     customExecutablePath: "",
     runner: "",
+    cloudSaveSupport: false,
   };
 }
 
@@ -169,6 +172,7 @@ export function createGame(overrides: {
   developer?: string;
   genres?: string[];
   playTimeMinutes?: number;
+  cloudSaveSupport?: boolean;
 }): Game {
   const now = new Date().toISOString();
   return {
@@ -185,6 +189,7 @@ export function createGame(overrides: {
       installPath: overrides.installPath ?? "",
       installSize: overrides.installSize ?? "",
       executablePath: overrides.executablePath ?? "",
+      cloudSaveSupport: overrides.cloudSaveSupport ?? false,
     },
     gameCompletion: {
       ...defaultGameCompletionData(),

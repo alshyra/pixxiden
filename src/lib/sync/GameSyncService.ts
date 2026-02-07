@@ -245,8 +245,19 @@ export class GameSyncService {
     // Configure enrichment with API keys from config file
     await this.configureEnrichment();
 
+    // Auto-invalidate outdated cache entries (version mismatch)
+    // This also resets enriched_at for affected games in the DB.
+    const invalidated = await this.enrichment.invalidateOutdatedCache();
+
+    // If cache was invalidated, re-read games from DB to get cleared enriched_at
+    let currentGames = games;
+    if (invalidated > 0) {
+      await info(`Re-enriching ${invalidated} games after cache version upgrade`);
+      currentGames = await this.gameRepo.getAllGames();
+    }
+
     // Filter to only games that need enrichment (unless forced)
-    const gamesToEnrich = forceEnrich ? games : games.filter((g) => !g.enrichedAt);
+    const gamesToEnrich = forceEnrich ? currentGames : currentGames.filter((g) => !g.enrichedAt);
 
     if (gamesToEnrich.length === 0) {
       await debug("All games already enriched, skipping");

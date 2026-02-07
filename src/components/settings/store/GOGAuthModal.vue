@@ -119,7 +119,7 @@ watch(
 
 const openAuthUrl = async () => {
   try {
-    const url = await authStore.getGOGAuthUrl();
+    const url = authStore.getGOGAuthUrl();
     await openUrl(url);
 
     // Switch to code input step

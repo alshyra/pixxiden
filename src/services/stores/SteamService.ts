@@ -4,12 +4,22 @@
  */
 
 import type { Game } from "@/types";
-import { GameStoreService } from "./GameStoreService";
+import { GameStoreService, type StoreCapabilities } from "./GameStoreService";
 import { warn } from "@tauri-apps/plugin-log";
 
 export class SteamService extends GameStoreService {
   get storeName(): Game["storeData"]["store"] {
     return "steam";
+  }
+
+  getCapabilities(): StoreCapabilities {
+    return {
+      canListGames: false, // Not yet implemented (requires VDF parsing)
+      canInstall: true, // Via steam:// protocol
+      canLaunch: true, // Via steam -applaunch
+      canGetInfo: false,
+      canSyncSaves: false, // Steam handles this natively
+    };
   }
 
   async listGames(): Promise<Game[]> {

@@ -49,14 +49,19 @@ const getEpicGamesStatus: () => Promise<StoreStatus> = async () => {
 };
 
 const getGogStatus: () => Promise<StoreStatus> = async () => {
-  const sidecar = getSidecar();
+  // GOG auth is tracked via auth_tokens table marker (gogdl has no "list" or "status" command)
+  // We check auth by looking for the marker set during authenticate()
   try {
-    const result = await sidecar.runGogdl(["list"]);
+    const { DatabaseService } = await import("../base/DatabaseService");
+    const db = DatabaseService.getInstance();
+    const row = await db.queryOne<{ access_token: string }>(
+      "SELECT access_token FROM auth_tokens WHERE store = 'gog'",
+    );
     return {
       id: "gog",
       name: "GOG",
-      available: result.code === 0,
-      authenticated: result.code === 0 && !result.stderr.includes("not logged in"),
+      available: true,
+      authenticated: row !== null,
       cli_tool: "gogdl",
     };
   } catch (error) {

@@ -11,7 +11,7 @@
 
 import type { Game } from "@/types";
 import { createGame } from "@/types";
-import { GameStoreService } from "./GameStoreService";
+import { GameStoreService, type StoreCapabilities } from "./GameStoreService";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
 export interface NileAuthResult {
@@ -23,6 +23,16 @@ export interface NileAuthResult {
 export class NileService extends GameStoreService {
   get storeName(): Game["storeData"]["store"] {
     return "amazon";
+  }
+
+  getCapabilities(): StoreCapabilities {
+    return {
+      canListGames: true,
+      canInstall: true,
+      canLaunch: true,
+      canGetInfo: false,
+      canSyncSaves: false,
+    };
   }
 
   async listGames(): Promise<Game[]> {

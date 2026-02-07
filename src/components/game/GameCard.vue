@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative aspect-[2/3] overflow-hidden rounded-xl border-2 bg-[#1a1a1c] bg-cover bg-center transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) cursor-pointer hover:scale-105 hover:border-remix-accent hover:shadow-[0_0_30px_rgba(94,92,230,0.4)] hover:z-10 focus:scale-105 focus:border-remix-accent focus:shadow-[0_0_30px_rgba(94,92,230,0.4)] focus:z-10"
+    class="group relative aspect-[2/3] overflow-hidden rounded-xl border-2 border-indigo-950 bg-[#1a1a1c] bg-cover bg-center transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) cursor-pointer hover:scale-105 hover:border-remix-accent hover:shadow-[0_0_30px_rgba(94,92,230,0.4)] hover:z-10 focus:scale-105 focus:border-remix-accent focus:shadow-[0_0_30px_rgba(94,92,230,0.4)] focus:z-10"
     :class="{
       'selected': selected,
       'border-remix-accent shadow-[0_0_40px_rgba(94,92,230,0.6)]': selected,

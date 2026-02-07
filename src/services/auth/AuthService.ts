@@ -22,7 +22,6 @@ export class AuthService {
     private legendary: LegendaryService,
     private gogdl: GogdlService,
     private nile: NileService,
-    private webviewAuth: WebviewAuthHandler,
   ) {}
 
   static getInstance(
@@ -110,10 +109,18 @@ export class AuthService {
     };
   }
 
-  async startGogAuth(): Promise<void> {
-    const authUrl = await this.gogdl.getAuthUrl();
-    const code = await this.webviewAuth.openAuthWindow("gog", authUrl);
-    await this.gogdl.authenticate(code);
+  /**
+   * Get the GOG OAuth authorization URL
+   */
+  getGogAuthUrl(): string {
+    return this.gogdl.getAuthUrl();
+  }
+
+  /**
+   * Complete GOG authentication with an authorization code
+   */
+  async completeGogAuth(authorizationCode: string): Promise<void> {
+    await this.gogdl.authenticate(authorizationCode);
     console.log("✅ GOG authentication successful");
   }
 

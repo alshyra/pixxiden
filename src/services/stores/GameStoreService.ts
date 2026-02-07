@@ -1,11 +1,32 @@
 /**
  * GameStoreService - Abstract base class for store services
- * Provides common functionality for listing and saving games
+ *
+ * All store services (Legendary, Gogdl, Nile, Steam) extend this class.
+ * It provides a unified interface for:
+ * - Game listing and persistence
+ * - Authentication
+ * - Game info retrieval
+ * - Launch command building
+ * - Cloud save management
+ *
+ * Subclasses MUST implement: listGames, storeName, isAuthenticated
+ * Subclasses SHOULD implement: getGameInfo, hasSaveSync
  */
 
 import type { Game, ProtonTier } from "@/types";
 import { DatabaseService } from "../base/DatabaseService";
 import { SidecarService } from "../base/SidecarService";
+
+/**
+ * Capabilities a store can declare it supports
+ */
+export interface StoreCapabilities {
+  canListGames: boolean;
+  canInstall: boolean;
+  canLaunch: boolean;
+  canGetInfo: boolean;
+  canSyncSaves: boolean;
+}
 
 export abstract class GameStoreService {
   constructor(
@@ -24,20 +45,40 @@ export abstract class GameStoreService {
   abstract get storeName(): Game["storeData"]["store"];
 
   /**
+   * Check if the user is authenticated with this store
+   */
+  abstract isAuthenticated(): Promise<boolean>;
+
+  /**
+   * Get capabilities of this store
+   * Override in subclasses for specific support
+   */
+  getCapabilities(): StoreCapabilities {
+    return {
+      canListGames: true,
+      canInstall: false,
+      canLaunch: false,
+      canGetInfo: false,
+      canSyncSaves: false,
+    };
+  }
+
+  /**
    * Save games to database (upsert) - internal use
    */
   protected async saveGames(games: Game[]): Promise<void> {
     const sql = `
       INSERT INTO games (
         id, store_id, store, title, installed, install_path, install_size,
-        executable_path, genres, play_time_minutes, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        executable_path, genres, play_time_minutes, cloud_save_support, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         installed = excluded.installed,
         install_path = excluded.install_path,
         install_size = excluded.install_size,
         executable_path = excluded.executable_path,
+        cloud_save_support = excluded.cloud_save_support,
         updated_at = excluded.updated_at
     `;
 
@@ -53,6 +94,7 @@ export abstract class GameStoreService {
         game.installation.executablePath || null,
         JSON.stringify(game.info.genres),
         game.gameCompletion.playTimeMinutes,
+        game.installation.cloudSaveSupport ? 1 : 0,
         game.createdAt,
         game.updatedAt,
       ]);
@@ -113,6 +155,7 @@ export abstract class GameStoreService {
         executablePath: (row.executable_path as string) || "",
         customExecutablePath: "",
         runner: (row.runner as string) || "",
+        cloudSaveSupport: Boolean(row.cloud_save_support),
       },
       gameCompletion: {
         timeToBeatHastily: (row.hltb_main as number) || 0,

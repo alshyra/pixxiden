@@ -4,7 +4,7 @@
 
 import type { Game } from "@/types";
 import { createGame } from "@/types";
-import { GameStoreService } from "./GameStoreService";
+import { GameStoreService, type StoreCapabilities } from "./GameStoreService";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
 /**
@@ -26,6 +26,16 @@ interface LegendaryGame {
 export class LegendaryService extends GameStoreService {
   get storeName(): Game["storeData"]["store"] {
     return "epic";
+  }
+
+  getCapabilities(): StoreCapabilities {
+    return {
+      canListGames: true,
+      canInstall: true,
+      canLaunch: true,
+      canGetInfo: true,
+      canSyncSaves: false, // Legendary doesn't support cloud save sync
+    };
   }
 
   async listGames(): Promise<Game[]> {

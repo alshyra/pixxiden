@@ -68,7 +68,12 @@ describe("InstallationService", () => {
 
       await installationService.installGame(gameId, store, { installPath });
 
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith(["install", gameId, "--path", installPath]);
+      expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
+        "download",
+        gameId,
+        "--path",
+        installPath,
+      ]);
     });
 
     it("should emit progress events during installation", async () => {
