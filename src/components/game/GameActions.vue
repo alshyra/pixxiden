@@ -2,7 +2,7 @@
   <div class="space-y-2">
     <!-- Install Button -->
     <Button
-      v-if="!game?.installed && !isDownloading"
+      v-if="!game?.installation.installed && !isDownloading"
       variant="primary"
       size="lg"
       class="w-full"
@@ -37,7 +37,7 @@
 
     <!-- Play Button -->
     <Button
-      v-if="game?.installed && !isLaunching"
+      v-if="game?.installation.installed && !isLaunching"
       variant="success"
       size="lg"
       class="w-full"

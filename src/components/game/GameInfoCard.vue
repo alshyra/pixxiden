@@ -9,7 +9,7 @@
         <img
           v-if="coverImage"
           :src="coverImage"
-          :alt="game?.title"
+          :alt="game?.info.title"
           class="w-full h-full object-cover"
         />
         <div
@@ -23,17 +23,16 @@
       <!-- Game Info -->
       <div class="flex-1 min-w-0">
         <h2 class="text-xl font-black italic tracking-tight text-white leading-tight truncate">
-          {{ game?.title?.toUpperCase() || "N/A" }}
+          {{ game?.info.title?.toUpperCase() || "N/A" }}
         </h2>
         <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
-          {{ game?.developer || "N/A" }} • {{ releaseYear || "N/A" }}
+          {{ game?.info.developer || "N/A" }} • {{ releaseYear || "N/A" }}
         </p>
 
         <!-- Badges -->
         <div class="flex gap-2 mt-2 flex-wrap">
-          <Badge v-if="score" variant="success">{{ score }}</Badge>
-          <Badge v-else variant="muted">N/A</Badge>
-          <Badge v-if="game?.genres?.[0]" variant="muted">{{ game.genres[0] }}</Badge>
+          <Badge v-if="game?.info.genres?.[0]" variant="muted">{{ game.info.genres[0] }}</Badge>
+          <Badge v-if="game?.info.genres?.[1]" variant="muted">{{ game.info.genres[1] }}</Badge>
         </div>
       </div>
     </div>
@@ -88,7 +87,6 @@ const {
   game,
   coverImage,
   releaseYear,
-  score,
   formattedPlayTime,
   formattedLastPlayed,
   completionStatus,

@@ -10,6 +10,7 @@
  */
 
 import type { Game } from "@/types";
+import { createGame } from "@/types";
 import { GameStoreService } from "./GameStoreService";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
@@ -20,7 +21,7 @@ export interface NileAuthResult {
 }
 
 export class NileService extends GameStoreService {
-  get storeName(): Game["store"] {
+  get storeName(): Game["storeData"]["store"] {
     return "amazon";
   }
 
@@ -43,7 +44,6 @@ export class NileService extends GameStoreService {
     // nile library list outputs text lines like: "Game Title (ASIN: B0XXXXXX)"
     // Parse the text output
     const games: Game[] = [];
-    const now = new Date().toISOString();
     const lines = listResult.stdout.split("\n").filter((l) => l.trim());
 
     for (const line of lines) {
@@ -52,17 +52,14 @@ export class NileService extends GameStoreService {
       if (match) {
         const title = match[1].trim();
         const asin = match[2].trim();
-        games.push({
-          id: `amazon-${asin}`,
-          storeId: asin,
-          store: "amazon" as const,
-          title,
-          installed: false,
-          genres: [],
-          playTimeMinutes: 0,
-          createdAt: now,
-          updatedAt: now,
-        });
+        games.push(
+          createGame({
+            id: `amazon-${asin}`,
+            storeId: asin,
+            store: "amazon",
+            title,
+          }),
+        );
       }
     }
 
@@ -73,8 +70,8 @@ export class NileService extends GameStoreService {
       for (const line of installedLines) {
         const match = line.match(/(?:ASIN:\s*)([A-Z0-9]+)/);
         if (match) {
-          const game = games.find((g) => g.storeId === match[1]);
-          if (game) game.installed = true;
+          const game = games.find((g) => g.storeData.storeId === match[1]);
+          if (game) game.installation.installed = true;
         }
       }
     }

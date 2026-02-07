@@ -22,7 +22,7 @@
               Synopsis
             </h3>
             <p class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80">
-              {{ game?.description || "Missing description" }}
+              {{ game?.info.description || "Missing description" }}
             </p>
           </section>
         </div>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Launch Overlay -->
-    <LaunchOverlay :is-visible="isLaunching" :game-title="game?.title || 'Game'" :runner="launchRunner"
+    <LaunchOverlay :is-visible="isLaunching" :game-title="game?.info.title || 'Game'" :runner="launchRunner"
       :error="launchError" @close="closeLaunchOverlay" />
   </div>
 </template>
@@ -78,13 +78,13 @@ onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
 });
 
 onKeyStroke(KEYBOARD_SHORTCUTS.CONFIRM, () => {
-  if (game.value?.installed) {
+  if (game.value?.installation.installed) {
     playGame();
   }
 });
 
 onGamepad("back", () => router.back());
-onGamepad("confirm", () => game.value?.installed && playGame());
+onGamepad("confirm", () => game.value?.installation.installed && playGame());
 
 // === LIFECYCLE ===
 onMounted(async () => {

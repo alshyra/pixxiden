@@ -23,7 +23,7 @@
     </div>
 
     <!-- Installed indicator -->
-    <div v-if="game.installed"
+    <div v-if="game.installation.installed"
       class="absolute top-3 left-3 z-20 flex items-center gap-1 px-2 py-1 bg-green-500/20 border border-green-500/50 rounded-md text-[10px] font-bold text-green-500 backdrop-blur-lg">
       <Check class="w-3 h-3" />
       <span>Installé</span>
@@ -39,7 +39,7 @@
     <!-- Title -->
     <div class="absolute bottom-4 left-4 right-4 text-sm font-black italic uppercase text-white z-20 line-clamp-2"
       style="text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);">
-      {{ game.title }}
+      {{ game.info.title }}
     </div>
 
     <!-- Focus ring glow -->
@@ -70,8 +70,7 @@ const props = defineProps<Props>();
  * Priority: local gridPath → local coverPath → local heroPath → legacy URL
  */
 const cardStyle = computed(() => {
-  // Prefer local paths (grid = vertical box art, best for 2:3 cards)
-  const localPath = props.game.gridPath || props.game.coverPath || props.game.heroPath;
+  const localPath = props.game.assets.gridPath || props.game.assets.coverPath || props.game.assets.heroPath;
   if (localPath) {
     try {
       const src = convertFileSrc(localPath);
@@ -81,8 +80,7 @@ const cardStyle = computed(() => {
     }
   }
 
-  // Fallback to legacy remote URLs
-  const imageUrl = props.game.backgroundUrl || props.game.coverUrl;
+  const imageUrl = props.game.assets.backgroundUrl;
   if (imageUrl) {
     return { backgroundImage: `url(${imageUrl})` };
   }
@@ -91,17 +89,16 @@ const cardStyle = computed(() => {
 
 const hasImage = computed(() => {
   return !!(
-    props.game.gridPath ||
-    props.game.coverPath ||
-    props.game.heroPath ||
-    props.game.backgroundUrl ||
-    props.game.coverUrl
+    props.game.assets.gridPath ||
+    props.game.assets.coverPath ||
+    props.game.assets.heroPath ||
+    props.game.assets.backgroundUrl
   );
 });
 
 // Store badge text
 const storeBadgeText = computed(() => {
-  const store = props.game.store?.toLowerCase();
+  const store = props.game.storeData.store?.toLowerCase();
   switch (store) {
     case "steam":
       return "STEAM";
@@ -118,7 +115,7 @@ const storeBadgeText = computed(() => {
 
 // Store badge Tailwind classes
 const storeBadgeClasses = computed(() => {
-  const store = props.game.store?.toLowerCase();
+  const store = props.game.storeData.store?.toLowerCase();
   switch (store) {
     case "steam":
       return "bg-[rgba(27,40,56,0.9)] text-[#66c0f4] border border-[rgba(102,192,244,0.3)]";

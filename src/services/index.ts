@@ -46,17 +46,10 @@ import { EnrichmentService } from "./enrichment";
 export {
   EnrichmentService,
   IgdbEnricher,
-  HltbEnricher,
   ProtonDbEnricher,
   SteamGridDbEnricher,
 } from "./enrichment";
-export type {
-  EnrichmentData,
-  IgdbData,
-  HltbData,
-  ProtonDbData,
-  SteamGridDbData,
-} from "./enrichment";
+export type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "./enrichment";
 
 // ============================================================================
 // Installation Services

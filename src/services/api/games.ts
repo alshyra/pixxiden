@@ -44,7 +44,7 @@ export async function getGame(gameId: string): Promise<Game | null> {
   if (isMockMode()) {
     const mockData = await getMockGames();
     const game = mockData.find((g) => g.id === gameId) || null;
-    console.log(`🎮 [MOCK MODE] getGame(${gameId}):`, game?.title || "not found");
+    console.log(`🎮 [MOCK MODE] getGame(${gameId}):`, game?.info.title || "not found");
     return game;
   }
 
@@ -180,15 +180,17 @@ export async function getGameConfig(id: string): Promise<GameConfig> {
 
     return {
       id: game.id,
-      title: game.title,
-      store: game.store,
-      storeId: game.storeId || game.id,
-      installPath: game.installed ? `/home/user/Games/${game.title}` : null,
-      customExecutable: game.customExecutable || null,
+      title: game.info.title,
+      store: game.storeData.store,
+      storeId: game.storeData.storeId || game.id,
+      installPath: game.installation.installed ? `/home/user/Games/${game.info.title}` : null,
+      customExecutable: game.installation.customExecutable || null,
       winePrefix:
-        game.store === "epic" ? `/home/user/.local/share/pixxiden/prefixes/${game.id}` : null,
-      wineVersion: game.store === "epic" ? "ge-proton-8-32" : null,
-      installed: game.installed || false,
+        game.storeData.store === "epic"
+          ? `/home/user/.local/share/pixxiden/prefixes/${game.id}`
+          : null,
+      wineVersion: game.storeData.store === "epic" ? "ge-proton-8-32" : null,
+      installed: game.installation.installed || false,
       downloadSize: mockSizes[game.id] || 30 * 1024 * 1024 * 1024,
       version: "1.0.0",
     };

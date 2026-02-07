@@ -114,7 +114,9 @@ export const useLibraryStore = defineStore("library", () => {
       const orchestrator = getOrchestrator();
       const result: SyncResult = await orchestrator.resyncLibrary();
 
-      await info(`Re-sync result: ${result.total} total, ${result.enriched} enriched, ${result.errors.length} errors`);
+      await info(
+        `Re-sync result: ${result.total} total, ${result.enriched} enriched, ${result.errors.length} errors`,
+      );
       syncErrors.value = result.errors.map(
         (e) => `${e.store || e.gameTitle || "unknown"}: ${e.message}`,
       );
@@ -140,16 +142,17 @@ export const useLibraryStore = defineStore("library", () => {
       const orchestrator = getOrchestrator();
       const { game, launchCommand, env } = await orchestrator.prepareGameLaunch(gameId);
 
-      // Appel Rust avec toutes les données (pas de lookup en Rust)
+      // Launch via sidecar — no Rust invoke needed (JS-first)
+      // The orchestrator already builds the correct CLI command
       await invoke("launch_game_v2", {
         game: {
           id: game.id,
-          title: game.title,
-          store: game.store,
-          storeId: game.storeId,
-          appName: game.storeId, // app_name = storeId
-          installPath: game.installPath,
-          customExecutable: game.customExecutable,
+          title: game.info.title,
+          store: game.storeData.store,
+          storeId: game.storeData.storeId,
+          appName: game.storeData.storeId,
+          installPath: game.installation.installPath,
+          customExecutable: game.installation.customExecutable,
         },
         launchCommand,
         env,
@@ -159,8 +162,7 @@ export const useLibraryStore = defineStore("library", () => {
       const localGame = games.value.find((g) => g.id === gameId);
       if (localGame) {
         const now = new Date().toISOString();
-        localGame.lastPlayed = now;
-        // Persist in DB
+        localGame.gameCompletion.lastPlayed = now;
         await orchestrator.updateGameMetadata(gameId, { lastPlayed: now });
       }
     } catch (err) {
@@ -173,10 +175,10 @@ export const useLibraryStore = defineStore("library", () => {
   // TODO: Migrer install/uninstall vers les nouveaux services
   async function installGame(gameId: string, _installPath?: string) {
     try {
-      const game = games.value.find((g) => g.id === gameId || g.storeId === gameId);
+      const game = games.value.find((g) => g.id === gameId || g.storeData.storeId === gameId);
       if (game) {
-        game.downloading = true;
-        game.downloadProgress = 0;
+        game.gameCompletion.downloading = true;
+        game.gameCompletion.downloadProgress = 0;
       }
 
       // Pour l'instant, on garde l'ancien invoke Rust
@@ -194,10 +196,10 @@ export const useLibraryStore = defineStore("library", () => {
       await invoke("uninstall_game", { id: gameId });
 
       // Update game state
-      const game = games.value.find((g) => g.id === gameId || g.storeId === gameId);
+      const game = games.value.find((g) => g.id === gameId || g.storeData.storeId === gameId);
       if (game) {
-        game.installed = false;
-        game.installPath = "";
+        game.installation.installed = false;
+        game.installation.installPath = "";
       }
     } catch (err) {
       error.value = "Failed to uninstall game";
@@ -245,7 +247,6 @@ export const useLibraryStore = defineStore("library", () => {
 
   /**
    * Toggle favoris
-   * TODO: Ajouter isFavorite au type Game
    */
   async function toggleFavorite(gameId: string) {
     if (!initialized.value) await initialize();
@@ -253,10 +254,8 @@ export const useLibraryStore = defineStore("library", () => {
     const game = games.value.find((g) => g.id === gameId);
     if (!game) return;
 
-    // TODO: Une fois isFavorite ajouté au type Game:
-    // const newValue = !game.isFavorite;
-    // game.isFavorite = newValue;
-    const newValue = true; // Placeholder
+    const newValue = !game.gameCompletion.isFavorite;
+    game.gameCompletion.isFavorite = newValue;
 
     const orchestrator = getOrchestrator();
     await orchestrator.updateGameMetadata(gameId, { isFavorite: newValue });

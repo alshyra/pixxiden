@@ -2,12 +2,30 @@
  * Mock data utilities for E2E and development
  */
 import type { Game } from "@/types";
+import { createGame } from "@/types";
 
 let mockGamesData: Game[] | null = null;
 
+// Enrichment data keyed by mock game id
+interface MockEnrichment {
+  genres?: string[];
+  developer?: string;
+  publisher?: string;
+  releaseDate?: string;
+  metacriticScore?: number;
+  igdbRating?: number;
+  timeToBeatHastily?: number;
+  timeToBeatNormally?: number;
+  timeToBeatCompletely?: number;
+  protonTier?: string;
+  achievementsTotal?: number;
+  achievementsUnlocked?: number;
+  description?: string;
+}
+
 // Enrich raw mock games with realistic test data
 const enrichMockGames = (games: unknown[]): Game[] => {
-  const enrichedData: Record<string, Partial<Game>> = {
+  const enrichedData: Record<string, MockEnrichment> = {
     "1": {
       genres: ["Adventure", "Indie", "Simulation"],
       developer: "Black Salt Games",
@@ -15,9 +33,9 @@ const enrichMockGames = (games: unknown[]): Game[] => {
       releaseDate: "2023-03-30",
       metacriticScore: 84,
       igdbRating: 82,
-      hltbMain: 12,
-      hltbMainExtra: 18,
-      hltbComplete: 25,
+      timeToBeatHastily: 12,
+      timeToBeatNormally: 18,
+      timeToBeatCompletely: 25,
       protonTier: "platinum",
       achievementsTotal: 45,
       achievementsUnlocked: 28,
@@ -30,9 +48,9 @@ const enrichMockGames = (games: unknown[]): Game[] => {
       releaseDate: "2003-10-29",
       metacriticScore: 91,
       igdbRating: 88,
-      hltbMain: 7,
-      hltbMainExtra: 9,
-      hltbComplete: 12,
+      timeToBeatHastily: 7,
+      timeToBeatNormally: 9,
+      timeToBeatCompletely: 12,
       protonTier: "gold",
       achievementsTotal: 36,
       achievementsUnlocked: 0,
@@ -45,9 +63,9 @@ const enrichMockGames = (games: unknown[]): Game[] => {
       releaseDate: "2017-07-25",
       metacriticScore: 81,
       igdbRating: 76,
-      hltbMain: 0,
-      hltbMainExtra: 0,
-      hltbComplete: 0,
+      timeToBeatHastily: 0,
+      timeToBeatNormally: 0,
+      timeToBeatCompletely: 0,
       protonTier: "borked",
       achievementsTotal: 0,
       achievementsUnlocked: 0,
@@ -60,9 +78,9 @@ const enrichMockGames = (games: unknown[]): Game[] => {
       releaseDate: "2018-03-20",
       metacriticScore: 69,
       igdbRating: 71,
-      hltbMain: 15,
-      hltbMainExtra: 45,
-      hltbComplete: 120,
+      timeToBeatHastily: 15,
+      timeToBeatNormally: 45,
+      timeToBeatCompletely: 120,
       protonTier: "silver",
       achievementsTotal: 189,
       achievementsUnlocked: 42,
@@ -75,9 +93,9 @@ const enrichMockGames = (games: unknown[]): Game[] => {
       releaseDate: "2018-10-26",
       metacriticScore: 97,
       igdbRating: 93,
-      hltbMain: 50,
-      hltbMainExtra: 79,
-      hltbComplete: 173,
+      timeToBeatHastily: 50,
+      timeToBeatNormally: 79,
+      timeToBeatCompletely: 173,
       protonTier: "gold",
       achievementsTotal: 59,
       achievementsUnlocked: 35,
@@ -86,27 +104,40 @@ const enrichMockGames = (games: unknown[]): Game[] => {
   };
 
   return games.map((game: unknown) => {
-    const g = game as Game;
-    const enrichment = enrichedData[g.id] || {};
-    return {
-      ...g,
-      genres: enrichment.genres ?? [],
+    const raw = game as Record<string, unknown>;
+    const id = String(raw.id ?? "");
+    const enrichment = enrichedData[id] || {};
+
+    const g = createGame({
+      id,
+      store: (raw.store as Game["storeData"]["store"]) ?? "epic",
+      storeId: String(raw.storeId ?? id),
+      title: String(raw.title ?? ""),
+      installed: Boolean(raw.installed),
+      installPath: String(raw.installPath ?? ""),
+      executablePath: String(raw.executablePath ?? ""),
       developer: enrichment.developer,
-      publisher: enrichment.publisher,
-      releaseDate: enrichment.releaseDate,
-      description: enrichment.description ?? g.description,
-      metacriticScore: enrichment.metacriticScore,
-      igdbRating: enrichment.igdbRating,
-      hltbMain: enrichment.hltbMain,
-      hltbMainExtra: enrichment.hltbMainExtra,
-      hltbComplete: enrichment.hltbComplete,
-      protonTier: enrichment.protonTier,
-      achievementsTotal: enrichment.achievementsTotal,
-      achievementsUnlocked: enrichment.achievementsUnlocked,
-      playTimeMinutes: g.playTimeMinutes ?? 0,
-      createdAt: g.createdAt ?? new Date().toISOString(),
-      updatedAt: g.updatedAt ?? new Date().toISOString(),
-    };
+      genres: enrichment.genres,
+      playTimeMinutes: Number(raw.playTimeMinutes ?? raw.playTime ?? 0),
+    });
+
+    // Apply enrichment data
+    g.info.publisher = enrichment.publisher ?? "";
+    g.info.releaseDate = enrichment.releaseDate ?? "";
+    g.info.description = enrichment.description ?? "";
+    g.info.metacriticScore = enrichment.metacriticScore ?? 0;
+    g.info.igdbRating = enrichment.igdbRating ?? 0;
+    g.gameCompletion.timeToBeatHastily = enrichment.timeToBeatHastily ?? 0;
+    g.gameCompletion.timeToBeatNormally = enrichment.timeToBeatNormally ?? 0;
+    g.gameCompletion.timeToBeatCompletely = enrichment.timeToBeatCompletely ?? 0;
+    g.gameCompletion.achievementsTotal = enrichment.achievementsTotal;
+    g.gameCompletion.achievementsUnlocked = enrichment.achievementsUnlocked;
+    g.gameCompletion.lastPlayed = String(raw.lastPlayed ?? "");
+    g.protonData.protonTier = (enrichment.protonTier ??
+      "pending") as Game["protonData"]["protonTier"];
+    g.assets.backgroundUrl = String(raw.backgroundUrl ?? "");
+
+    return g;
   });
 };
 

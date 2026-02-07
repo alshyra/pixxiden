@@ -2,14 +2,12 @@
   <Modal v-model="showInstallModal" title="Installer le jeu" size="lg">
     <!-- Game Info Header -->
     <div class="flex items-center gap-4 pb-6 border-b border-white/10">
-      <div
-        class="w-20 h-20 rounded-xl bg-cover bg-center"
-        :style="{ backgroundImage: `url(${game.backgroundUrl || '/placeholder.png'})` }"
-      ></div>
+      <div class="w-20 h-20 rounded-xl bg-cover bg-center"
+        :style="{ backgroundImage: `url(${game.assets.backgroundUrl || '/placeholder.png'})` }"></div>
       <div class="flex-1">
-        <h3 class="text-xl font-bold text-white">{{ game.title }}</h3>
+        <h3 class="text-xl font-bold text-white">{{ game.info.title }}</h3>
         <div class="flex items-center gap-2 mt-1">
-          <Badge :variant="game.store" :label="game.store.toUpperCase()" />
+          <Badge :variant="game.storeData.store" :label="game.storeData.store.toUpperCase()" />
           <span class="text-sm text-white/50">Version {{ gameVersion }}</span>
         </div>
       </div>
@@ -19,12 +17,9 @@
     <div class="mt-6">
       <label class="block text-sm font-semibold text-white mb-2"> 📁 Dossier d'installation </label>
       <div class="flex gap-2">
-        <input
-          v-model="installPath"
-          type="text"
+        <input v-model="installPath" type="text"
           class="flex-1 px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-sm font-medium text-white focus:outline-none focus:border-remix-accent/50 focus:shadow-glow-subtle transition-all"
-          placeholder="~/Games/Epic/Cyberpunk 2077"
-        />
+          placeholder="~/Games/Epic/Cyberpunk 2077" />
         <Button variant="outline" @click="browseInstallPath"> 📂 Parcourir </Button>
       </div>
       <p class="text-xs text-white/40 mt-2">Le jeu sera installé dans ce dossier</p>
@@ -39,21 +34,16 @@
 
       <div class="flex justify-between items-center mb-3">
         <span class="text-sm text-white/70">Espace disponible</span>
-        <span
-          class="text-sm font-bold"
-          :class="hasEnoughSpace ? 'text-remix-success' : 'text-remix-error'"
-        >
+        <span class="text-sm font-bold" :class="hasEnoughSpace ? 'text-remix-success' : 'text-remix-error'">
           {{ formatSize(availableSpace) }}
         </span>
       </div>
 
       <!-- Progress Bar -->
       <div class="h-2 bg-white/10 rounded-full overflow-hidden">
-        <div
-          class="h-full rounded-full transition-all"
+        <div class="h-full rounded-full transition-all"
           :class="diskUsagePercent > 90 ? 'bg-remix-error' : 'bg-remix-accent'"
-          :style="{ width: `${Math.min(diskUsagePercent, 100)}%` }"
-        ></div>
+          :style="{ width: `${Math.min(diskUsagePercent, 100)}%` }"></div>
       </div>
 
       <p v-if="!hasEnoughSpace" class="flex items-center gap-2 mt-3 text-xs text-remix-error">
@@ -67,11 +57,7 @@
       <label class="block text-sm font-semibold text-white mb-2">
         🍷 Couche de compatibilité
       </label>
-      <Select
-        v-model="selectedRunner"
-        :options="runnerOptions"
-        placeholder="Sélectionner Proton/Wine"
-      />
+      <Select v-model="selectedRunner" :options="runnerOptions" placeholder="Sélectionner Proton/Wine" />
       <p class="text-xs text-white/40 mt-2">
         {{ selectedRunnerDescription }}
       </p>
@@ -79,17 +65,11 @@
 
     <!-- Additional Options -->
     <div class="mt-6 space-y-3">
-      <Toggle
-        v-model="createDesktopShortcut"
-        label="Créer un raccourci bureau"
-        description="Ajouter une icône sur le bureau"
-      />
+      <Toggle v-model="createDesktopShortcut" label="Créer un raccourci bureau"
+        description="Ajouter une icône sur le bureau" />
 
-      <Toggle
-        v-model="addToSteam"
-        label="Ajouter à Steam (raccourci non-Steam)"
-        description="Le jeu apparaîtra dans votre bibliothèque Steam"
-      />
+      <Toggle v-model="addToSteam" label="Ajouter à Steam (raccourci non-Steam)"
+        description="Le jeu apparaîtra dans votre bibliothèque Steam" />
     </div>
 
     <!-- Footer Actions -->
@@ -99,13 +79,8 @@
         <Button variant="ghost" @click="showInstallModal = false" class="flex-1"> Annuler </Button>
 
         <!-- Install -->
-        <Button
-          variant="primary"
-          @click="confirmInstall"
-          :disabled="!hasEnoughSpace || installing"
-          :loading="installing"
-          class="flex-1"
-        >
+        <Button variant="primary" @click="confirmInstall" :disabled="!hasEnoughSpace || installing"
+          :loading="installing" class="flex-1">
           <template #icon v-if="!installing">
             <Download class="w-5 h-5" />
           </template>
@@ -149,7 +124,7 @@ const showInstallModal = computed({
 });
 
 // Installation config
-const installPath = ref(`~/Games/${props.game.store}/${props.game.title}`);
+const installPath = ref(`~/Games/${props.game.storeData.store}/${props.game.info.title}`);
 const gameSize = ref(0); // Bytes
 const availableSpace = ref(0); // Bytes
 const selectedRunner = ref("ge-proton-8-32");
@@ -169,7 +144,7 @@ const runnerOptions = [
 // Computed
 const needsWine = computed(() => {
   // Check if game needs Wine/Proton (Windows game on Linux)
-  return props.game.runner !== "native";
+  return props.game.installation.runner !== "native";
 });
 
 const selectedRunnerDescription = computed(() => {

@@ -3,6 +3,7 @@
  */
 
 import type { Game } from "@/types";
+import { createGame } from "@/types";
 import { GameStoreService } from "./GameStoreService";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
@@ -23,7 +24,7 @@ interface LegendaryGame {
 }
 
 export class LegendaryService extends GameStoreService {
-  get storeName(): Game["store"] {
+  get storeName(): Game["storeData"]["store"] {
     return "epic";
   }
 
@@ -59,8 +60,6 @@ export class LegendaryService extends GameStoreService {
       }
     }
 
-    const now = new Date().toISOString();
-
     // Map to Game interface — legendary uses app_title (not title)
     const games: Game[] = rawGames
       .filter((g) => g.app_title) // skip entries with no title
@@ -68,10 +67,10 @@ export class LegendaryService extends GameStoreService {
         const installed = installedGames[g.app_name];
         const isInstalled = Boolean(installed);
 
-        return {
+        return createGame({
           id: `epic-${g.app_name}`,
           storeId: g.app_name,
-          store: "epic" as const,
+          store: "epic",
           title: g.app_title,
           installed: isInstalled,
           installPath: installed?.install_path,
@@ -80,11 +79,7 @@ export class LegendaryService extends GameStoreService {
             : undefined,
           executablePath: installed?.executable,
           developer: g.metadata?.developer,
-          genres: [],
-          playTimeMinutes: 0,
-          createdAt: now,
-          updatedAt: now,
-        };
+        });
       });
 
     await debug(

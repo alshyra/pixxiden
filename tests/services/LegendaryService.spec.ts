@@ -90,20 +90,20 @@ describe("LegendaryService", () => {
       expect(games).toHaveLength(2);
 
       // Check Fortnite (installed)
-      const fortnite = games.find((g) => g.storeId === "Fortnite");
+      const fortnite = games.find((g) => g.storeData.storeId === "Fortnite");
       expect(fortnite).toBeDefined();
       expect(fortnite?.id).toBe("epic-Fortnite");
-      expect(fortnite?.store).toBe("epic");
-      expect(fortnite?.title).toBe("Fortnite");
-      expect(fortnite?.installed).toBe(true);
-      expect(fortnite?.installPath).toBe("/home/user/Games/Fortnite");
-      expect(fortnite?.installSize).toBe("30.0 GB");
+      expect(fortnite?.storeData.store).toBe("epic");
+      expect(fortnite?.info.title).toBe("Fortnite");
+      expect(fortnite?.installation.installed).toBe(true);
+      expect(fortnite?.installation.installPath).toBe("/home/user/Games/Fortnite");
+      expect(fortnite?.installation.installSize).toBe("30.0 GB");
 
       // Check Rocket League (not installed)
-      const rocketLeague = games.find((g) => g.storeId === "RocketLeague");
+      const rocketLeague = games.find((g) => g.storeData.storeId === "RocketLeague");
       expect(rocketLeague).toBeDefined();
-      expect(rocketLeague?.installed).toBe(false);
-      expect(rocketLeague?.installPath).toBeUndefined();
+      expect(rocketLeague?.installation.installed).toBe(false);
+      expect(rocketLeague?.installation.installPath).toBeFalsy();
 
       // Verify sidecar was called correctly
       expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["list", "--json"]);
@@ -146,7 +146,7 @@ describe("LegendaryService", () => {
 
       const games = await service.listGames();
       expect(games).toHaveLength(1);
-      expect(games[0].installed).toBe(false);
+      expect(games[0].installation.installed).toBe(false);
     });
   });
 

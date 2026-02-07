@@ -170,17 +170,17 @@ export class GameLibraryOrchestrator {
   }
 
   private buildLaunchCommand(game: Game): string[] {
-    switch (game.store) {
+    switch (game.storeData.store) {
       case "epic":
-        return ["legendary", "launch", game.storeId];
+        return ["legendary", "launch", game.storeData.storeId];
       case "gog":
-        return ["gogdl", "launch", game.storeId];
+        return ["gogdl", "launch", game.storeData.storeId];
       case "amazon":
-        return ["nile", "launch", game.storeId];
+        return ["nile", "launch", game.storeData.storeId];
       case "steam":
-        return ["steam", "-applaunch", game.storeId];
+        return ["steam", "-applaunch", game.storeData.storeId];
       default:
-        throw new Error(`Unknown store: ${game.store}`);
+        throw new Error(`Unknown store: ${game.storeData.store}`);
     }
   }
 

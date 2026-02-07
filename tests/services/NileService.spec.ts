@@ -81,17 +81,17 @@ describe("NileService", () => {
       expect(games).toHaveLength(2);
 
       // Check New World (installed)
-      const newWorld = games.find((g) => g.storeId === "B08CF3J4R2");
+      const newWorld = games.find((g) => g.storeData.storeId === "B08CF3J4R2");
       expect(newWorld).toBeDefined();
       expect(newWorld?.id).toBe("amazon-B08CF3J4R2");
-      expect(newWorld?.store).toBe("amazon");
-      expect(newWorld?.title).toBe("New World");
-      expect(newWorld?.installed).toBe(true);
+      expect(newWorld?.storeData.store).toBe("amazon");
+      expect(newWorld?.info.title).toBe("New World");
+      expect(newWorld?.installation.installed).toBe(true);
 
       // Check Lost Ark (not installed)
-      const lostArk = games.find((g) => g.storeId === "B09NQGDZZ6");
+      const lostArk = games.find((g) => g.storeData.storeId === "B09NQGDZZ6");
       expect(lostArk).toBeDefined();
-      expect(lostArk?.installed).toBe(false);
+      expect(lostArk?.installation.installed).toBe(false);
 
       // Verify sidecar calls
       expect(mockSidecar.runNile).toHaveBeenCalledWith(["library", "sync"]);
@@ -129,7 +129,7 @@ describe("NileService", () => {
 
       const games = await service.listGames();
       expect(games).toHaveLength(1);
-      expect(games[0].title).toBe("Test Game");
+      expect(games[0].info.title).toBe("Test Game");
     });
 
     it("should continue if list-installed fails", async () => {
@@ -142,7 +142,7 @@ describe("NileService", () => {
 
       const games = await service.listGames();
       expect(games).toHaveLength(1);
-      expect(games[0].installed).toBe(false);
+      expect(games[0].installation.installed).toBe(false);
     });
 
     it("should parse alternate ASIN format (dash separator)", async () => {
@@ -155,8 +155,8 @@ describe("NileService", () => {
 
       const games = await service.listGames();
       expect(games).toHaveLength(1);
-      expect(games[0].title).toBe("Test Game");
-      expect(games[0].storeId).toBe("B0TEST1234");
+      expect(games[0].info.title).toBe("Test Game");
+      expect(games[0].storeData.storeId).toBe("B0TEST1234");
     });
   });
 

@@ -261,49 +261,48 @@ export class GameSyncService {
 
       try {
         await this.emitProgress({
-          store: game.store,
-          gameTitle: game.title,
+          store: game.storeData.store,
+          gameTitle: game.info.title,
           current: i + 1,
           total: gamesToEnrich.length,
           phase: "enriching",
-          message: `Enrichissement: ${game.title}`,
+          message: `Enrichissement: ${game.info.title}`,
         });
 
         // EnrichmentService handles caching internally (enrichment_cache table)
         const enriched = await this.enrichment.enrichGame(game);
 
-        // Persist enrichment data to the games table
+        // Persist enrichment data to the games table (flat DB columns)
         await this.gameRepo.updateEnrichment(game.id, {
-          description: enriched.description,
-          summary: enriched.summary,
-          metacriticScore: enriched.metacriticScore,
-          igdbRating: enriched.igdbRating,
-          developer: enriched.developer,
-          publisher: enriched.publisher,
-          genres: enriched.genres,
-          releaseDate: enriched.releaseDate,
-          hltbMain: enriched.hltbMain,
-          hltbMainExtra: enriched.hltbMainExtra,
-          hltbComplete: enriched.hltbComplete,
-          protonTier: enriched.protonTier,
-          protonConfidence: enriched.protonConfidence,
-          protonTrendingTier: enriched.protonTrendingTier,
-          steamAppId: enriched.steamAppId,
-          heroPath: enriched.heroPath,
-          coverPath: enriched.coverPath,
-          gridPath: enriched.gridPath,
-          logoPath: enriched.logoPath,
-          iconPath: enriched.iconPath,
-          screenshotPaths: enriched.screenshotPaths,
-          coverUrl: enriched.coverUrl,
-          enrichedAt: enriched.enrichedAt,
+          description: enriched.info.description,
+          summary: enriched.info.summary,
+          metacritic_score: enriched.info.metacriticScore,
+          igdb_rating: enriched.info.igdbRating,
+          developer: enriched.info.developer,
+          publisher: enriched.info.publisher,
+          genres: enriched.info.genres,
+          release_date: enriched.info.releaseDate,
+          hltb_main: enriched.gameCompletion.timeToBeatHastily,
+          hltb_main_extra: enriched.gameCompletion.timeToBeatNormally,
+          hltb_complete: enriched.gameCompletion.timeToBeatCompletely,
+          proton_tier: enriched.protonData.protonTier,
+          proton_confidence: enriched.protonData.protonConfidence,
+          proton_trending_tier: enriched.protonData.protonTrendingTier,
+          steam_app_id: enriched.protonData.steamAppId || null,
+          hero_path: enriched.assets.heroPath || null,
+          cover_path: enriched.assets.coverPath || null,
+          grid_path: enriched.assets.gridPath || null,
+          logo_path: enriched.assets.logoPath || null,
+          icon_path: enriched.assets.iconPath || null,
+          screenshot_paths: enriched.assets.screenshotPaths,
+          enriched_at: enriched.enrichedAt,
         });
 
         enrichedCount++;
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        await warn(`Failed to enrich "${game.title}": ${msg}`);
-        errors.push({ gameTitle: game.title, phase: "enrich", message: msg });
+        await warn(`Failed to enrich "${game.info.title}": ${msg}`);
+        errors.push({ gameTitle: game.info.title, phase: "enrich", message: msg });
         // Continue with next game — don't stop on enrichment failure
       }
     }

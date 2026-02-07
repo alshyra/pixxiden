@@ -49,33 +49,32 @@ export function useCurrentGame() {
   // === COMPUTED PROPERTIES ===
   const heroImage = computed(() => {
     if (!game.value) return "";
-    if (game.value.heroPath) {
+    if (game.value.assets.heroPath) {
       try {
-        return convertFileSrc(game.value.heroPath);
+        return convertFileSrc(game.value.assets.heroPath);
       } catch {
-        return game.value.backgroundUrl || "";
+        return game.value.assets.backgroundUrl || "";
       }
     }
-    return game.value.backgroundUrl || "";
+    return game.value.assets.backgroundUrl || "";
   });
 
   const coverImage = computed(() => {
     if (!game.value) return "";
-    // Prefer local cover, then local grid, then legacy URL
-    const localPath = game.value.coverPath || game.value.gridPath;
+    const localPath = game.value.assets.coverPath || game.value.assets.gridPath;
     if (localPath) {
       try {
         return convertFileSrc(localPath);
       } catch {
-        return game.value.coverUrl || "";
+        return game.value.assets.backgroundUrl || "";
       }
     }
-    return game.value.coverUrl || "";
+    return game.value.assets.backgroundUrl || "";
   });
 
   const screenshots = computed(() => {
-    if (!game.value?.screenshotPaths?.length) return [];
-    return game.value.screenshotPaths
+    if (!game.value?.assets.screenshotPaths?.length) return [];
+    return game.value.assets.screenshotPaths
       .map((path) => {
         try {
           return convertFileSrc(path);
@@ -87,36 +86,38 @@ export function useCurrentGame() {
   });
 
   const releaseYear = computed(() => {
-    if (!game.value?.releaseDate) return undefined;
-    return new Date(game.value.releaseDate).getFullYear();
+    if (!game.value?.info.releaseDate) return undefined;
+    return new Date(game.value.info.releaseDate).getFullYear();
   });
 
   const score = computed(() => {
     if (!game.value) return undefined;
-    return game.value.metacriticScore || Math.round(game.value.igdbRating || 0) || undefined;
+    return (
+      game.value.info.metacriticScore || Math.round(game.value.info.igdbRating || 0) || undefined
+    );
   });
 
   const gameDuration = computed(() => {
     if (!game.value) return undefined;
-    const { hltbMain, hltbComplete } = game.value;
-    if (!hltbMain && !hltbComplete) return undefined;
-    return hltbMain && hltbComplete
-      ? `${hltbMain}-${hltbComplete}h`
-      : hltbMain
-        ? `~${hltbMain}h`
+    const { timeToBeatHastily, timeToBeatCompletely } = game.value.gameCompletion;
+    if (!timeToBeatHastily && !timeToBeatCompletely) return undefined;
+    return timeToBeatHastily && timeToBeatCompletely
+      ? `${timeToBeatHastily}-${timeToBeatCompletely}h`
+      : timeToBeatHastily
+        ? `~${timeToBeatHastily}h`
         : undefined;
   });
 
   const achievementsProgress = computed(() => {
-    if (!game.value?.achievementsTotal) return null;
+    if (!game.value?.gameCompletion.achievementsTotal) return null;
     return {
-      total: game.value.achievementsTotal,
-      unlocked: game.value.achievementsUnlocked || 0,
+      total: game.value.gameCompletion.achievementsTotal,
+      unlocked: game.value.gameCompletion.achievementsUnlocked || 0,
     };
   });
 
   const formattedPlayTime = computed(() => {
-    const minutes = game.value?.playTimeMinutes || 0;
+    const minutes = game.value?.gameCompletion.playTimeMinutes || 0;
     if (minutes === 0) return "0h";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -124,15 +125,15 @@ export function useCurrentGame() {
   });
 
   const formattedLastPlayed = computed(() => {
-    if (!game.value?.lastPlayed) return "Jamais";
-    return new Date(game.value.lastPlayed).toLocaleDateString("fr-FR", {
+    if (!game.value?.gameCompletion.lastPlayed) return "Jamais";
+    return new Date(game.value.gameCompletion.lastPlayed).toLocaleDateString("fr-FR", {
       day: "numeric",
       month: "short",
     });
   });
 
   const completionStatus = computed(() => {
-    const minutes = game.value?.playTimeMinutes || 0;
+    const minutes = game.value?.gameCompletion.playTimeMinutes || 0;
     if (minutes === 0) return "Non joué";
     if (minutes > 3600) return "Terminé";
     if (minutes > 1200) return "En cours";
@@ -147,10 +148,10 @@ export function useCurrentGame() {
       amazon: "Nile (Amazon Games)",
       steam: "Steam",
     };
-    return runners[game.value.store] || game.value.store;
+    return runners[game.value.storeData.store] || game.value.storeData.store;
   });
 
-  const totalSize = computed(() => game.value?.installSize || "N/A");
+  const totalSize = computed(() => game.value?.installation.installSize || "N/A");
 
   // === ACTIONS ===
   async function playGame() {

@@ -103,18 +103,18 @@ const playingGame = ref<Game | null>(null);
 const filteredGames = computed(() => {
   switch (currentFilter.value) {
     case "installed":
-      return games.value.filter((g) => g.installed);
+      return games.value.filter((g) => g.installation.installed);
     case "epic":
-      return games.value.filter((g) => g.store === "epic");
+      return games.value.filter((g) => g.storeData.store === "epic");
     case "gog":
-      return games.value.filter((g) => g.store === "gog");
+      return games.value.filter((g) => g.storeData.store === "gog");
     case "amazon":
-      return games.value.filter((g) => g.store === "amazon");
+      return games.value.filter((g) => g.storeData.store === "amazon");
     case "steam":
-      return games.value.filter((g) => g.store === "steam");
+      return games.value.filter((g) => g.storeData.store === "steam");
     default:
       // 'all' - sort alphabetically
-      return games.value.slice().sort((a, b) => a.title.localeCompare(b.title));
+      return games.value.slice().sort((a, b) => a.info.title.localeCompare(b.info.title));
   }
 });
 

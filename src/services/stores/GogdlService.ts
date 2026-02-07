@@ -12,7 +12,7 @@ import { GameStoreService } from "./GameStoreService";
 import { debug, warn } from "@tauri-apps/plugin-log";
 
 export class GogdlService extends GameStoreService {
-  get storeName(): Game["store"] {
+  get storeName(): Game["storeData"]["store"] {
     return "gog";
   }
 

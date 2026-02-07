@@ -8,7 +8,7 @@ import { GameStoreService } from "./GameStoreService";
 import { warn } from "@tauri-apps/plugin-log";
 
 export class SteamService extends GameStoreService {
-  get storeName(): Game["store"] {
+  get storeName(): Game["storeData"]["store"] {
     return "steam";
   }
 

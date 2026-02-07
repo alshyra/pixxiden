@@ -6,14 +6,14 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-4">
-          <img v-if="currentGame?.backgroundUrl" :src="currentGame.backgroundUrl"
+          <img v-if="currentGame?.assets.backgroundUrl" :src="currentGame.assets.backgroundUrl"
             class="w-16 h-16 rounded-lg object-cover" />
           <div v-else class="w-16 h-16 rounded-lg bg-gray-800 flex items-center justify-center">
             <span class="text-2xl">🎮</span>
           </div>
           <div>
             <h2 class="text-2xl font-bold text-white">
-              {{ currentGame?.title || "Game" }}
+              {{ currentGame?.info.title || "Game" }}
             </h2>
             <p class="text-sm text-white/60">Playing for {{ formatPlayTime(sessionTime) }}</p>
           </div>
@@ -154,8 +154,8 @@ onGamepad("back", () => {
 });
 
 const totalPlayTime = computed(() => {
-  if (!currentGame.value?.playTimeMinutes) return "N/A";
-  const minutes = currentGame.value.playTimeMinutes;
+  if (!currentGame.value?.gameCompletion.playTimeMinutes) return "N/A";
+  const minutes = currentGame.value.gameCompletion.playTimeMinutes;
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
@@ -163,8 +163,8 @@ const totalPlayTime = computed(() => {
 });
 
 const achievements = computed(() => {
-  if (currentGame.value?.achievementsUnlocked !== undefined) {
-    return String(currentGame.value.achievementsUnlocked);
+  if (currentGame.value?.gameCompletion.achievementsUnlocked !== undefined) {
+    return String(currentGame.value.gameCompletion.achievementsUnlocked);
   }
   return "N/A";
 });

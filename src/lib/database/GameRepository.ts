@@ -6,7 +6,7 @@
  * All game queries go through here — no Rust invoke needed.
  */
 
-import type { Game, StoreType } from "@/types";
+import type { Game, StoreType, ProtonTier } from "@/types";
 import { DatabaseService } from "@/services/base/DatabaseService";
 
 export class GameRepository {
@@ -128,16 +128,16 @@ export class GameRepository {
         updated_at = excluded.updated_at`,
       [
         game.id,
-        game.storeId,
-        game.store,
-        game.title,
-        game.installed ? 1 : 0,
-        game.installPath ?? null,
-        game.installSize ?? null,
-        game.executablePath ?? null,
-        game.developer ?? null,
-        JSON.stringify(game.genres || []),
-        game.playTimeMinutes || 0,
+        game.storeData.storeId,
+        game.storeData.store,
+        game.info.title,
+        game.installation.installed ? 1 : 0,
+        game.installation.installPath || null,
+        game.installation.installSize || null,
+        game.installation.executablePath || null,
+        game.info.developer || null,
+        JSON.stringify(game.info.genres || []),
+        game.gameCompletion.playTimeMinutes || 0,
         game.createdAt || new Date().toISOString(),
         game.updatedAt || new Date().toISOString(),
       ],
@@ -158,45 +158,16 @@ export class GameRepository {
 
   /**
    * Update enrichment data for a game
-   * Sets metadata fields and marks the game as enriched
+   * Accepts a flat map of DB column names → values for flexibility
    */
-  async updateEnrichment(gameId: string, data: Partial<Game>): Promise<void> {
+  async updateEnrichment(gameId: string, data: Record<string, unknown>): Promise<void> {
     const setClauses: string[] = [];
     const values: unknown[] = [];
 
-    const fieldMap: Record<string, string> = {
-      description: "description",
-      summary: "summary",
-      metacriticScore: "metacritic_score",
-      igdbRating: "igdb_rating",
-      developer: "developer",
-      publisher: "publisher",
-      genres: "genres",
-      releaseDate: "release_date",
-      hltbMain: "hltb_main",
-      hltbMainExtra: "hltb_main_extra",
-      hltbComplete: "hltb_complete",
-      hltbSpeedrun: "hltb_speedrun",
-      protonTier: "proton_tier",
-      protonConfidence: "proton_confidence",
-      protonTrendingTier: "proton_trending_tier",
-      steamAppId: "steam_app_id",
-      heroPath: "hero_path",
-      coverPath: "cover_path",
-      gridPath: "grid_path",
-      logoPath: "logo_path",
-      iconPath: "icon_path",
-      screenshotPaths: "screenshot_paths",
-      coverUrl: "cover_url",
-      backgroundUrl: "background_url",
-      enrichedAt: "enriched_at",
-    };
-
-    for (const [camelKey, snakeKey] of Object.entries(fieldMap)) {
-      const value = data[camelKey as keyof Game];
+    for (const [column, value] of Object.entries(data)) {
       if (value !== undefined) {
-        setClauses.push(`${snakeKey} = ?`);
-        if ((camelKey === "genres" || camelKey === "screenshotPaths") && Array.isArray(value)) {
+        setClauses.push(`${column} = ?`);
+        if (Array.isArray(value)) {
           values.push(JSON.stringify(value));
         } else {
           values.push(value);
@@ -258,52 +229,64 @@ export class GameRepository {
   // ===== Row Mapping =====
 
   /**
-   * Convert a database row to a Game object
+   * Convert a database row (flat columns) to a nested Game object
    */
   private rowToGame(row: Record<string, unknown>): Game {
     return {
       id: row.id as string,
-      storeId: (row.store_id as string) || "",
-      store: row.store as Game["store"],
-      title: row.title as string,
-      installed: Boolean(row.installed),
-      installPath: row.install_path as string | undefined,
-      installSize: row.install_size as string | undefined,
-      executablePath: row.executable_path as string | undefined,
-      customExecutable: row.custom_executable as string | undefined,
-      winePrefix: row.wine_prefix as string | undefined,
-      wineVersion: row.wine_version as string | undefined,
-      runner: row.runner as string | undefined,
-      description: row.description as string | undefined,
-      summary: row.summary as string | undefined,
-      metacriticScore: row.metacritic_score as number | undefined,
-      igdbRating: row.igdb_rating as number | undefined,
-      developer: row.developer as string | undefined,
-      publisher: row.publisher as string | undefined,
-      genres: JSON.parse((row.genres as string) || "[]"),
-      releaseDate: row.release_date as string | undefined,
-      hltbMain: row.hltb_main as number | undefined,
-      hltbMainExtra: row.hltb_main_extra as number | undefined,
-      hltbComplete: row.hltb_complete as number | undefined,
-      hltbSpeedrun: row.hltb_speedrun as number | undefined,
-      protonTier: row.proton_tier as Game["protonTier"],
-      protonConfidence: row.proton_confidence as string | undefined,
-      protonTrendingTier: row.proton_trending_tier as string | undefined,
-      steamAppId: row.steam_app_id as number | undefined,
-      achievementsTotal: row.achievements_total as number | undefined,
-      achievementsUnlocked: row.achievements_unlocked as number | undefined,
-      heroPath: row.hero_path as string | undefined,
-      coverPath: row.cover_path as string | undefined,
-      gridPath: row.grid_path as string | undefined,
-      logoPath: row.logo_path as string | undefined,
-      iconPath: row.icon_path as string | undefined,
-      screenshotPaths: JSON.parse((row.screenshot_paths as string) || '[]'),
-      coverUrl: row.cover_url as string | undefined,
-      backgroundUrl: row.background_url as string | undefined,
-      playTimeMinutes: (row.play_time_minutes as number) || 0,
-      lastPlayed: row.last_played as string | undefined,
-      downloading: Boolean(row.downloading),
-      downloadProgress: row.download_progress as number | undefined,
+      info: {
+        title: (row.title as string) || "",
+        description: (row.description as string) || "",
+        summary: (row.summary as string) || "",
+        metacriticScore: (row.metacritic_score as number) || 0,
+        igdbRating: (row.igdb_rating as number) || 0,
+        developer: (row.developer as string) || "",
+        publisher: (row.publisher as string) || "",
+        genres: JSON.parse((row.genres as string) || "[]"),
+        releaseDate: (row.release_date as string) || "",
+      },
+      assets: {
+        heroPath: (row.hero_path as string) || "",
+        coverPath: (row.cover_path as string) || "",
+        gridPath: (row.grid_path as string) || "",
+        logoPath: (row.logo_path as string) || "",
+        iconPath: (row.icon_path as string) || "",
+        screenshotPaths: JSON.parse((row.screenshot_paths as string) || "[]"),
+        backgroundUrl: (row.background_url as string) || "",
+      },
+      installation: {
+        installed: Boolean(row.installed),
+        installPath: (row.install_path as string) || "",
+        installSize: (row.install_size as string) || "",
+        customExecutable: (row.custom_executable as string) || "",
+        winePrefix: (row.wine_prefix as string) || "",
+        wineVersion: (row.wine_version as string) || "",
+        executablePath: (row.executable_path as string) || "",
+        customExecutablePath: "",
+        runner: (row.runner as string) || "",
+      },
+      gameCompletion: {
+        timeToBeatHastily: (row.hltb_main as number) || 0,
+        timeToBeatNormally: (row.hltb_main_extra as number) || 0,
+        timeToBeatCompletely: (row.hltb_complete as number) || 0,
+        achievementsTotal: row.achievements_total as number | undefined,
+        achievementsUnlocked: row.achievements_unlocked as number | undefined,
+        playTimeMinutes: (row.play_time_minutes as number) || 0,
+        lastPlayed: row.last_played as string | undefined,
+        isFavorite: Boolean(row.is_favorite),
+        downloading: Boolean(row.downloading),
+        downloadProgress: row.download_progress as number | undefined,
+      },
+      protonData: {
+        protonTier: ((row.proton_tier as string) || "pending") as ProtonTier,
+        protonConfidence: (row.proton_confidence as string) || "",
+        protonTrendingTier: (row.proton_trending_tier as string) || "",
+        steamAppId: (row.steam_app_id as number) || 0,
+      },
+      storeData: {
+        store: row.store as Game["storeData"]["store"],
+        storeId: (row.store_id as string) || "",
+      },
       createdAt: (row.created_at as string) || new Date().toISOString(),
       updatedAt: (row.updated_at as string) || new Date().toISOString(),
       enrichedAt: row.enriched_at as string | undefined,

@@ -106,7 +106,7 @@ describe("User Journey: Complete Application Flow", () => {
         hasIgdbData: !!(game.igdbId || game.summary || game.genres?.length > 0),
         hasHltbData: !!(game.hltbMain || game.hltbExtras || game.hltbCompletionist),
         hasProtonDbData: !!game.protonDbRating,
-        hasAssets: !!(game.backgroundUrl || game.coverUrl || game.logoUrl),
+        hasAssets: !!(game.backgroundUrl || game.logoUrl),
       };
     }, gameIndex);
   }

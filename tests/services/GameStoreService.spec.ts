@@ -8,10 +8,11 @@ import { GameStoreService } from "@/services/stores/GameStoreService";
 import type { SidecarService } from "@/services/base/SidecarService";
 import type { DatabaseService } from "@/services/base/DatabaseService";
 import type { Game } from "@/types";
+import { createGame } from "@/types";
 
 // Concrete implementation for testing
 class TestStoreService extends GameStoreService {
-  get storeName(): Game["store"] {
+  get storeName(): Game["storeData"]["store"] {
     return "epic";
   }
 
@@ -72,16 +73,18 @@ describe("GameStoreService", () => {
       const now = new Date().toISOString();
       const games: Game[] = [
         {
-          id: "epic-TestGame",
-          storeId: "TestGame",
-          store: "epic",
-          title: "Test Game",
-          installed: true,
-          installPath: "/path/to/game",
-          installSize: "10.0 GB",
-          executablePath: "/path/to/game/game.exe",
-          genres: ["Action", "RPG"],
-          playTimeMinutes: 120,
+          ...createGame({
+            id: "epic-TestGame",
+            store: "epic",
+            storeId: "TestGame",
+            title: "Test Game",
+            installed: true,
+            installPath: "/path/to/game",
+            installSize: "10.0 GB",
+            executablePath: "/path/to/game/game.exe",
+            genres: ["Action", "RPG"],
+            playTimeMinutes: 120,
+          }),
           createdAt: now,
           updatedAt: now,
         },
@@ -115,24 +118,18 @@ describe("GameStoreService", () => {
       const now = new Date().toISOString();
       const games: Game[] = [
         {
-          id: "epic-Game1",
-          storeId: "Game1",
-          store: "epic",
-          title: "Game 1",
-          installed: true,
-          genres: [],
-          playTimeMinutes: 0,
+          ...createGame({
+            id: "epic-Game1",
+            store: "epic",
+            storeId: "Game1",
+            title: "Game 1",
+            installed: true,
+          }),
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: "epic-Game2",
-          storeId: "Game2",
-          store: "epic",
-          title: "Game 2",
-          installed: false,
-          genres: [],
-          playTimeMinutes: 0,
+          ...createGame({ id: "epic-Game2", store: "epic", storeId: "Game2", title: "Game 2" }),
           createdAt: now,
           updatedAt: now,
         },
@@ -177,7 +174,7 @@ describe("GameStoreService", () => {
       expect(mockDb.select).toHaveBeenCalledWith("SELECT * FROM games WHERE store = ?", ["epic"]);
       expect(games).toHaveLength(1);
       expect(games[0].id).toBe("epic-TestGame");
-      expect(games[0].installed).toBe(true);
+      expect(games[0].installation.installed).toBe(true);
     });
 
     it("should return empty array when no games stored", async () => {
@@ -217,17 +214,17 @@ describe("GameStoreService", () => {
       const game = service.testRowToGame(row);
 
       expect(game.id).toBe("epic-TestGame");
-      expect(game.storeId).toBe("TestGame");
-      expect(game.store).toBe("epic");
-      expect(game.title).toBe("Test Game");
-      expect(game.installed).toBe(true);
-      expect(game.installPath).toBe("/path/to/game");
-      expect(game.installSize).toBe("10.0 GB");
-      expect(game.executablePath).toBe("/path/to/game/game.exe");
-      expect(game.runner).toBe("wine");
-      expect(game.description).toBe("A test game");
-      expect(game.metacriticScore).toBe(85);
-      expect(game.igdbRating).toBe(90);
+      expect(game.storeData.storeId).toBe("TestGame");
+      expect(game.storeData.store).toBe("epic");
+      expect(game.info.title).toBe("Test Game");
+      expect(game.installation.installed).toBe(true);
+      expect(game.installation.installPath).toBe("/path/to/game");
+      expect(game.installation.installSize).toBe("10.0 GB");
+      expect(game.installation.executablePath).toBe("/path/to/game/game.exe");
+      expect(game.installation.runner).toBe("wine");
+      expect(game.info.description).toBe("A test game");
+      expect(game.info.metacriticScore).toBe(85);
+      expect(game.info.igdbRating).toBe(90);
     });
 
     it("should handle null/undefined values", () => {
@@ -252,12 +249,12 @@ describe("GameStoreService", () => {
 
       const game = service.testRowToGame(row);
 
-      expect(game.installed).toBe(false);
-      // Note: rowToGame uses direct cast, so null from DB remains null
-      expect(game.installPath).toBeFalsy();
-      expect(game.installSize).toBeFalsy();
-      expect(game.executablePath).toBeFalsy();
-      expect(game.runner).toBeFalsy();
+      expect(game.installation.installed).toBe(false);
+      // Note: rowToGame uses direct cast, so null/undefined from DB becomes empty string or falsy
+      expect(game.installation.installPath).toBeFalsy();
+      expect(game.installation.installSize).toBeFalsy();
+      expect(game.installation.executablePath).toBeFalsy();
+      expect(game.installation.runner).toBeFalsy();
     });
   });
 });

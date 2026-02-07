@@ -1,12 +1,14 @@
 <template>
+  carousel
+  <div><img v-for="screenshotPath in screenshots" :src="screenshotPath" alt="" srcset=""></div>
   <div class="grid grid-cols-4 gap-4">
-    <StatCard label="Taille" :value="game?.installSize" color="cyan" />
+    <StatCard label="Taille" :value="game?.installation.installSize" color="cyan" />
     <StatCard label="Durée" :value="gameDuration" color="pink" />
     <StatCard label="Note" :color="scoreColor">
       {{ scoreDisplay }}
     </StatCard>
     <StatCard label="ProtonDB" :color="protonColor">
-      {{ game?.protonTier || "--" }}
+      {{ game?.protonData.protonTier || "--" }}
     </StatCard>
   </div>
 </template>
@@ -22,7 +24,7 @@ import { useCurrentGame } from "@/composables/useCurrentGame";
  * Récupère toutes ses données via useCurrentGame
  */
 
-const { game, score, gameDuration } = useCurrentGame();
+const { game, screenshots, gameDuration, score } = useCurrentGame();
 
 const scoreDisplay = computed(() => (score.value ? `${score.value}/100` : "--"));
 
