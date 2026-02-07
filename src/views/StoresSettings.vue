@@ -84,7 +84,9 @@
 import { ref, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useLibraryStore } from "@/stores/library";
 import { useFocusNavigation } from "@/composables/useFocusNavigation";
+import { GameSyncService } from "@/lib/sync";
 import type { StoreType } from "@/types";
 import StoreCard from "@/components/settings/store/StoreCard.vue";
 import EpicAuthModal from "@/components/settings/storeModal/EpicAuthModal.vue";
@@ -95,6 +97,7 @@ import Button from "@/components/ui/Button.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const libraryStore = useLibraryStore();
 
 const stores = ref<StoreType[]>(["epic", "gog", "amazon", "steam"]);
 const currentAction = ref<StoreType | null>(null);
@@ -175,9 +178,18 @@ const cancelLogout = () => {
 };
 
 const handleAuthSuccess = async () => {
-  // Refresh library after successful auth
-  // This could trigger a re-sync of games
-  console.log("Auth success - library should be refreshed");
+  // Refresh auth status, sync games with enrichment, then refresh library
+  await authStore.fetchAuthStatus();
+
+  try {
+    const syncService = GameSyncService.getInstance();
+    const result = await syncService.sync();
+    console.log(`✅ Post-auth sync: ${result.total} games, ${result.enriched} enriched`);
+  } catch (error) {
+    console.error("Sync after auth failed:", error);
+  }
+
+  await libraryStore.fetchGames();
 };
 
 const getStoreName = (store: StoreType | null): string => {

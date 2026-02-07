@@ -96,6 +96,7 @@ import { Info } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
 import { useLibraryStore } from "@/stores/library";
 import { getOrchestrator } from "@/services";
+import { GameSyncService } from "@/lib/sync";
 import EpicAuthModal from "./EpicAuthModal.vue";
 import GOGAuthModal from "./GOGAuthModal.vue";
 import AmazonAuthModal from "./AmazonAuthModal.vue";
@@ -214,9 +215,23 @@ function toggleConnection(store: StoreAccount) {
   }
 }
 
-// Handle successful authentication
+// Handle successful authentication — sync games with enrichment
 async function handleAuthSuccess() {
-  console.log("🎉 Authentication successful, refreshing store status...");
+  console.log("🎉 Authentication successful, syncing library...");
+
+  // 1. Refresh store status (shows authenticated immediately)
+  await loadStoreStatus();
+
+  // 2. Trigger a full sync (fetch + enrich unenriched games)
+  try {
+    const syncService = GameSyncService.getInstance();
+    const result = await syncService.sync();
+    console.log(`✅ Sync complete: ${result.total} games, ${result.enriched} enriched`);
+  } catch (error) {
+    console.error("Sync after auth failed:", error);
+  }
+
+  // 3. Reload store status (now includes game counts) and library
   await loadStoreStatus();
   await libraryStore.fetchGames();
 }

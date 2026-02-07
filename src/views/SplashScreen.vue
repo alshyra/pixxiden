@@ -1,10 +1,13 @@
 <template>
-  <div class="flex flex-col items-center justify-center w-full h-full border border-white/5 bg-[#0a0a0c]">
+  <div
+    class="flex flex-col items-center justify-center w-full h-full border border-white/5 bg-[#0a0a0c]"
+  >
     <PixxidenLogo class="mb-[3rem]" :glow="true" :is-loading="true" :size="140" />
 
     <!-- Titre -->
     <h1
-      class="text-4xl font-black tracking-[0.4em] mb-10 bg-gradient-to-r from-white via-blue-100 to-gray-500 bg-clip-text text-transparent italic">
+      class="text-4xl font-black tracking-[0.4em] mb-10 bg-gradient-to-r from-white via-blue-100 to-gray-500 bg-clip-text text-transparent italic"
+    >
       PIXXIDEN
     </h1>
 
@@ -13,7 +16,8 @@
       <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
         <div
           class="h-full bg-gradient-to-r from-blue-500 to-[#5e5ce6] rounded-full transition-all duration-300 ease-out"
-          :style="{ width: `${progress}%` }"></div>
+          :style="{ width: `${progress}%` }"
+        ></div>
       </div>
     </div>
 
@@ -26,7 +30,9 @@
       <p v-if="currentGame" class="text-[9px] text-white/50 font-medium max-w-64 truncate">
         {{ currentGame }}
       </p>
-      <div class="w-32 h-[1px] bg-gradient-to-r from-transparent via-blue-500/40 to-transparent"></div>
+      <div
+        class="w-32 h-[1px] bg-gradient-to-r from-transparent via-blue-500/40 to-transparent"
+      ></div>
     </div>
   </div>
 </template>
@@ -96,25 +102,24 @@ onMounted(async () => {
     const gameRepo = GameRepository.getInstance();
     const gamesCount = await gameRepo.getGamesCount();
 
-    // Step 3: If no games, perform initial sync
-    if (gamesCount === 0) {
-      try {
+    // Step 3: Always sync to pick up games from newly authenticated stores
+    // The sync is idempotent (upsert) and enrichment skips already-enriched games
+    // (enrichGames filters by !g.enrichedAt, so only new/unenriched games get enriched).
+    try {
+      if (gamesCount > 0) {
+        await info(`Found ${gamesCount} games in database, syncing for updates...`);
+      } else {
         await info("No games found, starting initial sync...");
-        statusMessage.value = "Synchronisation des jeux...";
-        progress.value = 40;
-        // GameSyncService handles everything: fetch → enrich → persist
-        // Progress events are emitted automatically
-        const syncService = GameSyncService.getInstance();
-        await syncService.sync();
-      } catch (error) {
-        await warn(
-          `Initial sync failed (may need authentication or stores not configured): ${error}`,
-        );
-        // Don't block — continue with empty library
       }
-    } else {
-      await info(`Found ${gamesCount} games in database`);
-      progress.value = 90;
+      statusMessage.value = "Synchronisation des jeux...";
+      progress.value = 40;
+      // GameSyncService handles everything: fetch → enrich → persist
+      // Progress events are emitted automatically
+      const syncService = GameSyncService.getInstance();
+      await syncService.sync();
+    } catch (error) {
+      await warn(`Sync failed (may need authentication or stores not configured): ${error}`);
+      // Don't block — continue with current library
     }
 
     currentGame.value = "";

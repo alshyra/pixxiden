@@ -6,6 +6,8 @@
 import type { StoreType } from "@/types";
 import { SidecarService } from "../base/SidecarService";
 import { DatabaseService } from "../base/DatabaseService";
+import { appConfigDir } from "@tauri-apps/api/path";
+import { join } from "@tauri-apps/api/path";
 
 export interface InstallProgress {
   gameId: string;
@@ -172,13 +174,39 @@ export class InstallationService {
     return Array.from(this.activeInstalls.keys());
   }
 
+  // ===== Helpers =====
+
+  /**
+   * Extract the raw store ID from a Pixxiden game ID.
+   * Game IDs are prefixed: "epic-{app_name}", "gog-{product_id}", "amazon-{id}", "steam-{appId}".
+   * CLIs need the raw store ID without the prefix.
+   */
+  private extractStoreId(gameId: string): string {
+    const idx = gameId.indexOf("-");
+    return idx !== -1 ? gameId.substring(idx + 1) : gameId;
+  }
+
+  /**
+   * Get the gogdl auth config path.
+   * Mirrors GogdlService.getAuthConfigPath().
+   */
+  private async getGogAuthConfigPath(): Promise<string> {
+    try {
+      const configDir = await appConfigDir();
+      return await join(configDir, "gog_auth.json");
+    } catch {
+      return "~/.config/pixxiden/gog_auth.json";
+    }
+  }
+
   // ===== Store-specific implementations =====
 
   private async installEpicGame(
     gameId: string,
     options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
   ): Promise<void> {
-    const args = ["install", gameId];
+    const storeId = this.extractStoreId(gameId);
+    const args = ["install", storeId];
 
     if (options.installPath) {
       args.push("--base-path", options.installPath);
@@ -205,7 +233,8 @@ export class InstallationService {
   }
 
   private async uninstallEpicGame(gameId: string): Promise<void> {
-    const result = await this.sidecar.runLegendary(["uninstall", gameId, "--yes"]);
+    const storeId = this.extractStoreId(gameId);
+    const result = await this.sidecar.runLegendary(["uninstall", storeId, "--yes"]);
 
     if (result.code !== 0) {
       throw new Error(`Failed to uninstall Epic game: ${result.stderr}`);
@@ -217,8 +246,10 @@ export class InstallationService {
     options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
   ): Promise<void> {
     // gogdl uses "download" command, not "install"
-    // It also requires --auth-config-path before the subcommand
-    const args = ["download", gameId];
+    // --auth-config-path must come BEFORE the subcommand
+    const storeId = this.extractStoreId(gameId);
+    const authPath = await this.getGogAuthConfigPath();
+    const args = ["--auth-config-path", authPath, "download", storeId];
 
     if (options.installPath) {
       args.push("--path", options.installPath);
@@ -256,7 +287,8 @@ export class InstallationService {
     gameId: string,
     options: { installPath?: string; onProgress?: (progress: InstallProgress) => void },
   ): Promise<void> {
-    const args = ["install", gameId];
+    const storeId = this.extractStoreId(gameId);
+    const args = ["install", storeId];
 
     if (options.installPath) {
       args.push("--path", options.installPath);
@@ -282,7 +314,8 @@ export class InstallationService {
   }
 
   private async uninstallAmazonGame(gameId: string): Promise<void> {
-    const result = await this.sidecar.runNile(["uninstall", gameId, "--yes"]);
+    const storeId = this.extractStoreId(gameId);
+    const result = await this.sidecar.runNile(["uninstall", storeId, "--yes"]);
 
     if (result.code !== 0) {
       throw new Error(`Failed to uninstall Amazon game: ${result.stderr}`);

@@ -46,7 +46,8 @@ describe("InstallationService", () => {
 
       await installationService.installGame(gameId, store);
 
-      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["install", gameId]);
+      // CLI receives the raw store ID (without the "epic-" prefix)
+      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["install", "test-game"]);
       expect(mockDb.execute).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE games SET installed = 1"),
         expect.any(Array),
@@ -68,9 +69,12 @@ describe("InstallationService", () => {
 
       await installationService.installGame(gameId, store, { installPath });
 
+      // CLI receives --auth-config-path before subcommand, and raw store ID
       expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
+        "--auth-config-path",
+        expect.any(String),
         "download",
-        gameId,
+        "test-game",
         "--path",
         installPath,
       ]);
@@ -137,7 +141,8 @@ describe("InstallationService", () => {
 
       await installationService.uninstallGame(gameId, store);
 
-      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["uninstall", gameId, "--yes"]);
+      // CLI receives the raw store ID (without the "epic-" prefix)
+      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["uninstall", "test-game", "--yes"]);
       expect(mockDb.execute).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE games SET installed = 0"),
         [gameId],

@@ -143,6 +143,10 @@ export class GameSyncService {
 
           allFetchedGames.push(...games);
           await info(`${this.getStoreName(store)}: ${games.length} games`);
+        } else {
+          await warn(
+            `${this.getStoreName(store)}: 0 games returned (not authenticated or fetch failed)`,
+          );
         }
 
         await this.emitProgress({
@@ -209,11 +213,14 @@ export class GameSyncService {
       }
       case "gog": {
         const isAuth = await this.gogdl.isAuthenticated();
+        await info(`GOG: isAuthenticated=${isAuth}`);
         if (!isAuth) {
-          await debug("GOG: not authenticated, skipping");
+          await warn("GOG: not authenticated, skipping");
           return [];
         }
-        return await this.gogdl.listGames();
+        const gogGames = await this.gogdl.listGames();
+        await info(`GOG: listGames returned ${gogGames.length} games`);
+        return gogGames;
       }
       case "amazon": {
         const isAuth = await this.nile.isAuthenticated();

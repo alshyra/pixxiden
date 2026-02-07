@@ -25,20 +25,21 @@
     "sql:allow-execute",
     "sql:allow-select",
     "log:default",
+    "dialog:default",
     {
       "identifier": "fs:allow-exists",
       "allow": [
         {
-          "path": "$APPCONFIG/*"
+          "path": "$APPCONFIG/**"
         },
         {
-          "path": "$APPDATA/*"
+          "path": "$APPDATA/**"
         },
         {
-          "path": "$HOME/.config/*"
+          "path": "$HOME/.config/**"
         },
         {
-          "path": "$HOME/.local/*"
+          "path": "$HOME/.local/**"
         }
       ]
     },
@@ -46,10 +47,10 @@
       "identifier": "fs:allow-app-read",
       "allow": [
         {
-          "path": "$APPCONFIG/*"
+          "path": "$APPCONFIG/**"
         },
         {
-          "path": "$APPDATA/*"
+          "path": "$APPDATA/**"
         }
       ]
     },
