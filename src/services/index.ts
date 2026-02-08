@@ -56,7 +56,7 @@ export type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "./
 // ============================================================================
 import { InstallationService } from "./installation";
 export { InstallationService } from "./installation";
-export type { InstallProgress } from "./installation";
+export type { InstallProgress, GameSizeInfo } from "./installation";
 
 // ============================================================================
 // Orchestrator (point d'entrée principal pour la lib)

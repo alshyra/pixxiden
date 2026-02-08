@@ -26,13 +26,11 @@ const routes = [
     name: "game-overlay",
     component: GameOverlayWindow,
   },
-  // TODO implement the dowloads view later
-  // should be accessible from notif or settings
-  // {
-  //   path: '/downloads',
-  //   name: 'downloads',
-  //   component: () => import('@/views/DownloadsView.vue'),
-  // },
+  {
+    path: '/downloads',
+    name: 'downloads',
+    component: () => import('@/views/DownloadsView.vue'),
+  },
   {
     path: "/settings/",
     component: SettingsView,

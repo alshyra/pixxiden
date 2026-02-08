@@ -10,12 +10,12 @@ import { LegendaryInstallation } from "./LegendaryInstallation";
 import { GogdlInstallation } from "./GogdlInstallation";
 import { NileInstallation } from "./NileInstallation";
 import { SteamInstallation } from "./SteamInstallation";
-import type { InstallProgress, InstallOptions } from "./GameInstallationService";
+import type { InstallProgress, InstallOptions, GameSizeInfo } from "./GameInstallationService";
 
-export type { InstallProgress, InstallOptions } from "./GameInstallationService";
+export type { InstallProgress, InstallOptions, GameSizeInfo } from "./GameInstallationService";
 
 export class InstallationService {
-  private activeInstalls = new Map<string, AbortController>();
+  private activeInstalls = new Set<string>();
   private legendary: LegendaryInstallation;
   private gogdl: GogdlInstallation;
   private nile: NileInstallation;
@@ -32,8 +32,7 @@ export class InstallationService {
    * Install a game from a specific store
    */
   async installGame(gameId: string, store: StoreType, options: InstallOptions = {}): Promise<void> {
-    const abortController = new AbortController();
-    this.activeInstalls.set(gameId, abortController);
+    this.activeInstalls.add(gameId);
 
     try {
       // Emit initial status
@@ -140,13 +139,29 @@ export class InstallationService {
   }
 
   /**
-   * Cancel an ongoing installation
+   * Cancel an ongoing installation by killing the child process
    */
   async cancelInstallation(gameId: string): Promise<void> {
-    const controller = this.activeInstalls.get(gameId);
-    if (controller) {
-      controller.abort();
-      this.activeInstalls.delete(gameId);
+    // Delegate to all sub-services — only the one with the active child will kill
+    await Promise.all([
+      this.legendary.cancel(gameId),
+      this.gogdl.cancel(gameId),
+      this.nile.cancel(gameId),
+      this.steam.cancel(gameId),
+    ]);
+    this.activeInstalls.delete(gameId);
+  }
+
+  /**
+   * Get game size info (disk + download) from the store CLI
+   */
+  async getGameInfo(gameId: string, store: StoreType): Promise<GameSizeInfo | null> {
+    const storeId = this.extractStoreId(gameId);
+    switch (store) {
+      case "epic":
+        return this.legendary.getGameInfo(storeId);
+      default:
+        return null;
     }
   }
 

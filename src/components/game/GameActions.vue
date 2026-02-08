@@ -2,11 +2,11 @@
   <div class="space-y-2">
     <!-- Install Button -->
     <Button
-      v-if="!game?.installation.installed && !isDownloading"
+      v-if="!game?.installation.installed && !isGameDownloading"
       variant="primary"
       size="lg"
       class="w-full"
-      @click="showInstallModal = true"
+      @click="openInstall"
     >
       <template #icon>
         <Download class="w-5 h-5" />
@@ -14,10 +14,10 @@
       Installer
     </Button>
 
-    <!-- Download Progress -->
-    <div v-if="isDownloading" class="space-y-3">
+    <!-- Download Progress (from downloads store) -->
+    <div v-if="isGameDownloading && currentDownload" class="space-y-3">
       <ProgressBar
-        :value="downloadProgress ?? 0"
+        :value="currentDownload.progress"
         label="Téléchargement..."
         variant="gradient"
         :glow="true"
@@ -25,11 +25,11 @@
         show-value
       >
         <template #subtitle>
-          <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
-            {{ downloadSpeed }}
+          <span v-if="currentDownload.downloadSpeed" class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
+            {{ currentDownload.downloadSpeed }}
           </span>
           <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
-            {{ downloadedSize }} / {{ totalSize }}
+            {{ currentDownload.downloadedSize || '0 MB' }} / {{ currentDownload.totalSize }}
           </span>
         </template>
       </ProgressBar>
@@ -57,45 +57,40 @@
       Forcer la fermeture
     </Button>
 
-    <!-- Install Modal -->
-    <InstallModal
-      v-if="game"
-      v-model="showInstallModal"
-      :game="game"
-      @install-started="handleInstallStarted"
-    />
+    <!-- Install Modal (autonomous — no props, no events) -->
+    <InstallModal />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed } from "vue";
 import { Button, ProgressBar } from "@/components/ui";
 import { Download, Play, Square } from "lucide-vue-next";
 import { useCurrentGame } from "@/composables/useCurrentGame";
+import { useDownloadsStore } from "@/stores/downloads";
 import InstallModal from "./InstallModal.vue";
 
 /**
  * GameActions - Smart Component autonome
- * Gère les actions du jeu (Install/Play/Stop) via le composable useCurrentGame
- * Ne reçoit aucune prop, récupère tout depuis le store
+ * Gère les actions du jeu (Install/Play/Stop) via useCurrentGame + useDownloadsStore
+ * Zéro props, zéro events — tout passe par les stores
  */
 
-const {
-  game,
-  isDownloading,
-  downloadProgress,
-  downloadedSize,
-  downloadSpeed,
-  totalSize,
-  isLaunching,
-  playGame,
-  forceCloseGame,
-} = useCurrentGame();
+const { game, isLaunching, playGame, forceCloseGame } = useCurrentGame();
+const downloadsStore = useDownloadsStore();
 
-const showInstallModal = ref(false);
+const currentDownload = computed(() => {
+  if (!game.value) return undefined;
+  return downloadsStore.getDownload(game.value.id);
+});
 
-function handleInstallStarted() {
-  // Close modal immediately — actual installation is handled by InstallModal via InstallationService
-  showInstallModal.value = false;
+const isGameDownloading = computed(() => {
+  if (!game.value) return false;
+  return downloadsStore.isDownloading(game.value.id);
+});
+
+function openInstall() {
+  if (!game.value) return;
+  downloadsStore.openInstallModal(game.value.id);
 }
 </script>

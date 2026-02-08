@@ -4,5 +4,5 @@
 
 export { DatabaseService, getDatabase } from "./DatabaseService";
 export { SidecarService, getSidecar } from "./SidecarService";
-export type { SidecarResult, SidecarName } from "./SidecarService";
+export type { SidecarResult, SidecarName, StreamingHandle } from "./SidecarService";
 export { SCHEMA, MIGRATIONS } from "./schema";

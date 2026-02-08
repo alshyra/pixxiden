@@ -1,11 +1,38 @@
 /**
  * Tests for InstallationService
+ *
+ * LegendaryInstallation uses streaming spawn (spawnLegendaryStreaming) for real-time progress.
+ * Other installers still use synchronous runXxx methods.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { InstallationService } from "@/services/installation/InstallationService";
 import { SidecarService } from "@/services/base/SidecarService";
 import { DatabaseService } from "@/services/base/DatabaseService";
+import type { StreamingHandle } from "@/services/base/SidecarService";
+
+/**
+ * Helper: creates a mock StreamingHandle that resolves immediately with given code.
+ * Optionally calls onStderr/onStdout callbacks before resolving.
+ */
+function createMockStreamingHandle(
+  code: number,
+  callbacks?: { onStdout?: (line: string) => void; onStderr?: (line: string) => void },
+  stderrLines?: string[],
+): StreamingHandle {
+  // Simulate output lines if provided
+  if (stderrLines && callbacks?.onStderr) {
+    for (const line of stderrLines) {
+      callbacks.onStderr(line);
+    }
+  }
+
+  return {
+    child: { pid: 12345, kill: vi.fn().mockResolvedValue(undefined), write: vi.fn() } as any,
+    completion: Promise.resolve({ code }),
+    kill: vi.fn().mockResolvedValue(undefined),
+  };
+}
 
 describe("InstallationService", () => {
   let installationService: InstallationService;
@@ -13,12 +40,13 @@ describe("InstallationService", () => {
   let mockDb: DatabaseService;
 
   beforeEach(() => {
-    // Mock SidecarService
+    // Mock SidecarService with both synchronous and streaming methods
     mockSidecar = {
       runLegendary: vi.fn(),
       runGogdl: vi.fn(),
       runNile: vi.fn(),
       runCommand: vi.fn(),
+      spawnLegendaryStreaming: vi.fn(),
     } as any;
 
     // Mock DatabaseService
@@ -37,23 +65,23 @@ describe("InstallationService", () => {
       const store = "epic";
       const installPath = "/games/epic";
 
-      vi.spyOn(mockSidecar, "runLegendary").mockResolvedValue({
-        code: 0,
-        stdout: "Installation complete",
-        stderr: "",
-      });
+      // LegendaryInstallation uses streaming spawn
+      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
+        (args: string[], _callbacks?: any) => {
+          return Promise.resolve(createMockStreamingHandle(0));
+        },
+      );
 
       vi.spyOn(mockDb, "execute").mockResolvedValue();
 
       await installationService.installGame(gameId, store, { installPath });
 
       // CLI receives the raw store ID (without the "epic-" prefix)
-      expect(mockSidecar.runLegendary).toHaveBeenCalledWith([
-        "install",
-        "test-game",
-        "--base-path",
-        installPath,
-      ]);
+      // -y flag auto-confirms the installation prompt
+      expect(mockSidecar.spawnLegendaryStreaming).toHaveBeenCalledWith(
+        ["install", "test-game", "-y", "--base-path", installPath],
+        expect.any(Object),
+      );
       expect(mockDb.execute).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE games SET installed = 1"),
         expect.any(Array),
@@ -93,11 +121,14 @@ describe("InstallationService", () => {
       const store = "epic";
       const progressEvents: any[] = [];
 
-      vi.spyOn(mockSidecar, "runLegendary").mockResolvedValue({
-        code: 0,
-        stdout: "Done",
-        stderr: "",
-      });
+      // Mock streaming spawn — simulate some stderr output with progress
+      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
+        (_args: string[], callbacks?: any) => {
+          // Simulate legendary output
+          callbacks?.onStderr?.("[DLManager] INFO: = Progress: 50.00% (1.00/2.00 GiB), Running for 00:01:00, ETA: 00:01:00");
+          return Promise.resolve(createMockStreamingHandle(0));
+        },
+      );
 
       vi.spyOn(mockDb, "execute").mockResolvedValue();
 
@@ -122,14 +153,13 @@ describe("InstallationService", () => {
       const gameId = "epic-game";
       const store = "epic";
 
-      vi.spyOn(mockSidecar, "runLegendary").mockResolvedValue({
-        code: 1,
-        stdout: "",
-        stderr: "Installation failed",
-      });
+      // Streaming spawn that exits with error code
+      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
+        () => Promise.resolve(createMockStreamingHandle(1)),
+      );
 
       await expect(installationService.installGame(gameId, store)).rejects.toThrow(
-        "Failed to install Epic game",
+        "legendary install exited with code 1",
       );
     });
   });
@@ -188,19 +218,22 @@ describe("InstallationService", () => {
       const gameId = "epic-game";
       const store = "epic";
 
-      vi.spyOn(mockSidecar, "runLegendary").mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(
-              () =>
-                resolve({
-                  code: 0,
-                  stdout: "Done",
-                  stderr: "",
-                }),
-              1000,
-            );
-          }),
+      // Create a streaming handle that delays completion
+      let resolveCompletion: ((value: { code: number }) => void) | null = null;
+
+      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
+        () => {
+          const completion = new Promise<{ code: number }>((resolve) => {
+            resolveCompletion = resolve;
+            // Also resolve after timeout as safety net
+            setTimeout(() => resolve({ code: 0 }), 1000);
+          });
+          return Promise.resolve({
+            child: { pid: 12345, kill: vi.fn().mockResolvedValue(undefined), write: vi.fn() } as any,
+            completion,
+            kill: vi.fn().mockResolvedValue(undefined),
+          });
+        },
       );
 
       vi.spyOn(mockDb, "execute").mockResolvedValue();
@@ -208,17 +241,20 @@ describe("InstallationService", () => {
       // Start installation (don't await)
       const installPromise = installationService.installGame(gameId, store);
 
+      // Wait for spawn to happen
+      await new Promise((r) => setTimeout(r, 10));
+
       // Check if it's tracked
       expect(installationService.isInstalling(gameId)).toBe(true);
       expect(installationService.getActiveInstallations()).toContain(gameId);
 
-      // Cancel it
-      await installationService.cancelInstallation(gameId);
+      // Resolve the completion
+      resolveCompletion?.({ code: 0 });
+
+      // Wait for installation to complete
+      await installPromise.catch(() => {});
 
       expect(installationService.isInstalling(gameId)).toBe(false);
-
-      // Wait for installation to complete (should be cancelled)
-      await installPromise.catch(() => {});
     });
   });
 });

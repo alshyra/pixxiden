@@ -3,13 +3,25 @@
  * Executes sidecars via Tauri shell plugin
  */
 
-import { Command } from "@tauri-apps/plugin-shell";
+import { Command, type Child } from "@tauri-apps/plugin-shell";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
 export interface SidecarResult {
   stdout: string;
   stderr: string;
   code: number;
+}
+
+/**
+ * Handle returned by spawnStreaming() for controlling a long-running sidecar process.
+ * - `child`: the Tauri Child process (for kill)
+ * - `completion`: resolves when the process exits
+ * - `kill()`: kills the process
+ */
+export interface StreamingHandle {
+  child: Child;
+  completion: Promise<{ code: number }>;
+  kill: () => Promise<void>;
 }
 
 export type SidecarName = "legendary" | "gogdl" | "nile" | "steam";
@@ -90,6 +102,63 @@ export class SidecarService {
    */
   async runSteam(args: string[]): Promise<SidecarResult> {
     return this.run("steam", args);
+  }
+
+  /**
+   * Spawn a sidecar with real-time stdout/stderr streaming.
+   * Use for long-running processes (installation, downloads).
+   * Unlike run(), this does NOT block until completion — it streams output line by line.
+   */
+  async spawnStreaming(
+    sidecar: SidecarName,
+    args: string[],
+    callbacks: {
+      onStdout?: (line: string) => void;
+      onStderr?: (line: string) => void;
+    } = {},
+  ): Promise<StreamingHandle> {
+    await debug(`[SidecarService] Spawning (streaming) ${sidecar}: ${JSON.stringify(args)}`);
+
+    const command = Command.sidecar(`binaries/${sidecar}`, args);
+
+    command.stdout.on("data", (line) => {
+      callbacks.onStdout?.(line);
+    });
+
+    command.stderr.on("data", (line) => {
+      callbacks.onStderr?.(line);
+    });
+
+    const completion = new Promise<{ code: number }>((resolve, reject) => {
+      command.on("close", (data) => {
+        resolve({ code: data.code ?? 0 });
+      });
+      command.on("error", (error) => {
+        reject(new Error(error));
+      });
+    });
+
+    const child = await command.spawn();
+    await debug(`[SidecarService] Spawned ${sidecar} PID=${child.pid}`);
+
+    return {
+      child,
+      completion,
+      kill: () => child.kill(),
+    };
+  }
+
+  /**
+   * Spawn legendary CLI with real-time streaming (for install/download)
+   */
+  async spawnLegendaryStreaming(
+    args: string[],
+    callbacks: {
+      onStdout?: (line: string) => void;
+      onStderr?: (line: string) => void;
+    } = {},
+  ): Promise<StreamingHandle> {
+    return this.spawnStreaming("legendary", args, callbacks);
   }
 
   /**
