@@ -42,7 +42,9 @@ npm run tauri:build
 **Arch:**
 `sudo pacman -S webkit2gtk-4.1 gtk3 libayatana-appindicator librsvg base-devel`
 
-If the build fails, refresh the cached `linuxdeploy`:
+If the build fails with linuxdeploy errors related to `.relr.dyn` sections, this is due to modern system libraries not being recognized by linuxdeploy's old `strip` tool. The build scripts already include `NO_STRIP=1` to work around this.
+
+If the build fails for other reasons, you can try refreshing the cached `linuxdeploy`:
 
 ```bash
 rm ~/.cache/tauri/linuxdeploy-x86_64.AppImage
