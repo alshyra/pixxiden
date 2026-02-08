@@ -2,10 +2,10 @@ import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useLibraryStore } from "@/stores/library";
 import type { Game } from "@/types";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { error as logError } from "@tauri-apps/plugin-log";
-import { getInstallationService } from "@/services";
+import { getInstallationService, getGameLaunchService } from "@/services";
 
 type UnlistenFn = () => void;
 
@@ -173,7 +173,8 @@ export function useCurrentGame() {
     if (!game.value) return;
 
     try {
-      await invoke("force_close_game", { gameId: game.value.id });
+      const launchService = getGameLaunchService();
+      await launchService.forceClose(game.value.id);
     } catch (error) {
       logError(`Failed to force close game: ${error}`);
     } finally {

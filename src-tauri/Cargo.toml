@@ -62,6 +62,10 @@ dotenvy = "0.15"
 # SHA256 for cache validation
 sha2 = "0.10"
 
+# Tar/Gz extraction (for Proton-GE runners)
+tar = "0.4"
+flate2 = "1.0"
+
 # Base64 encoding (for IGDB)
 base64 = "0.22"
 

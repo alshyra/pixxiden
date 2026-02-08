@@ -16,6 +16,8 @@ import { GameSyncService, type SyncOptions, type SyncResult } from "@/lib/sync";
 import { DatabaseService, SidecarService } from "./base";
 import { LegendaryService, GogdlService, NileService } from "./stores";
 import type { StoreCapabilities } from "./stores";
+import { ProtonService } from "./runners";
+import { warn } from "@tauri-apps/plugin-log";
 
 export type { SyncResult, SyncOptions };
 
@@ -202,13 +204,46 @@ export class GameLibraryOrchestrator {
   }
 
   private async buildLaunchCommand(game: Game): Promise<string[]> {
+    // Get Proton-GE configuration for Wine/Proton args
+    const protonService = ProtonService.getInstance();
+    const protonPath = await protonService.getProtonPath();
+    let prefixesDir: string | null = null;
+
+    if (protonPath) {
+      try {
+        prefixesDir = await protonService.getPrefixesDir();
+      } catch {
+        await warn("[Orchestrator] Could not resolve prefixes directory");
+      }
+    }
+
     switch (game.storeData.store) {
-      case "epic":
-        return ["legendary", "launch", game.storeData.storeId];
+      case "epic": {
+        const args = ["legendary", "launch", game.storeData.storeId];
+        if (protonPath) {
+          args.push("--wine", protonPath);
+          if (prefixesDir) {
+            args.push("--wine-prefix", `${prefixesDir}/epic/${game.storeData.storeId}`);
+          }
+        }
+        return args;
+      }
       case "gog": {
         // gogdl requires --auth-config-path before the subcommand
         const configPath = await this.gogdl.getAuthConfigPathPublic();
-        return ["gogdl", "--auth-config-path", configPath, "launch", game.storeData.storeId];
+        const args = ["gogdl", "--auth-config-path", configPath, "launch"];
+        if (protonPath) {
+          args.push("--platform", "windows");
+          args.push("--wine", protonPath);
+          if (prefixesDir) {
+            args.push("--wine-prefix", `${prefixesDir}/gog/${game.storeData.storeId}`);
+          }
+        }
+        if (game.installation.installPath) {
+          args.push(game.installation.installPath);
+        }
+        args.push(game.storeData.storeId);
+        return args;
       }
       case "amazon":
         return ["nile", "launch", game.storeData.storeId];

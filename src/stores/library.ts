@@ -1,11 +1,11 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { invoke } from "@tauri-apps/api/core";
 import { debug, info, error as logError } from "@tauri-apps/plugin-log";
 import type { Game } from "@/types";
 import {
   getOrchestrator,
   getInstallationService,
+  getGameLaunchService,
   initializeServices,
   type SyncResult,
 } from "@/services";
@@ -147,21 +147,9 @@ export const useLibraryStore = defineStore("library", () => {
       const orchestrator = getOrchestrator();
       const { game, launchCommand, env } = await orchestrator.prepareGameLaunch(gameId);
 
-      // Launch via sidecar — no Rust invoke needed (JS-first)
-      // The orchestrator already builds the correct CLI command
-      await invoke("launch_game_v2", {
-        game: {
-          id: game.id,
-          title: game.info.title,
-          store: game.storeData.store,
-          storeId: game.storeData.storeId,
-          appName: game.storeData.storeId,
-          installPath: game.installation.installPath,
-          customExecutable: game.installation.customExecutable,
-        },
-        launchCommand,
-        env,
-      });
+      // Launch via sidecar streaming — JS-first, no Rust invoke needed
+      const launchService = getGameLaunchService();
+      await launchService.launchFromCommand(game, launchCommand, env);
 
       // Update last played locally
       const localGame = games.value.find((g) => g.id === gameId);

@@ -59,6 +59,19 @@ export { InstallationService } from "./installation";
 export type { InstallProgress, GameSizeInfo } from "./installation";
 
 // ============================================================================
+// Runners (Proton-GE)
+// ============================================================================
+import { ProtonService } from "./runners";
+export { ProtonService } from "./runners";
+export type { ProtonConfig } from "./runners";
+
+// ============================================================================
+// Launch Service (game process management)
+// ============================================================================
+import { GameLaunchService } from "./launch";
+export { GameLaunchService } from "./launch";
+
+// ============================================================================
 // Orchestrator (point d'entrée principal pour la lib)
 // ============================================================================
 import { GameLibraryOrchestrator } from "./GameLibraryOrchestrator";
@@ -108,6 +121,13 @@ export async function initializeServices(): Promise<void> {
 
   initialized = true;
   await info("[Services] Initialization complete");
+
+  // Background: Ensure Proton-GE is installed (non-blocking)
+  ProtonService.getInstance()
+    .ensureProtonInstalled()
+    .catch(async (err) => {
+      await warn(`[Services] Proton-GE auto-install failed: ${err}`);
+    });
 }
 
 /**
@@ -166,4 +186,20 @@ export function getInstallationService(): InstallationService {
     installationServiceInstance = new InstallationService(sidecar, db);
   }
   return installationServiceInstance;
+}
+
+/**
+ * Raccourci pour obtenir le service de lancement.
+ * Usage: const launch = getGameLaunchService();
+ */
+export function getGameLaunchService(): GameLaunchService {
+  return GameLaunchService.getInstance();
+}
+
+/**
+ * Raccourci pour obtenir le service Proton-GE.
+ * Usage: const proton = getProtonService();
+ */
+export function getProtonService(): ProtonService {
+  return ProtonService.getInstance();
 }
