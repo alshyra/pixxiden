@@ -125,7 +125,9 @@ describe("InstallationService", () => {
       vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
         (_args: string[], callbacks?: any) => {
           // Simulate legendary output
-          callbacks?.onStderr?.("[DLManager] INFO: = Progress: 50.00% (1.00/2.00 GiB), Running for 00:01:00, ETA: 00:01:00");
+          callbacks?.onStderr?.(
+            "[DLManager] INFO: = Progress: 50.00% (1.00/2.00 GiB), Running for 00:01:00, ETA: 00:01:00",
+          );
           return Promise.resolve(createMockStreamingHandle(0));
         },
       );
@@ -154,8 +156,8 @@ describe("InstallationService", () => {
       const store = "epic";
 
       // Streaming spawn that exits with error code
-      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
-        () => Promise.resolve(createMockStreamingHandle(1)),
+      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(() =>
+        Promise.resolve(createMockStreamingHandle(1)),
       );
 
       await expect(installationService.installGame(gameId, store)).rejects.toThrow(
@@ -221,20 +223,18 @@ describe("InstallationService", () => {
       // Create a streaming handle that delays completion
       let resolveCompletion: ((value: { code: number }) => void) | null = null;
 
-      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
-        () => {
-          const completion = new Promise<{ code: number }>((resolve) => {
-            resolveCompletion = resolve;
-            // Also resolve after timeout as safety net
-            setTimeout(() => resolve({ code: 0 }), 1000);
-          });
-          return Promise.resolve({
-            child: { pid: 12345, kill: vi.fn().mockResolvedValue(undefined), write: vi.fn() } as any,
-            completion,
-            kill: vi.fn().mockResolvedValue(undefined),
-          });
-        },
-      );
+      vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(() => {
+        const completion = new Promise<{ code: number }>((resolve) => {
+          resolveCompletion = resolve;
+          // Also resolve after timeout as safety net
+          setTimeout(() => resolve({ code: 0 }), 1000);
+        });
+        return Promise.resolve({
+          child: { pid: 12345, kill: vi.fn().mockResolvedValue(undefined), write: vi.fn() } as any,
+          completion,
+          kill: vi.fn().mockResolvedValue(undefined),
+        });
+      });
 
       vi.spyOn(mockDb, "execute").mockResolvedValue();
 

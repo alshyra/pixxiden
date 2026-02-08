@@ -1,5 +1,10 @@
 <template>
-  <Modal :model-value="isOpen" @update:model-value="onModalClose" title="Installer le jeu" size="lg">
+  <Modal
+    :model-value="isOpen"
+    @update:model-value="onModalClose"
+    title="Installer le jeu"
+    size="lg"
+  >
     <template v-if="game">
       <!-- Game Info Header -->
       <div class="flex items-center gap-4 pb-6 border-b border-white/10">
@@ -21,7 +26,9 @@
         <div class="p-4 bg-remix-bg-card/80 border border-white/8 rounded-xl space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-sm font-semibold text-white">{{ statusLabel }}</span>
-            <span v-if="currentDownload.eta" class="text-xs text-white/50">~{{ currentDownload.eta }}</span>
+            <span v-if="currentDownload.eta" class="text-xs text-white/50"
+              >~{{ currentDownload.eta }}</span
+            >
           </div>
 
           <ProgressBar
@@ -32,21 +39,30 @@
             show-value
           >
             <template #subtitle>
-              <span v-if="currentDownload.downloadSpeed" class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
+              <span
+                v-if="currentDownload.downloadSpeed"
+                class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+              >
                 {{ currentDownload.downloadSpeed }}
               </span>
               <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
-                {{ currentDownload.downloadedSize || '0 MB' }} / {{ currentDownload.totalSize }}
+                {{ currentDownload.downloadedSize || "0 MB" }} / {{ currentDownload.totalSize }}
               </span>
             </template>
           </ProgressBar>
 
-          <p v-if="currentDownload.status === 'error'" class="flex items-center gap-2 text-xs text-remix-error">
+          <p
+            v-if="currentDownload.status === 'error'"
+            class="flex items-center gap-2 text-xs text-remix-error"
+          >
             <AlertTriangle class="w-4 h-4" />
             {{ currentDownload.error }}
           </p>
 
-          <p v-if="currentDownload.status === 'completed'" class="flex items-center gap-2 text-xs text-remix-success">
+          <p
+            v-if="currentDownload.status === 'completed'"
+            class="flex items-center gap-2 text-xs text-remix-success"
+          >
             ✅ Installation terminée avec succès
           </p>
         </div>
@@ -61,14 +77,21 @@
               <Terminal class="w-3.5 h-3.5" />
               Sortie de la commande ({{ currentDownload.outputLines.length }} lignes)
             </span>
-            <ChevronDown class="w-3.5 h-3.5 transition-transform" :class="{ 'rotate-180': showOutputLog }" />
+            <ChevronDown
+              class="w-3.5 h-3.5 transition-transform"
+              :class="{ 'rotate-180': showOutputLog }"
+            />
           </button>
           <div
             v-if="showOutputLog"
             ref="outputLogRef"
             class="max-h-48 overflow-y-auto bg-black/60 px-4 py-2 font-mono text-[11px] leading-relaxed text-green-400/80 scroll-smooth"
           >
-            <div v-for="(line, idx) in currentDownload.outputLines" :key="idx" class="whitespace-pre-wrap break-all">
+            <div
+              v-for="(line, idx) in currentDownload.outputLines"
+              :key="idx"
+              class="whitespace-pre-wrap break-all"
+            >
               {{ line }}
             </div>
             <div v-if="currentDownload.outputLines.length === 0" class="text-white/30 italic">
@@ -82,7 +105,9 @@
       <template v-if="!currentDownload">
         <!-- Installation Path -->
         <div class="mt-6">
-          <label class="block text-sm font-semibold text-white mb-2">📁 Dossier d'installation</label>
+          <label class="block text-sm font-semibold text-white mb-2"
+            >📁 Dossier d'installation</label
+          >
           <div class="flex gap-2">
             <input
               v-model="installPath"
@@ -99,7 +124,9 @@
         <div class="mt-6 p-4 bg-remix-bg-card/80 border border-white/8 rounded-xl">
           <div class="flex justify-between items-center mb-3">
             <span class="text-sm text-white/70">Taille du jeu</span>
-            <span v-if="loadingSizeInfo" class="text-sm text-white/40 italic animate-pulse">Chargement...</span>
+            <span v-if="loadingSizeInfo" class="text-sm text-white/40 italic animate-pulse"
+              >Chargement...</span
+            >
             <span v-else class="text-sm font-bold text-white">{{ formatSize(gameSize) }}</span>
           </div>
 
@@ -132,7 +159,9 @@
 
         <!-- Wine/Proton Options (Windows games only) -->
         <div v-if="needsWine" class="mt-6">
-          <label class="block text-sm font-semibold text-white mb-2">🍷 Couche de compatibilité</label>
+          <label class="block text-sm font-semibold text-white mb-2"
+            >🍷 Couche de compatibilité</label
+          >
           <Select
             v-model="selectedRunner"
             :options="runnerOptions"
@@ -168,7 +197,7 @@
           v-if="!currentDownload"
           variant="primary"
           @click="confirmInstall"
-          :disabled="(gameSize > 0 && !hasEnoughSpace)"
+          :disabled="gameSize > 0 && !hasEnoughSpace"
           class="flex-1"
         >
           <template #icon>
@@ -178,7 +207,11 @@
         </Button>
 
         <Button
-          v-if="currentDownload && currentDownload.status !== 'completed' && currentDownload.status !== 'error'"
+          v-if="
+            currentDownload &&
+            currentDownload.status !== 'completed' &&
+            currentDownload.status !== 'error'
+          "
           variant="danger"
           @click="cancelCurrentDownload"
           class="flex-1"
@@ -332,10 +365,7 @@ async function loadGameInfo() {
   // Try to fetch accurate sizes from store CLI (e.g. legendary info)
   loadingSizeInfo.value = true;
   try {
-    const sizeInfo = await downloadsStore.fetchGameInfo(
-      game.value.id,
-      game.value.storeData.store,
-    );
+    const sizeInfo = await downloadsStore.fetchGameInfo(game.value.id, game.value.storeData.store);
     if (sizeInfo) {
       gameSize.value = parseSizeToBytes(sizeInfo.diskSize);
       // Update available space after knowing game size
@@ -379,9 +409,10 @@ async function confirmInstall() {
   if (!game.value) return;
   if (gameSize.value > 0 && !hasEnoughSpace.value) return;
 
-  const totalSizeStr = gameSize.value > 0
-    ? formatSize(gameSize.value)
-    : (game.value.installation.installSize || "Inconnu");
+  const totalSizeStr =
+    gameSize.value > 0
+      ? formatSize(gameSize.value)
+      : game.value.installation.installSize || "Inconnu";
 
   // Auto-open the output log to show progress
   showOutputLog.value = true;

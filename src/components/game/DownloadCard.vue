@@ -18,10 +18,16 @@
           show-value
         >
           <template #subtitle>
-            <span v-if="download.downloadSpeed" class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
+            <span
+              v-if="download.downloadSpeed"
+              class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+            >
               {{ download.downloadSpeed }}
             </span>
-            <span v-if="download.eta" class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
+            <span
+              v-if="download.eta"
+              class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+            >
               ~{{ download.eta }}
             </span>
           </template>
@@ -37,7 +43,7 @@
         ✅ Installé
       </p>
       <p v-if="download.status === 'error'" class="text-xs text-remix-error mt-1 truncate">
-        ❌ {{ download.error || 'Erreur inconnue' }}
+        ❌ {{ download.error || "Erreur inconnue" }}
       </p>
     </div>
 
@@ -84,10 +90,11 @@ const emit = defineEmits<{
   dismiss: [];
 }>();
 
-const isActive = computed(() =>
-  props.download.status === "queued" ||
-  props.download.status === "downloading" ||
-  props.download.status === "installing"
+const isActive = computed(
+  () =>
+    props.download.status === "queued" ||
+    props.download.status === "downloading" ||
+    props.download.status === "installing",
 );
 
 const lastOutputLine = computed(() => {

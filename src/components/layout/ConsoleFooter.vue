@@ -43,7 +43,7 @@ const { buttons, controllerType, isConnected } = useFooterControls();
 const downloadsStore = useDownloadsStore();
 const { hasActiveDownloads, totalActiveCount } = storeToRefs(downloadsStore);
 
-const statusText = computed(() => isConnected.value ? "Connecté" : "Déconnecté");
+const statusText = computed(() => (isConnected.value ? "Connecté" : "Déconnecté"));
 
 const controllerLabel = computed(() => {
   switch (controllerType.value) {

@@ -200,7 +200,10 @@ export const useDownloadsStore = defineStore("downloads", () => {
    */
   function isDownloading(gameId: string): boolean {
     const item = downloads.value.get(gameId);
-    return item !== undefined && (item.status === "downloading" || item.status === "queued" || item.status === "installing");
+    return (
+      item !== undefined &&
+      (item.status === "downloading" || item.status === "queued" || item.status === "installing")
+    );
   }
 
   /**

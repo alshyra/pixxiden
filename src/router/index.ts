@@ -27,18 +27,18 @@ const routes = [
     component: GameOverlayWindow,
   },
   {
-    path: '/downloads',
-    name: 'downloads',
-    component: () => import('@/views/DownloadsView.vue'),
+    path: "/downloads",
+    name: "downloads",
+    component: () => import("@/views/DownloadsView.vue"),
   },
   {
     path: "/settings/",
     component: SettingsView,
     children: [
       {
-        path:'',
+        path: "",
         name: "settings",
-        redirect: '/settings/system',
+        redirect: "/settings/system",
       },
       {
         path: "system",

@@ -25,11 +25,14 @@
         show-value
       >
         <template #subtitle>
-          <span v-if="currentDownload.downloadSpeed" class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
+          <span
+            v-if="currentDownload.downloadSpeed"
+            class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+          >
             {{ currentDownload.downloadSpeed }}
           </span>
           <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
-            {{ currentDownload.downloadedSize || '0 MB' }} / {{ currentDownload.totalSize }}
+            {{ currentDownload.downloadedSize || "0 MB" }} / {{ currentDownload.totalSize }}
           </span>
         </template>
       </ProgressBar>

@@ -10,13 +10,18 @@
           Retour
         </Button>
         <h1 class="text-2xl font-bold text-white">Téléchargements</h1>
-        <span v-if="downloadsStore.hasActiveDownloads" class="px-2 py-0.5 text-xs font-bold bg-remix-accent/20 text-remix-accent rounded-full">
+        <span
+          v-if="downloadsStore.hasActiveDownloads"
+          class="px-2 py-0.5 text-xs font-bold bg-remix-accent/20 text-remix-accent rounded-full"
+        >
           {{ downloadsStore.totalActiveCount }} en cours
         </span>
       </div>
 
       <Button
-        v-if="downloadsStore.completedDownloads.length > 0 || downloadsStore.failedDownloads.length > 0"
+        v-if="
+          downloadsStore.completedDownloads.length > 0 || downloadsStore.failedDownloads.length > 0
+        "
         variant="ghost"
         @click="downloadsStore.clearCompleted()"
       >
@@ -73,7 +78,11 @@
 
       <!-- Empty State -->
       <div
-        v-if="!downloadsStore.hasActiveDownloads && downloadsStore.completedDownloads.length === 0 && downloadsStore.failedDownloads.length === 0"
+        v-if="
+          !downloadsStore.hasActiveDownloads &&
+          downloadsStore.completedDownloads.length === 0 &&
+          downloadsStore.failedDownloads.length === 0
+        "
         class="flex flex-col items-center justify-center h-full text-center"
       >
         <DownloadCloud class="w-20 h-20 text-white/20 mb-4" />
