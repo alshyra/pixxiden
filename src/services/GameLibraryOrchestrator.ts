@@ -18,6 +18,7 @@ import { LegendaryService, GogdlService, NileService } from "./stores";
 import type { StoreCapabilities } from "./stores";
 import { ProtonService, type ProtonConfig } from "./runners";
 import { warn } from "@tauri-apps/plugin-log";
+import { mkdir } from "@tauri-apps/plugin-fs";
 
 export type { SyncResult, SyncOptions };
 
@@ -202,6 +203,14 @@ export class GameLibraryOrchestrator {
     const protonService = ProtonService.getInstance();
     const protonConfig = await protonService.ensureProtonInstalled();
 
+    // Check 32-bit prerequisites for Proton-based launches (Epic, GOG)
+    if (protonConfig && (game.storeData.store === "epic" || game.storeData.store === "gog")) {
+      const prereqs = await protonService.checkSystemPrerequisites();
+      if (!prereqs.ok) {
+        throw new Error(prereqs.instructions);
+      }
+    }
+
     return {
       game,
       launchCommand: await this.buildLaunchCommand(game, protonConfig),
@@ -267,6 +276,9 @@ export class GameLibraryOrchestrator {
         const prefixesDir = await protonService.getPrefixesDir();
         const compatDataPath = `${prefixesDir}/${game.storeData.store}/${game.storeData.storeId}`;
 
+        // Ensure the per-game prefix directory exists before Proton tries to lock it
+        await mkdir(compatDataPath, { recursive: true });
+
         // STEAM_COMPAT_DATA_PATH: where Proton stores the Wine prefix (pfx/ subdir)
         env.STEAM_COMPAT_DATA_PATH = compatDataPath;
 
@@ -274,7 +286,9 @@ export class GameLibraryOrchestrator {
         // for copying runtime DLLs (steamclient.dll etc). When running outside Steam,
         // we point to an empty compat dir — Proton handles missing files gracefully.
         const runnersDir = await protonService.getRunnersDir();
-        env.STEAM_COMPAT_CLIENT_INSTALL_PATH = `${runnersDir}/compat`;
+        const compatDir = `${runnersDir}/compat`;
+        await mkdir(compatDir, { recursive: true });
+        env.STEAM_COMPAT_CLIENT_INSTALL_PATH = compatDir;
       } catch {
         await warn("[Orchestrator] Could not set Proton env vars");
       }

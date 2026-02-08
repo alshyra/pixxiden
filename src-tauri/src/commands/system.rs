@@ -1,4 +1,12 @@
 use crate::system::{self, DiskInfo, SettingsConfig, SystemInfo};
+use std::path::Path;
+
+/// Check which paths exist on the filesystem (unrestricted — no Tauri FS scope).
+/// Used by ProtonService to verify 32-bit system libraries.
+#[tauri::command]
+pub fn check_paths_exist(paths: Vec<String>) -> Result<Vec<bool>, String> {
+    Ok(paths.iter().map(|p| Path::new(p).exists()).collect())
+}
 
 #[tauri::command]
 pub fn get_system_info() -> Result<SystemInfo, String> {

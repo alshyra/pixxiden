@@ -10,6 +10,7 @@ mod tests;
 
 use commands::{
     check_for_updates,
+    check_paths_exist,
     // Runners (Proton-GE) — only heavy I/O stays in Rust
     check_system_updates,
     configure_sudoers,
@@ -66,6 +67,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_gamepad_monitoring,
             stop_gamepad_monitoring,
+            check_paths_exist,
             get_system_info,
             get_disk_info,
             check_for_updates,

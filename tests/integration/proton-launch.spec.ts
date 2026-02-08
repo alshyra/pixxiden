@@ -92,6 +92,7 @@ vi.mock("@/services/runners", () => ({
   ProtonService: {
     getInstance: vi.fn(() => ({
       ensureProtonInstalled: vi.fn(async () => mockProtonConfig),
+      checkSystemPrerequisites: vi.fn(async () => ({ ok: true, missing: [], instructions: "" })),
       getPrefixesDir: vi.fn(async () => "/home/user/.local/share/pixxiden/prefixes"),
       getRunnersDir: vi.fn(async () => "/home/user/.local/share/pixxiden/runners"),
     })),
@@ -103,6 +104,14 @@ vi.mock("@tauri-apps/plugin-log", () => ({
   warn: vi.fn(),
   info: vi.fn(),
   error: vi.fn(),
+}));
+
+// Mock tauri fs (mkdir used to create prefix directories)
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  mkdir: vi.fn(async () => undefined),
+  exists: vi.fn(async () => false),
+  readDir: vi.fn(async () => []),
+  remove: vi.fn(async () => undefined),
 }));
 
 describe("Proton Launch Integration", () => {

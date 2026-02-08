@@ -163,7 +163,18 @@ export function useCurrentGame() {
 
     try {
       await libraryStore.launchGame(game.value.id);
+
+      // Monitor game process exit in background so isLaunching resets
+      const launchService = getGameLaunchService();
+      const gId = game.value.id;
+      const pollInterval = setInterval(() => {
+        if (!launchService.isRunning(gId)) {
+          clearInterval(pollInterval);
+          isLaunching.value = false;
+        }
+      }, 2000);
     } catch (error: any) {
+      isLaunching.value = false;
       launchError.value = error?.message || error?.toString() || "Unknown error";
       logError(`Failed to launch game: ${error}`);
     }

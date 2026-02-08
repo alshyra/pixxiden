@@ -38,6 +38,12 @@ export interface ProtonConfig {
   installedAt: string;
 }
 
+export interface PrerequisiteResult {
+  ok: boolean;
+  missing: string[];
+  instructions: string;
+}
+
 export class ProtonService {
   private static instance: ProtonService | null = null;
   private db: DatabaseService;
@@ -95,6 +101,88 @@ export class ProtonService {
     const path = `${runnersDir}/${version}/proton`;
     const found = await exists(path);
     return found ? path : null;
+  }
+
+  // ===== System Prerequisites Check =====
+
+  /**
+   * Check that the system has the 32-bit libraries required by Wine/Proton.
+   * These cannot be bundled in the AppImage — they must be installed system-wide.
+   *
+   * Uses a Rust invoke command (check_paths_exist) instead of @tauri-apps/plugin-fs
+   * because the FS plugin is sandboxed and cannot access system paths like /lib/.
+   *
+   * Checks multiple paths per lib to support Debian/Ubuntu (/usr/lib/i386-linux-gnu/)
+   * and Arch/Fedora (/usr/lib32/).
+   */
+  async checkSystemPrerequisites(): Promise<PrerequisiteResult> {
+    const checks = [
+      {
+        name: "32-bit linker (ld-linux.so.2)",
+        paths: [
+          "/lib/ld-linux.so.2",
+          "/lib32/ld-linux.so.2",
+          "/usr/lib32/ld-linux.so.2",
+          "/usr/lib/i386-linux-gnu/ld-linux.so.2",
+        ],
+      },
+      {
+        name: "libGL (32-bit)",
+        paths: ["/usr/lib32/libGL.so.1", "/usr/lib/i386-linux-gnu/libGL.so.1"],
+      },
+      {
+        name: "libfreetype (32-bit)",
+        paths: ["/usr/lib32/libfreetype.so.6", "/usr/lib/i386-linux-gnu/libfreetype.so.6"],
+      },
+      {
+        name: "libX11 (32-bit)",
+        paths: ["/usr/lib32/libX11.so.6", "/usr/lib/i386-linux-gnu/libX11.so.6"],
+      },
+    ];
+
+    // Collect ALL paths to check in a single batch invoke (one Rust call)
+    const allPaths = checks.flatMap((c) => c.paths);
+    let results: boolean[];
+    try {
+      results = await invoke<boolean[]>("check_paths_exist", { paths: allPaths });
+    } catch (err) {
+      await warn(`[ProtonService] check_paths_exist failed: ${err}, skipping prerequisite check`);
+      return { ok: true, missing: [], instructions: "" };
+    }
+
+    // Map results back to checks
+    const missing: string[] = [];
+    let offset = 0;
+    for (const check of checks) {
+      const pathResults = results.slice(offset, offset + check.paths.length);
+      offset += check.paths.length;
+      if (!pathResults.some((r) => r === true)) {
+        missing.push(check.name);
+      }
+    }
+
+    if (missing.length === 0) {
+      return { ok: true, missing: [], instructions: "" };
+    }
+
+    const instructions = [
+      `Missing 32-bit libraries required by Wine/Proton:`,
+      ...missing.map((m) => `  • ${m}`),
+      "",
+      "Install on Ubuntu/Debian:",
+      "  sudo dpkg --add-architecture i386",
+      "  sudo apt install libc6:i386 libgl1:i386 libfreetype6:i386 libx11-6:i386",
+      "",
+      "Install on Fedora:",
+      "  sudo dnf install glibc.i686 mesa-libGL.i686 freetype.i686 libX11.i686",
+      "",
+      "Install on Arch:",
+      "  sudo pacman -S lib32-glibc lib32-mesa lib32-freetype2 lib32-libx11",
+    ].join("\n");
+
+    await warn(`[ProtonService] ${instructions}`);
+
+    return { ok: false, missing, instructions };
   }
 
   // ===== Install Flow =====

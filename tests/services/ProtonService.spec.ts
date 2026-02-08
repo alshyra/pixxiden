@@ -392,4 +392,111 @@ describe("ProtonService", () => {
       expect(protonService.isInstalling()).toBe(false);
     });
   });
+
+  describe("checkSystemPrerequisites", () => {
+    // Path order in the batch invoke (10 paths total):
+    // [0-3] ld-linux: /lib/ld-linux.so.2, /lib32/ld-linux.so.2, /usr/lib32/ld-linux.so.2, /usr/lib/i386-linux-gnu/ld-linux.so.2
+    // [4-5] libGL:    /usr/lib32/libGL.so.1, /usr/lib/i386-linux-gnu/libGL.so.1
+    // [6-7] libfreetype: /usr/lib32/libfreetype.so.6, /usr/lib/i386-linux-gnu/libfreetype.so.6
+    // [8-9] libX11:   /usr/lib32/libX11.so.6, /usr/lib/i386-linux-gnu/libX11.so.6
+
+    it("should return ok when all 32-bit libraries are present", async () => {
+      // All paths exist → all true
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === "check_paths_exist")
+          return Promise.resolve([true, true, true, true, true, true, true, true, true, true]);
+        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
+      });
+
+      const result = await protonService.checkSystemPrerequisites();
+
+      expect(result.ok).toBe(true);
+      expect(result.missing).toEqual([]);
+      expect(result.instructions).toBe("");
+    });
+
+    it("should detect missing 32-bit linker", async () => {
+      // Linker paths all false, rest true
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === "check_paths_exist")
+          return Promise.resolve([false, false, false, false, true, true, true, true, true, true]);
+        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
+      });
+
+      const result = await protonService.checkSystemPrerequisites();
+
+      expect(result.ok).toBe(false);
+      expect(result.missing).toContain("32-bit linker (ld-linux.so.2)");
+      expect(result.instructions).toContain("sudo dpkg --add-architecture i386");
+      expect(result.instructions).toContain("sudo dnf install");
+      expect(result.instructions).toContain("sudo pacman -S");
+    });
+
+    it("should detect multiple missing libraries", async () => {
+      // Everything is missing → all false
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === "check_paths_exist")
+          return Promise.resolve([
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+          ]);
+        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
+      });
+
+      const result = await protonService.checkSystemPrerequisites();
+
+      expect(result.ok).toBe(false);
+      expect(result.missing).toHaveLength(4);
+      expect(result.missing).toContain("32-bit linker (ld-linux.so.2)");
+      expect(result.missing).toContain("libGL (32-bit)");
+      expect(result.missing).toContain("libfreetype (32-bit)");
+      expect(result.missing).toContain("libX11 (32-bit)");
+    });
+
+    it("should find library at alternative path (Debian i386-linux-gnu)", async () => {
+      // Only Debian-style paths (i386-linux-gnu) exist + /lib/ld-linux.so.2
+      // [0] /lib/ld-linux.so.2 → true
+      // [1] /lib32/ld-linux.so.2 → false
+      // [2] /usr/lib32/ld-linux.so.2 → false
+      // [3] /usr/lib/i386-linux-gnu/ld-linux.so.2 → true
+      // [4] /usr/lib32/libGL.so.1 → false
+      // [5] /usr/lib/i386-linux-gnu/libGL.so.1 → true
+      // [6] /usr/lib32/libfreetype.so.6 → false
+      // [7] /usr/lib/i386-linux-gnu/libfreetype.so.6 → true
+      // [8] /usr/lib32/libX11.so.6 → false
+      // [9] /usr/lib/i386-linux-gnu/libX11.so.6 → true
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === "check_paths_exist")
+          return Promise.resolve([true, false, false, true, false, true, false, true, false, true]);
+        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
+      });
+
+      const result = await protonService.checkSystemPrerequisites();
+
+      expect(result.ok).toBe(true);
+      expect(result.missing).toEqual([]);
+    });
+
+    it("should handle invoke failure gracefully (returns ok to not block launch)", async () => {
+      // invoke throws → method should return ok: true (graceful degradation)
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === "check_paths_exist") return Promise.reject(new Error("Permission denied"));
+        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
+      });
+
+      const result = await protonService.checkSystemPrerequisites();
+
+      // When invoke fails, we skip the check and let the game launch
+      expect(result.ok).toBe(true);
+      expect(result.missing).toEqual([]);
+    });
+  });
 });

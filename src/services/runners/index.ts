@@ -2,4 +2,4 @@
  * Runners Service Exports
  */
 
-export { ProtonService, type ProtonConfig } from "./ProtonService";
+export { ProtonService, type ProtonConfig, type PrerequisiteResult } from "./ProtonService";
