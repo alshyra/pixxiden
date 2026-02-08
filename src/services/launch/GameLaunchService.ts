@@ -40,7 +40,7 @@ export class GameLaunchService {
   async launchFromCommand(
     game: Game,
     launchCommand: string[],
-    _env: Record<string, string> = {},
+    env: Record<string, string> = {},
     callbacks: {
       onExit?: (code: number) => void;
       onError?: (error: string) => void;
@@ -63,22 +63,27 @@ export class GameLaunchService {
 
     await info(`[GameLaunch] Launching ${game.info.title} via ${sidecarName}: ${args.join(" ")}`);
 
-    const handle = await this.sidecar.spawnStreaming(sidecarName as SidecarName, args, {
-      onStdout: (line) => {
-        const trimmed = line.trim();
-        if (trimmed) {
-          callbacks.onOutput?.(trimmed);
-          debug(`[${game.info.title}] ${trimmed}`);
-        }
+    const handle = await this.sidecar.spawnStreaming(
+      sidecarName as SidecarName,
+      args,
+      {
+        onStdout: (line) => {
+          const trimmed = line.trim();
+          if (trimmed) {
+            callbacks.onOutput?.(trimmed);
+            debug(`[${game.info.title}] ${trimmed}`);
+          }
+        },
+        onStderr: (line) => {
+          const trimmed = line.trim();
+          if (trimmed) {
+            callbacks.onOutput?.(trimmed);
+            debug(`[${game.info.title}] ${trimmed}`);
+          }
+        },
       },
-      onStderr: (line) => {
-        const trimmed = line.trim();
-        if (trimmed) {
-          callbacks.onOutput?.(trimmed);
-          debug(`[${game.info.title}] ${trimmed}`);
-        }
-      },
-    });
+      { env },
+    );
 
     this.activeGames.set(game.id, handle);
 

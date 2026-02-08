@@ -22,10 +22,16 @@
 
       <!-- Game Info -->
       <div class="flex-1 min-w-0">
-        <h2 class="text-xl font-black italic tracking-tight text-white leading-tight truncate">
+        <h2
+          data-testid="game-info-title"
+          class="text-xl font-black italic tracking-tight text-white leading-tight truncate"
+        >
           {{ game?.info.title?.toUpperCase() || "N/A" }}
         </h2>
-        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+        <p
+          data-testid="game-info-developer"
+          class="text-[9px] text-gray-500 font-bold uppercase tracking-widest"
+        >
           {{ game?.info.developer || "N/A" }} • {{ releaseYear || "N/A" }}
         </p>
 

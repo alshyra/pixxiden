@@ -10,8 +10,7 @@ mod tests;
 
 use commands::{
     check_for_updates,
-    // Runners (Proton-GE)
-    check_runner_exists,
+    // Runners (Proton-GE) — only heavy I/O stays in Rust
     check_system_updates,
     configure_sudoers,
     download_file,
@@ -19,16 +18,11 @@ use commands::{
     get_disk_info,
     // System Updates
     get_distro,
-    get_installed_runners,
-    get_prefixes_dir,
-    get_runner_path,
-    get_runners_dir,
     get_settings,
     get_system_info,
     install_system_updates,
     is_sudoers_configured,
     reboot_system,
-    remove_runner,
     requires_system_reboot,
     save_settings,
     shutdown_system,
@@ -86,15 +80,9 @@ pub fn run() {
             install_system_updates,
             requires_system_reboot,
             reboot_system,
-            // Runners (Proton-GE)
+            // Runners (Proton-GE) — only heavy I/O stays in Rust
             download_file,
             extract_runner_tarball,
-            get_installed_runners,
-            check_runner_exists,
-            get_runner_path,
-            remove_runner,
-            get_runners_dir,
-            get_prefixes_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

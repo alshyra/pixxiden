@@ -1,5 +1,6 @@
 <template>
   <button
+    :data-testid="`filter-${label.toLowerCase()}`"
     class="flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all"
     :class="active ? 'text-white' : 'text-white/50 hover:text-white/80'"
   >

@@ -1,5 +1,8 @@
 <template>
-  <div class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
+  <div
+    data-testid="game-detail"
+    class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col"
+  >
     <!-- Hero Section (Smart Component) -->
     <GameHeroSection />
 
@@ -17,11 +20,14 @@
           <GameStatsGrid />
 
           <!-- Synopsis -->
-          <section class="px-2 overflow-hidden flex-shrink">
+          <section data-testid="game-synopsis" class="px-2 overflow-hidden flex-shrink">
             <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2 italic">
               Synopsis
             </h3>
-            <p class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80">
+            <p
+              data-testid="game-description"
+              class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80"
+            >
               {{ game?.info.description || "Missing description" }}
             </p>
           </section>
@@ -30,8 +36,13 @@
     </div>
 
     <!-- Launch Overlay -->
-    <LaunchOverlay :is-visible="isLaunching" :game-title="game?.info.title || 'Game'" :runner="launchRunner"
-      :error="launchError" @close="closeLaunchOverlay" />
+    <LaunchOverlay
+      :is-visible="isLaunching"
+      :game-title="game?.info.title || 'Game'"
+      :runner="launchRunner"
+      :error="launchError"
+      @close="closeLaunchOverlay"
+    />
   </div>
 </template>
 

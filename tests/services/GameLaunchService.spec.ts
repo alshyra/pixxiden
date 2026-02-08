@@ -81,7 +81,7 @@ describe("GameLaunchService", () => {
   });
 
   describe("launchFromCommand", () => {
-    it("should spawn sidecar with parsed command", async () => {
+    it("should spawn sidecar with parsed command and env", async () => {
       const { handle } = createMockStreamingHandle(0);
       mockSpawnStreaming.mockResolvedValue(handle);
 
@@ -92,21 +92,29 @@ describe("GameLaunchService", () => {
         title: "Test Game",
       });
 
-      await launchService.launchFromCommand(game, [
-        "legendary",
-        "launch",
-        "TestGame",
-        "--wine",
-        "/path/to/proton",
-      ]);
+      const env = { STEAM_COMPAT_DATA_PATH: "/path/to/compat" };
+
+      await launchService.launchFromCommand(
+        game,
+        [
+          "legendary",
+          "launch",
+          "TestGame",
+          "--no-wine",
+          "--wrapper",
+          "'/path/to/proton' waitforexitandrun",
+        ],
+        env,
+      );
 
       expect(mockSpawnStreaming).toHaveBeenCalledWith(
         "legendary",
-        ["launch", "TestGame", "--wine", "/path/to/proton"],
+        ["launch", "TestGame", "--no-wine", "--wrapper", "'/path/to/proton' waitforexitandrun"],
         expect.objectContaining({
           onStdout: expect.any(Function),
           onStderr: expect.any(Function),
         }),
+        { env },
       );
     });
 

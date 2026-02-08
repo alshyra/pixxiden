@@ -1,35 +1,65 @@
 <template>
-  <div class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600">
+  <div
+    data-testid="library-view"
+    class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600"
+  >
     <!-- Hero Banner -->
-    <HeroBanner :game="selectedGame" @open-details="openGameDetails(selectedGame)"
-      class="transition-all duration-600" />
+    <HeroBanner
+      :game="selectedGame"
+      @open-details="openGameDetails(selectedGame)"
+      class="transition-all duration-600"
+    />
 
     <!-- Games Carousel -->
-    <div class="absolute bottom-14 left-0 right-0">
-      <GameCarousel ref="carouselRef" :games="filteredGames" :selected-id="selectedGame?.id"
-        :playing-id="playingGame?.id" @select="selectGame" @open="openGameDetails" />
+    <div data-testid="game-carousel" class="absolute bottom-14 left-0 right-0">
+      <GameCarousel
+        ref="carouselRef"
+        :games="filteredGames"
+        :selected-id="selectedGame?.id"
+        :playing-id="playingGame?.id"
+        @select="selectGame"
+        @open="openGameDetails"
+      />
     </div>
 
     <!-- Top Filters -->
     <TopFilters v-model="currentFilter" />
 
     <!-- Loading Overlay -->
-    <Transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-opacity duration-300" leave-from-class="opacity-100"
-      leave-to-class="opacity-0">
-      <div v-if="loading"
-        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-        <div class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4" />
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-300"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="loading"
+        data-testid="library-loading"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm"
+      >
+        <div
+          class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4"
+        />
         <p class="text-white/60 text-sm font-medium">Chargement de votre bibliothèque...</p>
       </div>
     </Transition>
 
     <!-- Empty State -->
-    <Transition enter-active-class="transition-all duration-500" enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-300"
-      leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-      <div v-if="!loading && filteredGames.length === 0"
-        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+    <Transition
+      enter-active-class="transition-all duration-500"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition-all duration-300"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div
+        v-if="!loading && filteredGames.length === 0"
+        data-testid="library-empty"
+        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
+      >
         <div class="mb-6 opacity-50">
           <Package class="w-24 h-24 text-white/30" />
         </div>
@@ -46,8 +76,14 @@
           }}
         </p>
 
-        <Button v-if="currentFilter === 'all'" variant="primary" size="lg" :loading="syncing" :disabled="syncing"
-          @click="openSettings">
+        <Button
+          v-if="currentFilter === 'all'"
+          variant="primary"
+          size="lg"
+          :loading="syncing"
+          :disabled="syncing"
+          @click="openSettings"
+        >
           <template #icon>
             <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': syncing }" />
           </template>
@@ -57,11 +93,19 @@
     </Transition>
 
     <!-- Game Count Badge -->
-    <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 translate-y-4"
-      enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-200"
-      leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-4">
-      <div v-if="!loading && filteredGames.length > 0"
-        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md">
+    <Transition
+      enter-active-class="transition-all duration-300"
+      enter-from-class="opacity-0 translate-y-4"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-200"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-4"
+    >
+      <div
+        v-if="!loading && filteredGames.length > 0"
+        data-testid="game-count"
+        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md"
+      >
         {{ filteredGames.length }} {{ filteredGames.length === 1 ? "jeu" : "jeux" }}
       </div>
     </Transition>
@@ -86,7 +130,7 @@ import { storeToRefs } from "pinia";
 
 const router = useRouter();
 const libraryStore = useLibraryStore();
-const { games } = storeToRefs(libraryStore)
+const { games } = storeToRefs(libraryStore);
 const { on: onGamepad } = useGamepad();
 
 // Carousel ref for programmatic scroll
@@ -298,8 +342,6 @@ onGamepad("lb", () => {
 onGamepad("rb", () => {
   switchFilter("next");
 });
-
-
 </script>
 
 <style scoped>

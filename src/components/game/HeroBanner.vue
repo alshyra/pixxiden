@@ -1,10 +1,17 @@
 <template>
-  <div class="hero-banner relative w-full h-[60vh] overflow-hidden">
+  <div data-testid="hero-banner" class="hero-banner relative w-full h-[60vh] overflow-hidden">
     <!-- Background Image with Blur -->
     <div class="absolute inset-0">
-      <img v-if="heroImageSrc" :src="heroImageSrc" :alt="game?.info.title"
-        class="w-full h-full object-cover scale-110 object-[center_10%]" />
-      <div v-else class="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900" />
+      <img
+        v-if="heroImageSrc"
+        :src="heroImageSrc"
+        :alt="game?.info.title"
+        class="w-full h-full object-cover scale-110 object-[center_10%]"
+      />
+      <div
+        v-else
+        class="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900"
+      />
       <!-- Gradient Overlays -->
       <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
       <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
@@ -14,7 +21,10 @@
     <div class="relative h-full flex items-end pb-8 px-12">
       <div class="max-w-2xl space-y-4">
         <!-- Game Title -->
-        <h1 class="text-5xl md:text-6xl font-bold text-white tracking-tight">
+        <h1
+          data-testid="hero-title"
+          class="text-5xl md:text-6xl font-bold text-white tracking-tight"
+        >
           {{ game?.info.title || "Select a Game" }}
         </h1>
 

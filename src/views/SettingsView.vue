@@ -1,11 +1,20 @@
 <template>
-  <div class="fixed inset-0 flex gap-6 p-6 pb-20 z-50 bg-black/85 backdrop-blur-lg">
+  <div
+    data-testid="settings-view"
+    class="fixed inset-0 flex gap-6 p-6 pb-20 z-50 bg-black/85 backdrop-blur-lg"
+  >
     <!-- Sidebar -->
-    <SettingsSidebar :focused="focusZone === 'sidebar'" :focused-index="focusedMenuIndex" version="v0.1.0-alpha" />
+    <SettingsSidebar
+      :focused="focusZone === 'sidebar'"
+      :focused-index="focusedMenuIndex"
+      version="v0.1.0-alpha"
+    />
 
     <!-- Main Content -->
-    <main class="flex-1 bg-[#141419]/95 border border-white/10 rounded-[10px] p-8 overflow-y-auto"
-      :class="{ 'ring-2 ring-[#5e5ce6]': focusZone === 'content' }">
+    <main
+      class="flex-1 bg-[#141419]/95 border border-white/10 rounded-[10px] p-8 overflow-y-auto"
+      :class="{ 'ring-2 ring-[#5e5ce6]': focusZone === 'content' }"
+    >
       <RouterView />
     </main>
   </div>
@@ -65,14 +74,14 @@ onGamepad("back", () => {
 });
 
 onGamepad("navigate", ({ direction }: { direction: string }) => {
-  if (focusZone.value !== "sidebar") return
-  if (direction !== "up" && direction !== "down") return
+  if (focusZone.value !== "sidebar") return;
+  if (direction !== "up" && direction !== "down") return;
   navigateSidebar(direction);
   // Content navigation is handled by child components
 });
 
 onGamepad("confirm", () => {
-  if (focusZone.value !== "sidebar") return
+  if (focusZone.value !== "sidebar") return;
   const sections = [
     { id: "system", label: "Système" },
     { id: "store", label: "Magasins" },
@@ -81,12 +90,10 @@ onGamepad("confirm", () => {
   ];
   // Select the focused menu item
   const section = sections[focusedMenuIndex.value];
-  if (!section) return
+  if (!section) return;
   router.push(`/settings/${section.id}`);
   focusZone.value = "content";
 });
-
-
 </script>
 
 <style scoped>

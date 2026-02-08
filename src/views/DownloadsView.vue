@@ -1,5 +1,8 @@
 <template>
-  <div class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex flex-col p-6 pb-20">
+  <div
+    data-testid="downloads-view"
+    class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex flex-col p-6 pb-20"
+  >
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div class="flex items-center gap-4">

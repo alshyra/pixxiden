@@ -1,61 +1,81 @@
 /**
- * Page Object Model for Store Settings (Comptes tab)
- * Handles store connections (Epic, GOG, Amazon, Steam)
+ * Page Object Model — Store Settings (Comptes tab)
+ *
+ * Handles the store connection cards in Settings > Comptes.
+ * Responsible for: connect/disconnect buttons, auth status.
  */
 
+import { Selectors } from "../helpers/selectors";
+
+type StoreName = "epic" | "gog" | "amazon" | "steam";
+
 export class StoreSettingsPage {
-  /**
-   * Find a store connection button by data-testid
-   */
-  async findStoreConnectionButton(
-    storeName: "epic" | "gog" | "amazon" | "steam",
-  ): Promise<WebdriverIO.Element | null> {
-    const selector = `[data-testid="${storeName}-connect-button"]`;
+  /** Check if a store card is displayed */
+  async hasStoreCard(store: StoreName): Promise<boolean> {
+    const selectorMap: Record<StoreName, string> = {
+      epic: Selectors.storeSettings.epicCard,
+      gog: Selectors.storeSettings.gogCard,
+      amazon: Selectors.storeSettings.amazonCard,
+      steam: Selectors.storeSettings.steamCard,
+    };
     try {
-      const button = await $(selector);
-      const isDisplayed = await button.isDisplayed();
-      if (isDisplayed) {
-        return button;
-      }
-    } catch (error) {
-      console.log(`  [DEBUG] Button ${selector} not found or not displayed`);
-    }
-    return null;
-  }
-
-  /**
-   * Click on a store's connection button
-   */
-  async clickStoreConnection(storeName: "epic" | "gog" | "amazon" | "steam") {
-    const button = await this.findStoreConnectionButton(storeName);
-    expect(button).not.toBeNull();
-    if (button) {
-      await button.click();
-      await browser.pause(1500);
+      const el = await $(selectorMap[store]);
+      return el.isDisplayed();
+    } catch {
+      return false;
     }
   }
 
-  /**
-   * Check if a store is shown in the settings
-   */
-  async hasStore(storeName: string): Promise<boolean> {
-    const bodyText = await $("body").getText();
-    return bodyText.includes(storeName);
+  /** Check if a store shows "Connecté" status */
+  async isStoreConnected(store: StoreName): Promise<boolean> {
+    const selectorMap: Record<StoreName, string> = {
+      epic: Selectors.storeSettings.epicCard,
+      gog: Selectors.storeSettings.gogCard,
+      amazon: Selectors.storeSettings.amazonCard,
+      steam: Selectors.storeSettings.steamCard,
+    };
+    try {
+      const card = await $(selectorMap[store]);
+      const text = await card.getText();
+      return text.includes("Connecté") || text.includes("Détecté");
+    } catch {
+      return false;
+    }
   }
 
-  /**
-   * Check if a store shows as connected
-   */
-  async isStoreConnected(storeName: string): Promise<boolean> {
-    const bodyText = await $("body").getText();
-    return bodyText.includes("DÉCONNEXION") || bodyText.includes("CONNECTÉ");
+  /** Click the connect button for a store */
+  async clickConnect(store: Exclude<StoreName, "steam">): Promise<void> {
+    const selectorMap: Record<string, string> = {
+      epic: Selectors.storeSettings.epicConnect,
+      gog: Selectors.storeSettings.gogConnect,
+      amazon: Selectors.storeSettings.amazonConnect,
+    };
+    const el = await $(selectorMap[store]);
+    await el.waitForDisplayed({ timeout: 5000 });
+    await el.click();
+    await browser.pause(1000);
   }
 
-  /**
-   * Check if a store shows as disconnected
-   */
-  async isStoreDisconnected(storeName: string): Promise<boolean> {
-    const bodyText = await $("body").getText();
-    return bodyText.includes("NON DÉTECTÉ") || bodyText.includes("CONNEXION");
+  /** Click the disconnect button for a store */
+  async clickDisconnect(store: Exclude<StoreName, "steam">): Promise<void> {
+    const selectorMap: Record<string, string> = {
+      epic: Selectors.storeSettings.epicDisconnect,
+      gog: Selectors.storeSettings.gogDisconnect,
+      amazon: Selectors.storeSettings.amazonDisconnect,
+    };
+    const el = await $(selectorMap[store]);
+    await el.waitForDisplayed({ timeout: 5000 });
+    await el.click();
+    await browser.pause(1000);
+  }
+
+  /** Get all visible store cards count */
+  async getStoreCardCount(): Promise<number> {
+    const stores: StoreName[] = ["epic", "gog", "amazon", "steam"];
+    let count = 0;
+    for (const store of stores) {
+      if (await this.hasStoreCard(store)) count++;
+    }
+    return count;
   }
 }

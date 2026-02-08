@@ -1,19 +1,24 @@
 /**
  * ProtonService - Manages Proton-GE runner installation and configuration
  *
- * Handles:
- * - Auto-downloading latest Proton-GE from GitHub releases
- * - Extraction via Rust commands (tar.gz → ~/.local/share/pixxiden/runners/)
- * - Version tracking in SQLite settings table
- * - Providing runner paths for game launching
+ * JS-first approach:
+ * - Path resolution: @tauri-apps/api/path (homeDir)
+ * - FS operations: @tauri-apps/plugin-fs (exists, readDir, mkdir, remove)
+ * - Heavy I/O only in Rust: download_file (streaming 500MB+), extract_runner_tarball (tar+gz)
+ * - Version tracking: SQLite settings table
  *
  * Design: Silent installation on first app launch, no user prompt required.
  */
 
 import { invoke } from "@tauri-apps/api/core";
+import { homeDir } from "@tauri-apps/api/path";
 import { listen } from "@tauri-apps/api/event";
+import { exists, readDir, mkdir, remove } from "@tauri-apps/plugin-fs";
 import { info, warn, error as logError, debug } from "@tauri-apps/plugin-log";
 import { DatabaseService } from "../base/DatabaseService";
+
+const RUNNERS_SUBPATH = ".local/share/pixxiden/runners";
+const PREFIXES_SUBPATH = ".local/share/pixxiden/prefixes";
 
 const GITHUB_RELEASES_URL =
   "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
@@ -38,6 +43,7 @@ export class ProtonService {
   private db: DatabaseService;
   private installing = false;
   private installPromise: Promise<ProtonConfig | null> | null = null;
+  private homeDirCache: string | null = null;
 
   private constructor() {
     this.db = DatabaseService.getInstance();
@@ -50,9 +56,53 @@ export class ProtonService {
     return ProtonService.instance;
   }
 
+  // ===== Path Resolution (JS-first via @tauri-apps/api/path) =====
+
+  private async getHomeDir(): Promise<string> {
+    if (!this.homeDirCache) {
+      this.homeDirCache = await homeDir();
+    }
+    return this.homeDirCache;
+  }
+
+  /** Get the runners directory: ~/.local/share/pixxiden/runners */
+  async getRunnersDir(): Promise<string> {
+    const home = await this.getHomeDir();
+    return `${home}/${RUNNERS_SUBPATH}`;
+  }
+
+  /** Ensure all required directories exist */
+  private async ensureDirs(): Promise<void> {
+    const runnersDir = await this.getRunnersDir();
+    const prefixesDir = await this.getPrefixesDir();
+    await mkdir(runnersDir, { recursive: true });
+    await mkdir(prefixesDir, { recursive: true });
+    // Compat dir: fake Steam install path for Proton (handles missing DLLs gracefully)
+    await mkdir(`${runnersDir}/compat/legacycompat`, { recursive: true });
+  }
+
+  // ===== FS Operations (JS-first via @tauri-apps/plugin-fs) =====
+
+  /** Check if a runner version has its proton binary on disk */
+  async checkRunnerExists(version: string): Promise<boolean> {
+    const runnersDir = await this.getRunnersDir();
+    return exists(`${runnersDir}/${version}/proton`);
+  }
+
+  /** Get absolute path to the proton binary, or null if not on disk */
+  async getRunnerPath(version: string): Promise<string | null> {
+    const runnersDir = await this.getRunnersDir();
+    const path = `${runnersDir}/${version}/proton`;
+    const found = await exists(path);
+    return found ? path : null;
+  }
+
+  // ===== Install Flow =====
+
   /**
    * Ensure Proton-GE is installed. Downloads latest if missing.
    * Non-blocking: if already installing, returns the existing promise.
+   * Callers (like buildLaunchCommand) can await this to wait for completion.
    */
   async ensureProtonInstalled(
     onProgress?: (progress: number, status: string) => void,
@@ -81,9 +131,9 @@ export class ProtonService {
     // Check if we already have a configured version
     const config = await this.getInstalledConfig();
     if (config) {
-      // Verify the binary still exists on disk
-      const exists = await invoke<boolean>("check_runner_exists", { version: config.version });
-      if (exists) {
+      // Verify the binary still exists on disk (JS-first via plugin-fs)
+      const found = await this.checkRunnerExists(config.version);
+      if (found) {
         await debug(`[ProtonService] ${config.version} already installed at ${config.protonPath}`);
         return config;
       }
@@ -115,8 +165,9 @@ export class ProtonService {
       await info(`[ProtonService] Found ${release.tag_name}: ${tarball.name} (${sizeMB} MB)`);
       onProgress?.(5, `Téléchargement de ${release.tag_name} (${sizeMB} MB)...`);
 
-      // Get runners directory path (Rust creates it if needed)
-      const runnersDir = await invoke<string>("get_runners_dir");
+      // Ensure directories exist and get paths (JS-first)
+      await this.ensureDirs();
+      const runnersDir = await this.getRunnersDir();
       const tempPath = `${runnersDir}/${tarball.name}`;
 
       // Listen for download progress events from Rust backend
@@ -150,10 +201,8 @@ export class ProtonService {
 
       onProgress?.(95, "Vérification...");
 
-      // Verify the proton binary exists after extraction
-      const protonPath = await invoke<string | null>("get_runner_path", {
-        version: release.tag_name,
-      });
+      // Verify the proton binary exists after extraction (JS-first via plugin-fs)
+      const protonPath = await this.getRunnerPath(release.tag_name);
       if (!protonPath) {
         throw new Error(`Proton binary not found after extraction for ${release.tag_name}`);
       }
@@ -250,11 +299,10 @@ export class ProtonService {
     return config?.protonPath ?? null;
   }
 
-  /**
-   * Get the prefixes base directory (creates it if needed).
-   */
+  /** Get the prefixes directory: ~/.local/share/pixxiden/prefixes */
   async getPrefixesDir(): Promise<string> {
-    return invoke<string>("get_prefixes_dir");
+    const home = await this.getHomeDir();
+    return `${home}/${PREFIXES_SUBPATH}`;
   }
 
   /** Check if Proton is currently being installed */
@@ -262,14 +310,36 @@ export class ProtonService {
     return this.installing;
   }
 
-  /** Get list of all installed runner versions */
+  /** Get list of all installed runner versions (JS-first via plugin-fs) */
   async getInstalledVersions(): Promise<string[]> {
-    return invoke<string[]>("get_installed_runners");
+    const runnersDir = await this.getRunnersDir();
+    const dirExists = await exists(runnersDir);
+    if (!dirExists) return [];
+
+    const entries = await readDir(runnersDir);
+    const versions: string[] = [];
+
+    for (const entry of entries) {
+      if (entry.isDirectory && entry.name) {
+        const protonExists = await exists(`${runnersDir}/${entry.name}/proton`);
+        if (protonExists) {
+          versions.push(entry.name);
+        }
+      }
+    }
+
+    return versions.sort();
   }
 
-  /** Remove a specific runner version */
+  /** Remove a specific runner version (JS-first via plugin-fs) */
   async removeVersion(version: string): Promise<void> {
-    await invoke("remove_runner", { version });
+    const runnersDir = await this.getRunnersDir();
+    const dir = `${runnersDir}/${version}`;
+    const dirExists = await exists(dir);
+    if (dirExists) {
+      await remove(dir, { recursive: true });
+      await info(`[ProtonService] Removed runner: ${version}`);
+    }
 
     // If this was our configured version, clear the config
     const config = await this.getInstalledConfig();

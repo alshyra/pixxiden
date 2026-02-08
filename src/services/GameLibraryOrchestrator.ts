@@ -16,7 +16,7 @@ import { GameSyncService, type SyncOptions, type SyncResult } from "@/lib/sync";
 import { DatabaseService, SidecarService } from "./base";
 import { LegendaryService, GogdlService, NileService } from "./stores";
 import type { StoreCapabilities } from "./stores";
-import { ProtonService } from "./runners";
+import { ProtonService, type ProtonConfig } from "./runners";
 import { warn } from "@tauri-apps/plugin-log";
 
 export type { SyncResult, SyncOptions };
@@ -196,35 +196,36 @@ export class GameLibraryOrchestrator {
       throw new Error(`Game not found: ${gameId}`);
     }
 
+    // Wait for Proton installation to finish before building launch command.
+    // Fixes race condition: if Proton is still downloading, getProtonPath() returns null
+    // → no --wine flag → legendary defaults to 'wine' → FileNotFoundError
+    const protonService = ProtonService.getInstance();
+    const protonConfig = await protonService.ensureProtonInstalled();
+
     return {
       game,
-      launchCommand: await this.buildLaunchCommand(game),
-      env: this.buildLaunchEnv(game),
+      launchCommand: await this.buildLaunchCommand(game, protonConfig),
+      env: await this.buildLaunchEnv(game, protonConfig),
     };
   }
 
-  private async buildLaunchCommand(game: Game): Promise<string[]> {
-    // Get Proton-GE configuration for Wine/Proton args
-    const protonService = ProtonService.getInstance();
-    const protonPath = await protonService.getProtonPath();
-    let prefixesDir: string | null = null;
-
-    if (protonPath) {
-      try {
-        prefixesDir = await protonService.getPrefixesDir();
-      } catch {
-        await warn("[Orchestrator] Could not resolve prefixes directory");
-      }
-    }
+  private async buildLaunchCommand(
+    game: Game,
+    protonConfig: ProtonConfig | null,
+  ): Promise<string[]> {
+    const protonPath = protonConfig?.protonPath ?? null;
 
     switch (game.storeData.store) {
       case "epic": {
         const args = ["legendary", "launch", game.storeData.storeId];
         if (protonPath) {
-          args.push("--wine", protonPath);
-          if (prefixesDir) {
-            args.push("--wine-prefix", `${prefixesDir}/epic/${game.storeData.storeId}`);
-          }
+          // Proton is NOT a drop-in Wine replacement — it requires a verb
+          // (e.g. waitforexitandrun) as first argument. Using --wine would call
+          // `proton game.exe` which errors with "Proton: Need a verb."
+          // Instead: --no-wine disables legendary's wine handling, and --wrapper
+          // passes the full `proton waitforexitandrun` as a command prefix.
+          // Wine prefix is handled via STEAM_COMPAT_DATA_PATH env var (see buildLaunchEnv).
+          args.push("--no-wine", "--wrapper", `'${protonPath}' waitforexitandrun`);
         }
         return args;
       }
@@ -234,10 +235,8 @@ export class GameLibraryOrchestrator {
         const args = ["gogdl", "--auth-config-path", configPath, "launch"];
         if (protonPath) {
           args.push("--platform", "windows");
-          args.push("--wine", protonPath);
-          if (prefixesDir) {
-            args.push("--wine-prefix", `${prefixesDir}/gog/${game.storeData.storeId}`);
-          }
+          // Same Proton wrapper approach as epic — see comment above
+          args.push("--no-wine", "--wrapper", `'${protonPath}' waitforexitandrun`);
         }
         if (game.installation.installPath) {
           args.push(game.installation.installPath);
@@ -254,8 +253,34 @@ export class GameLibraryOrchestrator {
     }
   }
 
-  private buildLaunchEnv(_game: Game): Record<string, string> {
-    return {};
+  private async buildLaunchEnv(
+    game: Game,
+    protonConfig: ProtonConfig | null,
+  ): Promise<Record<string, string>> {
+    const env: Record<string, string> = {};
+
+    // Set Proton-required env vars for non-Steam games
+    if (protonConfig && (game.storeData.store === "epic" || game.storeData.store === "gog")) {
+      const protonService = ProtonService.getInstance();
+
+      try {
+        const prefixesDir = await protonService.getPrefixesDir();
+        const compatDataPath = `${prefixesDir}/${game.storeData.store}/${game.storeData.storeId}`;
+
+        // STEAM_COMPAT_DATA_PATH: where Proton stores the Wine prefix (pfx/ subdir)
+        env.STEAM_COMPAT_DATA_PATH = compatDataPath;
+
+        // STEAM_COMPAT_CLIENT_INSTALL_PATH: Proton expects a Steam install dir
+        // for copying runtime DLLs (steamclient.dll etc). When running outside Steam,
+        // we point to an empty compat dir — Proton handles missing files gracefully.
+        const runnersDir = await protonService.getRunnersDir();
+        env.STEAM_COMPAT_CLIENT_INSTALL_PATH = `${runnersDir}/compat`;
+      } catch {
+        await warn("[Orchestrator] Could not set Proton env vars");
+      }
+    }
+
+    return env;
   }
 
   // ===== Cloud Save Sync =====

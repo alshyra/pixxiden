@@ -1,22 +1,41 @@
 /**
  * Tests for ProtonService
  *
- * ProtonService manages Proton-GE runner installation via GitHub releases
- * and Rust commands for extraction.
+ * ProtonService manages Proton-GE runner installation.
+ * JS-first: path resolution via @tauri-apps/api/path, FS via @tauri-apps/plugin-fs.
+ * Only download_file + extract_runner_tarball remain as Rust invoke commands.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock @tauri-apps/api/core
+// Mock @tauri-apps/api/core (only download_file + extract_runner_tarball remain)
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+}));
+
+// Mock @tauri-apps/api/path (JS-first path resolution)
+const mockHomeDir = vi.fn();
+vi.mock("@tauri-apps/api/path", () => ({
+  homeDir: () => mockHomeDir(),
 }));
 
 // Mock @tauri-apps/api/event
 const mockListen = vi.fn();
 vi.mock("@tauri-apps/api/event", () => ({
   listen: (...args: unknown[]) => mockListen(...args),
+}));
+
+// Mock @tauri-apps/plugin-fs (JS-first FS operations)
+const mockExists = vi.fn();
+const mockReadDir = vi.fn();
+const mockMkdir = vi.fn();
+const mockRemove = vi.fn();
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  exists: (...args: unknown[]) => mockExists(...args),
+  readDir: (...args: unknown[]) => mockReadDir(...args),
+  mkdir: (...args: unknown[]) => mockMkdir(...args),
+  remove: (...args: unknown[]) => mockRemove(...args),
 }));
 
 // Mock @tauri-apps/plugin-log
@@ -53,6 +72,8 @@ describe("ProtonService", () => {
     // Reset singleton
     (ProtonService as any).instance = null;
     protonService = ProtonService.getInstance();
+    // Default: homeDir returns /home/user
+    mockHomeDir.mockResolvedValue("/home/user");
   });
 
   afterEach(() => {
@@ -110,11 +131,14 @@ describe("ProtonService", () => {
     it("should return proton path from config", async () => {
       mockDbSelect.mockResolvedValue([
         { key: "proton_ge_version", value: "GE-Proton9-15" },
-        { key: "proton_ge_path", value: "/path/to/proton" },
+        {
+          key: "proton_ge_path",
+          value: "/home/user/.local/share/pixxiden/runners/GE-Proton9-15/proton",
+        },
       ]);
 
       const path = await protonService.getProtonPath();
-      expect(path).toBe("/path/to/proton");
+      expect(path).toBe("/home/user/.local/share/pixxiden/runners/GE-Proton9-15/proton");
     });
 
     it("should return null when not installed", async () => {
@@ -128,21 +152,27 @@ describe("ProtonService", () => {
     it("should return existing config if runner exists on disk", async () => {
       mockDbSelect.mockResolvedValue([
         { key: "proton_ge_version", value: "GE-Proton9-15" },
-        { key: "proton_ge_path", value: "/path/to/proton" },
+        {
+          key: "proton_ge_path",
+          value: "/home/user/.local/share/pixxiden/runners/GE-Proton9-15/proton",
+        },
         { key: "proton_ge_installed_at", value: "2025-01-01T00:00:00.000Z" },
       ]);
-      mockInvoke.mockImplementation((cmd: string) => {
-        if (cmd === "check_runner_exists") return Promise.resolve(true);
-        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
+      // JS-first: exists check via plugin-fs instead of invoke
+      mockExists.mockImplementation((path: string) => {
+        if (path.endsWith("GE-Proton9-15/proton")) return Promise.resolve(true);
+        return Promise.resolve(false);
       });
 
       const config = await protonService.ensureProtonInstalled();
       expect(config).toEqual({
         version: "GE-Proton9-15",
-        protonPath: "/path/to/proton",
+        protonPath: "/home/user/.local/share/pixxiden/runners/GE-Proton9-15/proton",
         installedAt: "2025-01-01T00:00:00.000Z",
       });
-      expect(mockInvoke).toHaveBeenCalledWith("check_runner_exists", { version: "GE-Proton9-15" });
+      expect(mockExists).toHaveBeenCalledWith(
+        "/home/user/.local/share/pixxiden/runners/GE-Proton9-15/proton",
+      );
     });
 
     it("should download and install when no config exists", async () => {
@@ -169,17 +199,20 @@ describe("ProtonService", () => {
       const mockUnlisten = vi.fn();
       mockListen.mockResolvedValue(mockUnlisten);
 
-      // Mock invoke calls
+      // JS-first: mkdir for directory creation, exists for proton check
+      mockMkdir.mockResolvedValue(undefined);
+      mockExists.mockImplementation((path: string) => {
+        if (path.endsWith("GE-Proton9-20/proton")) return Promise.resolve(true);
+        return Promise.resolve(false);
+      });
+
+      // Only download_file + extract_runner_tarball remain as Rust invoke
       mockInvoke.mockImplementation((cmd: string) => {
         switch (cmd) {
-          case "get_runners_dir":
-            return Promise.resolve("/home/user/.local/share/pixxiden/runners");
           case "download_file":
             return Promise.resolve(undefined);
           case "extract_runner_tarball":
             return Promise.resolve(undefined);
-          case "get_runner_path":
-            return Promise.resolve("/home/user/.local/share/pixxiden/runners/GE-Proton9-20/proton");
           default:
             return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
         }
@@ -201,6 +234,14 @@ describe("ProtonService", () => {
       expect(mockInvoke).toHaveBeenCalledWith("extract_runner_tarball", {
         source: "/home/user/.local/share/pixxiden/runners/GE-Proton9-20.tar.gz",
         dest: "/home/user/.local/share/pixxiden/runners",
+      });
+
+      // Verify directories were created (JS-first via plugin-fs)
+      expect(mockMkdir).toHaveBeenCalledWith("/home/user/.local/share/pixxiden/runners", {
+        recursive: true,
+      });
+      expect(mockMkdir).toHaveBeenCalledWith("/home/user/.local/share/pixxiden/prefixes", {
+        recursive: true,
       });
 
       // Verify config was saved
@@ -242,12 +283,15 @@ describe("ProtonService", () => {
           }),
       });
       mockListen.mockResolvedValue(vi.fn());
+      mockMkdir.mockResolvedValue(undefined);
+      mockExists.mockImplementation((path: string) => {
+        if (path.endsWith("GE-Proton9-20/proton")) return Promise.resolve(true);
+        return Promise.resolve(false);
+      });
       mockInvoke.mockImplementation((cmd: string) => {
-        if (cmd === "get_runners_dir") return Promise.resolve("/tmp/runners");
         if (cmd === "download_file") return Promise.resolve(undefined);
         if (cmd === "extract_runner_tarball") return Promise.resolve(undefined);
-        if (cmd === "get_runner_path") return Promise.resolve("/tmp/runners/GE-Proton9-20/proton");
-        return Promise.resolve(undefined);
+        return Promise.reject(new Error(`Unexpected invoke: ${cmd}`));
       });
 
       // Call twice concurrently
@@ -263,49 +307,79 @@ describe("ProtonService", () => {
   });
 
   describe("getPrefixesDir", () => {
-    it("should invoke get_prefixes_dir Rust command", async () => {
-      mockInvoke.mockResolvedValue("/home/user/.local/share/pixxiden/prefixes");
+    it("should resolve prefixes directory from homeDir (JS-first)", async () => {
+      mockHomeDir.mockResolvedValue("/home/user");
       const dir = await protonService.getPrefixesDir();
       expect(dir).toBe("/home/user/.local/share/pixxiden/prefixes");
-      expect(mockInvoke).toHaveBeenCalledWith("get_prefixes_dir");
     });
   });
 
   describe("getInstalledVersions", () => {
-    it("should invoke get_installed_runners Rust command", async () => {
-      mockInvoke.mockResolvedValue(["GE-Proton9-15", "GE-Proton9-20"]);
+    it("should list runners via readDir + exists (JS-first)", async () => {
+      mockExists.mockImplementation((path: string) => {
+        if (path.endsWith("/runners")) return Promise.resolve(true);
+        if (path.endsWith("GE-Proton9-15/proton")) return Promise.resolve(true);
+        if (path.endsWith("GE-Proton9-20/proton")) return Promise.resolve(true);
+        return Promise.resolve(false);
+      });
+      mockReadDir.mockResolvedValue([
+        { name: "GE-Proton9-15", isDirectory: true, isFile: false, isSymlink: false },
+        { name: "GE-Proton9-20", isDirectory: true, isFile: false, isSymlink: false },
+        { name: "some-file.tar.gz", isDirectory: false, isFile: true, isSymlink: false },
+      ]);
+
       const versions = await protonService.getInstalledVersions();
       expect(versions).toEqual(["GE-Proton9-15", "GE-Proton9-20"]);
+    });
+
+    it("should return empty array when runners dir does not exist", async () => {
+      mockExists.mockResolvedValue(false);
+      const versions = await protonService.getInstalledVersions();
+      expect(versions).toEqual([]);
     });
   });
 
   describe("removeVersion", () => {
-    it("should invoke remove_runner and clear config if it was the active version", async () => {
-      mockInvoke.mockResolvedValue(undefined);
+    it("should remove via plugin-fs and clear config if it was the active version", async () => {
+      mockExists.mockResolvedValue(true);
+      mockRemove.mockResolvedValue(undefined);
       mockDbSelect.mockResolvedValue([
         { key: "proton_ge_version", value: "GE-Proton9-15" },
-        { key: "proton_ge_path", value: "/path/to/proton" },
+        {
+          key: "proton_ge_path",
+          value: "/home/user/.local/share/pixxiden/runners/GE-Proton9-15/proton",
+        },
       ]);
       mockDbExecute.mockResolvedValue(undefined);
 
       await protonService.removeVersion("GE-Proton9-15");
 
-      expect(mockInvoke).toHaveBeenCalledWith("remove_runner", { version: "GE-Proton9-15" });
+      expect(mockRemove).toHaveBeenCalledWith(
+        "/home/user/.local/share/pixxiden/runners/GE-Proton9-15",
+        { recursive: true },
+      );
       expect(mockDbExecute).toHaveBeenCalledWith(
         "DELETE FROM settings WHERE key LIKE 'proton_ge_%'",
       );
     });
 
     it("should not clear config if removing a different version", async () => {
-      mockInvoke.mockResolvedValue(undefined);
+      mockExists.mockResolvedValue(true);
+      mockRemove.mockResolvedValue(undefined);
       mockDbSelect.mockResolvedValue([
         { key: "proton_ge_version", value: "GE-Proton9-20" },
-        { key: "proton_ge_path", value: "/path/to/proton" },
+        {
+          key: "proton_ge_path",
+          value: "/home/user/.local/share/pixxiden/runners/GE-Proton9-20/proton",
+        },
       ]);
 
       await protonService.removeVersion("GE-Proton9-15");
 
-      expect(mockInvoke).toHaveBeenCalledWith("remove_runner", { version: "GE-Proton9-15" });
+      expect(mockRemove).toHaveBeenCalledWith(
+        "/home/user/.local/share/pixxiden/runners/GE-Proton9-15",
+        { recursive: true },
+      );
       // Should NOT delete settings since active version is different
       expect(mockDbExecute).not.toHaveBeenCalledWith(
         "DELETE FROM settings WHERE key LIKE 'proton_ge_%'",

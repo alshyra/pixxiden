@@ -1,138 +1,99 @@
 /**
  * Pixxiden E2E Test Selectors
  *
- * Centralized selectors for all UI elements tested.
- * Use data-testid attributes for reliable test selection.
+ * Centralized selectors for all UI elements.
+ * Uses data-testid where available, CSS classes / text as fallback.
  */
 
 export const Selectors = {
   // App Shell
   app: "#app",
-  mainContent: '[data-testid="main-content"]',
-  loadingSpinner: '[data-testid="loading-spinner"]',
 
-  // Navigation
-  navLibrary: '[data-testid="nav-library"]',
-  navDownloads: '[data-testid="nav-downloads"]',
-  navSettings: '[data-testid="nav-settings"]',
-
-  // Library View
+  // Library View (LibraryFullscreen.vue)
   library: {
-    container: '[data-testid="library-view"]',
-    title: '[data-testid="library-title"]',
-    gameGrid: '[data-testid="game-grid"]',
-    gameCard: '[data-testid="game-card"]',
-    gameTitle: '[data-testid="game-title"]',
-    gameStore: '[data-testid="game-store"]',
-    gameInstalled: '[data-testid="game-installed"]',
-    emptyState: '[data-testid="empty-state"]',
-    syncButton: '[data-testid="sync-button"]',
-    syncSpinner: '[data-testid="sync-spinner"]',
+    view: '[data-testid="library-view"]',
+    loading: '[data-testid="library-loading"]',
+    empty: '[data-testid="library-empty"]',
+    gameCount: '[data-testid="game-count"]',
+    carousel: '[data-testid="game-carousel"]',
   },
 
-  // Store Filters
+  // Hero Banner (HeroBanner.vue)
+  hero: {
+    banner: '[data-testid="hero-banner"]',
+    title: '[data-testid="hero-title"]',
+  },
+
+  // Top Filters (TopFilters.vue)
   filters: {
-    container: '[data-testid="store-filters"]',
-    all: '[data-testid="store-filter-all"]',
-    epic: '[data-testid="store-filter-epic"]',
-    gog: '[data-testid="store-filter-gog"]',
-    amazon: '[data-testid="store-filter-amazon"]',
+    nav: '[data-testid="top-filters"]',
+    all: '[data-testid="filter-tous"]',
+    installed: '[data-testid="filter-installés"]',
+    epic: '[data-testid="filter-epic"]',
+    gog: '[data-testid="filter-gog"]',
+    amazon: '[data-testid="filter-amazon"]',
+    steam: '[data-testid="filter-steam"]',
   },
 
-  // Sort
-  sort: {
-    select: '[data-testid="sort-select"]',
-    optionTitle: '[data-testid="sort-option-title"]',
-    optionPlaytime: '[data-testid="sort-option-playtime"]',
-    optionRecent: '[data-testid="sort-option-recent"]',
+  // Game Card (GameCard.vue)
+  gameCard: {
+    card: '[data-testid="game-card"]',
+    // dynamic: [data-id="<gameId>"]
   },
 
-  // Game Card Actions
-  gameActions: {
-    playButton: '[data-testid="play-button"]',
-    installButton: '[data-testid="install-button"]',
-    uninstallButton: '[data-testid="uninstall-button"]',
-    settingsButton: '[data-testid="game-settings-button"]',
-  },
-
-  // Game Detail View
+  // Game Detail (GameDetails.vue)
   gameDetail: {
-    container: '[data-testid="game-detail"]',
-    title: '[data-testid="game-detail-title"]',
-    description: '[data-testid="game-detail-description"]',
-    developer: '[data-testid="game-detail-developer"]',
-    publisher: '[data-testid="game-detail-publisher"]',
-    coverImage: '[data-testid="game-detail-cover"]',
-    backgroundImage: '[data-testid="game-detail-background"]',
-    playButton: '[data-testid="game-detail-play"]',
-    installButton: '[data-testid="game-detail-install"]',
-    backButton: '[data-testid="game-detail-back"]',
+    view: '[data-testid="game-detail"]',
+    synopsis: '[data-testid="game-synopsis"]',
+    description: '[data-testid="game-description"]',
   },
 
-  // Downloads View
+  // Game Info Card (GameInfoCard.vue)
+  gameInfo: {
+    title: '[data-testid="game-info-title"]',
+    developer: '[data-testid="game-info-developer"]',
+  },
+
+  // Game Actions (GameActions.vue)
+  gameActions: {
+    installButton: '[data-testid="install-button"]',
+    playButton: '[data-testid="play-button"]',
+    forceCloseButton: '[data-testid="force-close-button"]',
+  },
+
+  // Downloads View (DownloadsView.vue)
   downloads: {
-    container: '[data-testid="downloads-view"]',
-    queue: '[data-testid="download-queue"]',
-    item: '[data-testid="download-item"]',
-    progress: '[data-testid="download-progress"]',
-    cancelButton: '[data-testid="download-cancel"]',
-    emptyState: '[data-testid="downloads-empty"]',
+    view: '[data-testid="downloads-view"]',
   },
 
-  // Settings View
+  // Settings View (SettingsView.vue)
   settings: {
-    container: '[data-testid="settings-view"]',
-    sidebar: '[data-testid="settings-sidebar"]',
-    content: '[data-testid="settings-content"]',
-
-    // Settings Sections
-    sectionStores: '[data-testid="settings-section-stores"]',
-    sectionGeneral: '[data-testid="settings-section-general"]',
-    sectionAppearance: '[data-testid="settings-section-appearance"]',
-
-    // Store Settings
-    stores: {
-      legendary: {
-        container: '[data-testid="store-legendary"]',
-        status: '[data-testid="store-status-legendary"]',
-        connectButton: '[data-testid="store-connect-legendary"]',
-        disconnectButton: '[data-testid="store-disconnect-legendary"]',
-        syncButton: '[data-testid="store-sync-legendary"]',
-      },
-      gogdl: {
-        container: '[data-testid="store-gogdl"]',
-        status: '[data-testid="store-status-gogdl"]',
-        connectButton: '[data-testid="store-connect-gogdl"]',
-        disconnectButton: '[data-testid="store-disconnect-gogdl"]',
-        syncButton: '[data-testid="store-sync-gogdl"]',
-      },
-      nile: {
-        container: '[data-testid="store-nile"]',
-        status: '[data-testid="store-status-nile"]',
-        connectButton: '[data-testid="store-connect-nile"]',
-        disconnectButton: '[data-testid="store-disconnect-nile"]',
-        syncButton: '[data-testid="store-sync-nile"]',
-      },
-    },
+    view: '[data-testid="settings-view"]',
+    navSystem: '[data-testid="settings-nav-/settings/system"]',
+    navStore: '[data-testid="settings-nav-/settings/store"]',
+    navApiKeys: '[data-testid="settings-nav-/settings/api-keys"]',
+    navAdvanced: '[data-testid="settings-nav-/settings/advanced"]',
   },
 
-  // Modals
-  modal: {
-    container: '[data-testid="modal"]',
-    title: '[data-testid="modal-title"]',
-    content: '[data-testid="modal-content"]',
-    closeButton: '[data-testid="modal-close"]',
-    confirmButton: '[data-testid="modal-confirm"]',
-    cancelButton: '[data-testid="modal-cancel"]',
+  // Store Settings (StoresSettings.vue / StoreCard.vue)
+  storeSettings: {
+    epicCard: '[data-testid="store-card-epic"]',
+    gogCard: '[data-testid="store-card-gog"]',
+    amazonCard: '[data-testid="store-card-amazon"]',
+    steamCard: '[data-testid="store-card-steam"]',
+    epicConnect: '[data-testid="epic-connect-button"]',
+    gogConnect: '[data-testid="gog-connect-button"]',
+    amazonConnect: '[data-testid="amazon-connect-button"]',
+    epicDisconnect: '[data-testid="epic-disconnect-button"]',
+    gogDisconnect: '[data-testid="gog-disconnect-button"]',
+    amazonDisconnect: '[data-testid="amazon-disconnect-button"]',
   },
 
-  // Toast Notifications
-  toast: {
-    container: '[data-testid="toast"]',
-    message: '[data-testid="toast-message"]',
-    success: '[data-testid="toast-success"]',
-    error: '[data-testid="toast-error"]',
-    info: '[data-testid="toast-info"]',
+  // Console Footer (ConsoleFooter.vue)
+  footer: {
+    container: ".console-footer",
+    statusDot: ".status-dot",
+    statusText: ".status-text",
   },
 };
 

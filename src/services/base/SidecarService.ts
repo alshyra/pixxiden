@@ -116,10 +116,18 @@ export class SidecarService {
       onStdout?: (line: string) => void;
       onStderr?: (line: string) => void;
     } = {},
+    options: { env?: Record<string, string> } = {},
   ): Promise<StreamingHandle> {
     await debug(`[SidecarService] Spawning (streaming) ${sidecar}: ${JSON.stringify(args)}`);
+    if (options.env && Object.keys(options.env).length > 0) {
+      await debug(`[SidecarService] With env: ${JSON.stringify(options.env)}`);
+    }
 
-    const command = Command.sidecar(`binaries/${sidecar}`, args);
+    const command = Command.sidecar(
+      `binaries/${sidecar}`,
+      args,
+      options.env ? { env: options.env } : undefined,
+    );
 
     command.stdout.on("data", (line) => {
       callbacks.onStdout?.(line);

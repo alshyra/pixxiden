@@ -6,6 +6,7 @@
       variant="primary"
       size="lg"
       class="w-full"
+      data-testid="install-button"
       @click="openInstall"
     >
       <template #icon>
@@ -44,6 +45,7 @@
       variant="success"
       size="lg"
       class="w-full"
+      data-testid="play-button"
       @click="playGame"
     >
       <template #icon>
@@ -53,7 +55,14 @@
     </Button>
 
     <!-- Force Close Button -->
-    <Button v-if="isLaunching" variant="danger" size="lg" class="w-full" @click="forceCloseGame">
+    <Button
+      v-if="isLaunching"
+      variant="danger"
+      size="lg"
+      class="w-full"
+      data-testid="force-close-button"
+      @click="forceCloseGame"
+    >
       <template #icon>
         <Square class="w-5 h-5" />
       </template>

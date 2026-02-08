@@ -1,5 +1,6 @@
 <template>
   <nav
+    data-testid="top-filters"
     class="absolute top-0 left-0 right-0 z-50 px-6 py-4 bg-gradient-to-b from-black/80 to-transparent"
   >
     <div class="flex items-center justify-center gap-4">
