@@ -148,15 +148,20 @@ export class GameRepository {
   }
 
   /**
-   * Upsert multiple games in a transaction
+   * Upsert multiple games sequentially.
+   *
+   * Note: We intentionally do NOT wrap this in a BEGIN/COMMIT transaction.
+   * @tauri-apps/plugin-sql uses sqlx::SqlitePool under the hood, so each
+   * execute() call may land on a different pooled connection. Explicit
+   * BEGIN TRANSACTION on connection A + INSERT on connection B leaves A
+   * with an uncommitted lock → SQLITE_BUSY (code 5) for all other queries.
+   * Individual upserts with WAL mode + busy_timeout are safe and performant.
    */
   async upsertGames(games: Game[]): Promise<void> {
     if (games.length === 0) return;
-    await this.db.transaction(async () => {
-      for (const game of games) {
-        await this.upsertGame(game);
-      }
-    });
+    for (const game of games) {
+      await this.upsertGame(game);
+    }
   }
 
   /**

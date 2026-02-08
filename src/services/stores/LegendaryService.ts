@@ -107,7 +107,13 @@ export class LegendaryService extends GameStoreService {
   }
 
   /**
-   * Check if user is authenticated with Epic Games
+   * Check if user is authenticated with Epic Games.
+   *
+   * `legendary status --json` reports an account name even with expired/stale
+   * tokens (e.g. config files copied from another machine). To avoid showing
+   * "connected" when the session is actually unusable, we run a quick
+   * `legendary list --json` dry-run if an account is found and verify it
+   * doesn't fail with an auth error.
    */
   async isAuthenticated(): Promise<boolean> {
     const result = await this.sidecar.runLegendary(["status", "--json"]);
@@ -115,7 +121,21 @@ export class LegendaryService extends GameStoreService {
 
     try {
       const status = JSON.parse(result.stdout);
-      return Boolean(status.account);
+      if (!status.account) return false;
+
+      // Quick validation: try listing games — if the token is stale,
+      // legendary exits with code != 0 (e.g. "Login failed" or HTTP 401).
+      const listCheck = await this.sidecar.runLegendary(["list", "--json"]);
+      if (listCheck.code !== 0) {
+        await warn(
+          `[Epic] Account "${status.account}" found but session is invalid ` +
+            `(legendary list failed: ${listCheck.stderr.slice(0, 120)}). ` +
+            `Re-authentication required.`,
+        );
+        return false;
+      }
+
+      return true;
     } catch {
       return false;
     }

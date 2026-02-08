@@ -38,6 +38,15 @@ export class DatabaseService {
     try {
       this.db = await Database.load("sqlite:pixxiden.db");
 
+      // Enable WAL mode for better concurrent access (readers don't block writers)
+      // This is critical because @tauri-apps/plugin-sql uses a connection pool
+      // and multiple connections can cause SQLITE_BUSY without WAL.
+      await this.db.execute("PRAGMA journal_mode=WAL");
+
+      // Set busy timeout to 5 seconds — SQLite will retry automatically
+      // instead of immediately returning SQLITE_BUSY (code 5).
+      await this.db.execute("PRAGMA busy_timeout=5000");
+
       // Apply schema
       await this.db.execute(SCHEMA);
 
@@ -118,7 +127,13 @@ export class DatabaseService {
   }
 
   /**
-   * Execute operations within a transaction
+   * Execute operations within a transaction.
+   *
+   * ⚠️  DEPRECATED — DO NOT USE for multi-statement writes.
+   * @tauri-apps/plugin-sql uses sqlx::SqlitePool. Each execute() call may
+   * use a different pooled connection, so BEGIN TRANSACTION on connection A
+   * + INSERT on connection B leaves A locked → SQLITE_BUSY (code 5).
+   * Use sequential individual writes with WAL mode + busy_timeout instead.
    */
   async transaction<T>(fn: () => Promise<T>): Promise<T> {
     await this.beginTransaction();

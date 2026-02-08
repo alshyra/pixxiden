@@ -1,8 +1,9 @@
 [Desktop Entry]
 Name=Pixxiden Gaming Session
 Comment=Fullscreen game library launcher for Linux
-Exec=/usr/bin/Pixxiden-session
-TryExec=/usr/bin/Pixxiden-session
-Type=Application
-DesktopNames=Pixxiden
-X-GDM-SessionRegisters=true
+Exec=/usr/share/wayland-sessions/pixiden-session.sh
+TryExec=/usr/share/wayland-sessions/pixiden-session.sh
+Type=XSession
+DesktopNames=pixxiden
+Icon=pixxiden
+X-Session-Type=wayland

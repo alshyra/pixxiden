@@ -8,6 +8,14 @@ import { LegendaryService } from "@/services/stores/LegendaryService";
 import type { SidecarService, SidecarResult } from "@/services/base/SidecarService";
 import type { DatabaseService } from "@/services/base/DatabaseService";
 
+// Mock @tauri-apps/plugin-log
+vi.mock("@tauri-apps/plugin-log", () => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}));
+
 // Mock sidecar service
 const createMockSidecar = () =>
   ({
@@ -158,14 +166,15 @@ describe("LegendaryService", () => {
   });
 
   describe("isAuthenticated", () => {
-    it("should return true when user has account", async () => {
-      vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(
-        createResult(JSON.stringify({ account: "user@example.com" })),
-      );
+    it("should return true when user has account and list succeeds", async () => {
+      vi.mocked(mockSidecar.runLegendary)
+        .mockResolvedValueOnce(createResult(JSON.stringify({ account: "user@example.com" })))
+        .mockResolvedValueOnce(createResult("[]")); // list --json succeeds
 
       const result = await service.isAuthenticated();
       expect(result).toBe(true);
       expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["status", "--json"]);
+      expect(mockSidecar.runLegendary).toHaveBeenCalledWith(["list", "--json"]);
     });
 
     it("should return false when status fails", async () => {
@@ -186,6 +195,15 @@ describe("LegendaryService", () => {
 
     it("should return false on invalid JSON", async () => {
       vi.mocked(mockSidecar.runLegendary).mockResolvedValueOnce(createResult("not json"));
+
+      const result = await service.isAuthenticated();
+      expect(result).toBe(false);
+    });
+
+    it("should return false when account exists but session is stale/expired", async () => {
+      vi.mocked(mockSidecar.runLegendary)
+        .mockResolvedValueOnce(createResult(JSON.stringify({ account: "user@example.com" })))
+        .mockResolvedValueOnce(createResult("", 1, "Login failed: 401 Unauthorized"));
 
       const result = await service.isAuthenticated();
       expect(result).toBe(false);
