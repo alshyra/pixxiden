@@ -2,8 +2,7 @@
  * Game-related API functions
  */
 import type { Game, CacheStats } from "@/types";
-import { invoke, isMockMode } from "./core";
-import { getMockGames } from "./mock";
+import { invoke } from "./core";
 
 export interface SyncResult {
   total_synced: number;
@@ -25,12 +24,6 @@ export interface GameConfig {
 }
 
 export async function getGames(): Promise<Game[]> {
-  if (isMockMode()) {
-    const mockData = await getMockGames();
-    console.log("🎮 [MOCK MODE] Returning mock games:", mockData.length);
-    return mockData;
-  }
-
   try {
     const games = await invoke<Game[]>("get_games");
     return games;
@@ -41,13 +34,6 @@ export async function getGames(): Promise<Game[]> {
 }
 
 export async function getGame(gameId: string): Promise<Game | null> {
-  if (isMockMode()) {
-    const mockData = await getMockGames();
-    const game = mockData.find((g) => g.id === gameId) || null;
-    console.log(`🎮 [MOCK MODE] getGame(${gameId}):`, game?.info.title || "not found");
-    return game;
-  }
-
   try {
     const game = await invoke<Game | null>("get_game", { id: gameId });
     return game;
@@ -58,11 +44,6 @@ export async function getGame(gameId: string): Promise<Game | null> {
 }
 
 export async function clearGameCache(gameId: string): Promise<void> {
-  if (isMockMode()) {
-    console.log("🎮 [MOCK MODE] clearGameCache:", gameId);
-    return;
-  }
-
   try {
     await invoke("clear_game_cache", { gameId });
   } catch (error) {
@@ -72,11 +53,6 @@ export async function clearGameCache(gameId: string): Promise<void> {
 }
 
 export async function clearAllCache(): Promise<void> {
-  if (isMockMode()) {
-    console.log("🎮 [MOCK MODE] clearAllCache");
-    return;
-  }
-
   try {
     await invoke("clear_all_cache");
   } catch (error) {
@@ -86,16 +62,6 @@ export async function clearAllCache(): Promise<void> {
 }
 
 export async function getCacheStats(): Promise<CacheStats> {
-  if (isMockMode()) {
-    console.log("🎮 [MOCK MODE] getCacheStats");
-    return {
-      gamesCount: 10,
-      totalAssetsCount: 40,
-      totalAssetsSizeMb: 125.5,
-      cacheDir: "~/.local/share/pixxiden",
-    };
-  }
-
   try {
     const stats = await invoke<CacheStats>("get_cache_stats");
     return stats;
@@ -106,15 +72,6 @@ export async function getCacheStats(): Promise<CacheStats> {
 }
 
 export async function syncGames(): Promise<SyncResult> {
-  if (isMockMode()) {
-    const mockData = await getMockGames();
-    console.log("🎮 [MOCK MODE] Syncing mock games");
-    return Promise.resolve({
-      total_synced: mockData.length,
-      errors: [],
-    });
-  }
-
   try {
     const result = await invoke<SyncResult>("sync_games");
     return result;
@@ -162,40 +119,6 @@ export async function uninstallGame(_gameId: string): Promise<void> {
 }
 
 export async function getGameConfig(id: string): Promise<GameConfig> {
-  if (isMockMode()) {
-    console.log("🎮 [MOCK MODE] Returning mock game config for:", id);
-    const games = await getMockGames();
-    const game = games.find((g) => g.id === id);
-
-    if (!game) {
-      throw new Error(`Game ${id} not found`);
-    }
-
-    const mockSizes: Record<string, number> = {
-      "1": 75 * 1024 * 1024 * 1024,
-      "2": 150 * 1024 * 1024 * 1024,
-      "3": 50 * 1024 * 1024 * 1024,
-      "11": 150 * 1024 * 1024 * 1024,
-    };
-
-    return {
-      id: game.id,
-      title: game.info.title,
-      store: game.storeData.store,
-      storeId: game.storeData.storeId || game.id,
-      installPath: game.installation.installed ? `/home/user/Games/${game.info.title}` : null,
-      customExecutable: game.installation.customExecutable || null,
-      winePrefix:
-        game.storeData.store === "epic"
-          ? `/home/user/.local/share/pixxiden/prefixes/${game.id}`
-          : null,
-      wineVersion: game.storeData.store === "epic" ? "ge-proton-8-32" : null,
-      installed: game.installation.installed || false,
-      downloadSize: mockSizes[game.id] || 30 * 1024 * 1024 * 1024,
-      version: "1.0.0",
-    };
-  }
-
   try {
     const config = await invoke<GameConfig>("get_game_config", { id });
     return config;
@@ -209,11 +132,6 @@ export async function updateGameCustomExecutable(
   gameId: string,
   customExecutable: string | null,
 ): Promise<void> {
-  if (isMockMode()) {
-    console.log("🎮 [MOCK MODE] Updating custom executable for:", gameId, customExecutable);
-    return;
-  }
-
   try {
     await invoke("update_game_custom_executable", { gameId, customExecutable });
   } catch (error) {

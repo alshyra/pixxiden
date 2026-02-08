@@ -5,7 +5,7 @@
  */
 
 // Core utilities
-export { enableMockMode, disableMockMode } from "./core";
+export { invoke } from "./core";
 
 // Games API
 export {

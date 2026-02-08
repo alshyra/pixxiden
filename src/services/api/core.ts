@@ -31,30 +31,3 @@ export const invoke = async <T>(cmd: string, args?: Record<string, unknown>): Pr
   const fn = await getInvoke();
   return fn(cmd, args) as Promise<T>;
 };
-
-// Mock mode - can be enabled via localStorage, URL param, or E2E test injection
-export const isMockMode = (): boolean => {
-  if (typeof window !== "undefined") {
-    if ((window as unknown as { __MOCK_GAMES__?: unknown }).__MOCK_GAMES__) return true;
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("mock")) return true;
-    try {
-      return localStorage.getItem("PIXXIDEN_MOCK_MODE") === "true";
-    } catch {
-      return false;
-    }
-  }
-  return false;
-};
-
-export const enableMockMode = () => {
-  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-    localStorage.setItem("PIXXIDEN_MOCK_MODE", "true");
-  }
-};
-
-export const disableMockMode = () => {
-  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-    localStorage.removeItem("PIXXIDEN_MOCK_MODE");
-  }
-};

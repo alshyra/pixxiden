@@ -137,15 +137,6 @@ export const config: Options.Testrunner = {
     console.log("✅ tauri-driver stopped");
   },
 
-  before: async function () {
-    // Note: We don't enable PIXXIDEN_MOCK_MODE because it uses dynamic imports
-    // that don't work in release builds. Instead, we mock __TAURI__.invoke directly
-    // in individual test files using setupMockTauriCommands()
-    console.log(
-      "🎭 WebDriverIO before hook - mock will be set up per-test via setupMockTauriCommands()",
-    );
-  },
-
   afterTest: async function (test, context, { _error, _result, _duration, passed, _retries }) {
     if (!passed) {
       console.log(`❌ Test failed: ${test.title}`);

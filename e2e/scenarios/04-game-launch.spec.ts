@@ -94,19 +94,40 @@ describe("Scenario 04: Game Launch", () => {
     if (!installedGameFound) this.skip();
 
     await detail.clickPlay();
-    console.log("🚀 Play clicked — game is launching");
+    console.log("🚀 Play clicked — waiting for game to start...");
 
-    // Wait for the launch state to propagate (isLaunching = true)
-    await browser.pause(2000);
-
-    // After launching, the Force Close button should appear
-    // (or the game may have already exited if it fails fast)
-    const hasForceClose = await detail.hasForceCloseButton();
-    if (hasForceClose) {
-      console.log("🔴 Force Close button appeared — game is running");
-    } else {
-      console.log("⚠️ Force Close not visible (game may have exited or failed)");
+    // Step 1: Wait for Force Close button to appear (game process spawned)
+    let forceCloseAppeared = false;
+    try {
+      await browser.waitUntil(async () => detail.hasForceCloseButton(), {
+        timeout: 15000,
+        timeoutMsg: "Force Close button never appeared — game launch failed",
+      });
+      forceCloseAppeared = true;
+      console.log("🔴 Force Close button appeared — game process started");
+    } catch (e) {
+      // Force Close never appeared — game didn't start at all
+      expect(forceCloseAppeared).toBe(true);
+      return;
     }
+
+    // Step 2: Wait 8 seconds — a real game should STILL be running
+    // A game that exits within seconds has crashed or failed to start
+    console.log("⏳ Waiting 8s to verify game stays running...");
+    await browser.pause(8000);
+
+    // Step 3: Assert Force Close is STILL visible (game is actually running)
+    const stillRunning = await detail.hasForceCloseButton();
+    if (!stillRunning) {
+      // Game exited within 8 seconds — this is a crash/failure
+      const hasPlayBack = await detail.hasPlayButton();
+      console.log(`💀 Game exited within 8s — Play button restored: ${hasPlayBack}`);
+      console.log("💀 This means the game process started but crashed immediately");
+      console.log("💀 Check app logs for errors (e.g. missing ld-linux.so.2, Wine errors)");
+    }
+
+    expect(stillRunning).toBe(true);
+    console.log("✅ Game is still running after 8s — launch confirmed");
   });
 
   it("should force-close the game and restore Play button", async function () {
@@ -114,7 +135,7 @@ describe("Scenario 04: Game Launch", () => {
 
     const hasForceClose = await detail.hasForceCloseButton();
     if (!hasForceClose) {
-      console.log("⏩ No force-close button visible, skipping force-close test");
+      console.log("⏩ Game is not running (may have crashed), skipping force-close test");
       this.skip();
       return;
     }
