@@ -31,6 +31,7 @@ use commands::{
 use gamepad::GamepadMonitor;
 use std::sync::Arc;
 use tauri::{Manager, Window};
+use tauri_plugin_autostart::ManagerExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -39,18 +40,18 @@ pub fn run() {
         log::warn!("Failed to load .env file: {}", e);
     }
 
+    // WebKit compositing fix for better performance/stability on Linux
+    std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
-                    tauri_plugin_log::Target::new(
-                        tauri_plugin_log::TargetKind::Stdout,
-                    ),
-                    tauri_plugin_log::Target::new(
-                        tauri_plugin_log::TargetKind::LogDir {
-                            file_name: Some("pixxiden.log".into()),
-                        },
-                    ),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("pixxiden.log".into()),
+                    }),
                 ])
                 .max_file_size(5_000_000) // 5 MB rotation
                 .level(tauri_plugin_log::log::LevelFilter::Debug)
@@ -67,6 +68,19 @@ pub fn run() {
             // Initialize gamepad monitor
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
             app.manage(gamepad_monitor);
+
+            // Enable autostart on first launch
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let autostart = handle.autolaunch();
+                if !autostart.is_enabled().unwrap_or(false) {
+                    if let Err(e) = autostart.enable() {
+                        log::warn!("Failed to enable autostart: {}", e);
+                    } else {
+                        log::info!("Autostart enabled successfully");
+                    }
+                }
+            });
 
             log::info!("Pixxiden initialized successfully!");
             Ok(())

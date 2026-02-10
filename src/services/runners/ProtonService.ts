@@ -11,14 +11,11 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { homeDir } from "@tauri-apps/api/path";
+import { appDataDir } from "@tauri-apps/api/path";
 import { listen } from "@tauri-apps/api/event";
 import { exists, readDir, mkdir, remove } from "@tauri-apps/plugin-fs";
 import { info, warn, error as logError, debug } from "@tauri-apps/plugin-log";
 import { DatabaseService } from "../base/DatabaseService";
-
-const RUNNERS_SUBPATH = ".local/share/pixxiden/runners";
-const PREFIXES_SUBPATH = ".local/share/pixxiden/prefixes";
 
 const GITHUB_RELEASES_URL =
   "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
@@ -49,7 +46,7 @@ export class ProtonService {
   private db: DatabaseService;
   private installing = false;
   private installPromise: Promise<ProtonConfig | null> | null = null;
-  private homeDirCache: string | null = null;
+  private appDataDirCache: string | null = null;
 
   private constructor() {
     this.db = DatabaseService.getInstance();
@@ -64,17 +61,17 @@ export class ProtonService {
 
   // ===== Path Resolution (JS-first via @tauri-apps/api/path) =====
 
-  private async getHomeDir(): Promise<string> {
-    if (!this.homeDirCache) {
-      this.homeDirCache = await homeDir();
+  private async getAppDataDir(): Promise<string> {
+    if (!this.appDataDirCache) {
+      this.appDataDirCache = await appDataDir();
     }
-    return this.homeDirCache;
+    return this.appDataDirCache;
   }
 
-  /** Get the runners directory: ~/.local/share/pixxiden/runners */
+  /** Get the runners directory: ~/.local/share/com.Pixxiden.launcher/runners */
   async getRunnersDir(): Promise<string> {
-    const home = await this.getHomeDir();
-    return `${home}/${RUNNERS_SUBPATH}`;
+    const dataDir = await this.getAppDataDir();
+    return `${dataDir}/runners`;
   }
 
   /** Ensure all required directories exist */
@@ -387,10 +384,10 @@ export class ProtonService {
     return config?.protonPath ?? null;
   }
 
-  /** Get the prefixes directory: ~/.local/share/pixxiden/prefixes */
+  /** Get the prefixes directory: ~/.local/share/com.Pixxiden.launcher/prefixes */
   async getPrefixesDir(): Promise<string> {
-    const home = await this.getHomeDir();
-    return `${home}/${PREFIXES_SUBPATH}`;
+    const dataDir = await this.getAppDataDir();
+    return `${dataDir}/prefixes`;
   }
 
   /** Check if Proton is currently being installed */

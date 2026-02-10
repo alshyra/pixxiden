@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=Pixxiden Gaming Session
-Comment=Kiosk session running Pixxiden under Cage
-Exec=/usr/share/wayland-sessions/pixxiden-session.sh
-WorkingDirectory=/tmp
-Type=Application
-DesktopNames=pixxiden

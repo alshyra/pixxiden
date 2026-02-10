@@ -226,6 +226,11 @@ export class GameLibraryOrchestrator {
     // otherwise fall back to Pixxiden's own Proton-GE
     const protonPath = this.resolveProtonPath(game, protonConfig);
 
+    // PyInstaller-bundled sidecars (legendary, gogdl, nile) pollute PYTHONHOME/PYTHONPATH/
+    // LD_LIBRARY_PATH. When they spawn Proton (also Python), it crashes.
+    // Fix: /usr/bin/env -u unsets those vars before Proton runs.
+    const cleanEnv = "/usr/bin/env -u PYTHONHOME -u PYTHONPATH -u PYTHONDONTWRITEBYTECODE -u _MEIPASS2 -u LD_LIBRARY_PATH";
+
     switch (game.storeData.store) {
       case "epic": {
         const args = ["legendary", "launch", game.storeData.storeId];
@@ -236,7 +241,7 @@ export class GameLibraryOrchestrator {
           // Instead: --no-wine disables legendary's wine handling, and --wrapper
           // passes the full `proton waitforexitandrun` as a command prefix.
           // Wine prefix is handled via STEAM_COMPAT_DATA_PATH env var (see buildLaunchEnv).
-          args.push("--no-wine", "--wrapper", `${protonPath} waitforexitandrun`);
+          args.push("--no-wine", "--wrapper", `${cleanEnv} ${protonPath} waitforexitandrun`);
         }
         return args;
       }
@@ -247,7 +252,7 @@ export class GameLibraryOrchestrator {
         if (protonPath) {
           args.push("--platform", "windows");
           // Same Proton wrapper approach as epic — see comment above
-          args.push("--no-wine", "--wrapper", `${protonPath} waitforexitandrun`);
+          args.push("--no-wine", "--wrapper", `${cleanEnv} ${protonPath} waitforexitandrun`);
         }
         if (game.installation.installPath) {
           args.push(game.installation.installPath);

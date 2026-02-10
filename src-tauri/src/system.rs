@@ -124,7 +124,7 @@ pub fn get_settings() -> Result<SettingsConfig, String> {
         proton_version: "GE-Proton8-32".to_string(),
         mangohud_enabled: false,
         default_install_path: "~/Games".to_string(),
-        wine_prefix_path: "~/.local/share/pixxiden/prefixes".to_string(),
+        wine_prefix_path: "~/.local/share/com.Pixxiden.launcher/prefixes".to_string(),
     })
 }
 

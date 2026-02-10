@@ -70,7 +70,7 @@
       "identifier": "fs:allow-read-dir",
       "allow": [
         {
-          "path": "$HOME/.local/share/pixxiden/**"
+          "path": "$APPDATA/**"
         },
         {
           "path": "$HOME/.config/heroic/**"
@@ -95,7 +95,7 @@
       "identifier": "fs:allow-remove",
       "allow": [
         {
-          "path": "$HOME/.local/share/pixxiden/runners/**"
+          "path": "$APPDATA/runners/**"
         }
       ]
     },
@@ -103,7 +103,7 @@
       "identifier": "fs:allow-mkdir",
       "allow": [
         {
-          "path": "$HOME/.local/share/pixxiden/**"
+          "path": "$APPDATA/**"
         }
       ]
     },
