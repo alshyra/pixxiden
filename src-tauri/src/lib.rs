@@ -42,9 +42,17 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::Stdout,
-                ))
+                .targets([
+                    tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::Stdout,
+                    ),
+                    tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::LogDir {
+                            file_name: Some("pixxiden.log".into()),
+                        },
+                    ),
+                ])
+                .max_file_size(5_000_000) // 5 MB rotation
                 .level(tauri_plugin_log::log::LevelFilter::Debug)
                 .build(),
         )
