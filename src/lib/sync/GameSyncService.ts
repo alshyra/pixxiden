@@ -22,6 +22,7 @@ import { GameRepository } from "../database";
 import { DatabaseService, SidecarService } from "@/services/base";
 import { LegendaryService, GogdlService, NileService, SteamService } from "@/services/stores";
 import { EnrichmentService } from "@/services/enrichment";
+import { HeroicImportService } from "@/services/heroic";
 import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
 
 // ===== Types =====
@@ -71,6 +72,7 @@ export class GameSyncService {
   private gogdl: GogdlService;
   private nile: NileService;
   private steam: SteamService;
+  private heroicImport: HeroicImportService;
 
   private constructor() {
     const db = DatabaseService.getInstance();
@@ -82,6 +84,7 @@ export class GameSyncService {
     this.gogdl = new GogdlService(sidecar, db);
     this.nile = new NileService(sidecar, db);
     this.steam = new SteamService(sidecar, db);
+    this.heroicImport = HeroicImportService.getInstance();
   }
 
   static getInstance(): GameSyncService {
@@ -166,6 +169,11 @@ export class GameSyncService {
 
     result.total = allFetchedGames.length;
 
+    // ===== Phase 1.5: Merge Heroic installation data =====
+    // Heroic is a launcher (not a store) that uses the same CLIs.
+    // We match installed games by storeId and update their install_path.
+    await this.mergeHeroicInstallations(result);
+
     // ===== Phase 2: Enrich games with metadata =====
     if (!options.skipEnrichment && allFetchedGames.length > 0) {
       result.enriched = await this.enrichGames(
@@ -193,6 +201,64 @@ export class GameSyncService {
     );
 
     return result;
+  }
+
+  // ===== Heroic Merge =====
+
+  /**
+   * Merge installation data from Heroic Games Launcher.
+   * Reads Heroic's installed.json and updates install_path for matching games.
+   */
+  private async mergeHeroicInstallations(result: SyncResult): Promise<void> {
+    try {
+      const heroicGames = await this.heroicImport.getInstalledGames();
+      if (heroicGames.length === 0) return;
+
+      await this.emitProgress({
+        store: "heroic",
+        gameTitle: "",
+        current: 0,
+        total: heroicGames.length,
+        phase: "fetching",
+        message: `Détection des jeux Heroic...`,
+      });
+
+      let merged = 0;
+      for (const heroicGame of heroicGames) {
+        const existing = await this.gameRepo.getGameById(heroicGame.gameId);
+        if (existing) {
+          await this.gameRepo.updateInstallation(heroicGame.gameId, {
+            installed: true,
+            installPath: heroicGame.installPath,
+            installSize: heroicGame.installSize,
+            winePrefix: heroicGame.winePrefix,
+            wineVersion: heroicGame.wineVersion,
+            runner: heroicGame.runner,
+            runnerPath: heroicGame.wineBin,
+          });
+          merged++;
+          await debug(`[Heroic] Merged ${existing.info.title}: prefix=${heroicGame.winePrefix || '(none)'}, runner=${heroicGame.runner || '(none)'}`);
+        }
+      }
+
+      if (merged > 0) {
+        result.updated += merged;
+        await info(`[Heroic] Merged installation data for ${merged} games`);
+      }
+
+      await this.emitProgress({
+        store: "heroic",
+        gameTitle: "",
+        current: heroicGames.length,
+        total: heroicGames.length,
+        phase: "fetching",
+        message: `Heroic: ${merged} jeux mis à jour`,
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      await warn(`[Heroic] Failed to merge installations: ${msg}`);
+      result.errors.push({ store: undefined, phase: "fetch", message: `Heroic: ${msg}` });
+    }
   }
 
   // ===== Store Fetching =====

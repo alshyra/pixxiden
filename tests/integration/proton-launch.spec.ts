@@ -332,4 +332,89 @@ describe("Proton Launch Integration", () => {
       expect(env).toEqual({});
     });
   });
+
+  describe("Heroic-imported games with existing wine prefix", () => {
+    const heroicGogGame = createGame({
+      id: "gog-1456460669",
+      store: "gog",
+      storeId: "1456460669",
+      title: "Baldur's Gate 3",
+      installed: true,
+      installPath: "/home/user/Games/Heroic/Baldurs Gate 3",
+    });
+    // Simulate Heroic config merged into installation data
+    heroicGogGame.installation.winePrefix =
+      "/home/user/Games/Heroic/Prefixes/default/Baldurs Gate 3";
+    heroicGogGame.installation.wineVersion = "proton-cachyos";
+    heroicGogGame.installation.runner = "proton";
+    heroicGogGame.installation.runnerPath =
+      "/usr/share/steam/compatibilitytools.d/proton-cachyos/proton";
+
+    it("should use Heroic proton path over Pixxiden Proton-GE", async () => {
+      const cmd = await buildLaunchCommand(orchestrator, heroicGogGame, mockProtonConfig);
+
+      const wrapperIdx = cmd.indexOf("--wrapper");
+      const wrapperValue = cmd[wrapperIdx + 1];
+
+      // Should use Heroic's proton-cachyos, NOT Pixxiden's GE-Proton
+      expect(wrapperValue).toContain("proton-cachyos/proton");
+      expect(wrapperValue).not.toContain("GE-Proton");
+    });
+
+    it("should use Heroic wine prefix as STEAM_COMPAT_DATA_PATH", async () => {
+      const env = await buildLaunchEnv(orchestrator, heroicGogGame, mockProtonConfig);
+
+      // Should use Heroic's existing prefix, NOT create a new pixxiden one
+      expect(env.STEAM_COMPAT_DATA_PATH).toBe(
+        "/home/user/Games/Heroic/Prefixes/default/Baldurs Gate 3",
+      );
+    });
+
+    it("should set STEAM_COMPAT_CLIENT_INSTALL_PATH for Heroic games (proton-cachyos requires it)", async () => {
+      const env = await buildLaunchEnv(orchestrator, heroicGogGame, mockProtonConfig);
+
+      // proton-cachyos crashes without this env var — set it to compat dir
+      expect(env.STEAM_COMPAT_CLIENT_INSTALL_PATH).toBeDefined();
+      expect(env.STEAM_COMPAT_CLIENT_INSTALL_PATH).toContain("compat");
+    });
+
+    it("should still use Heroic proton even if Pixxiden protonConfig is null", async () => {
+      const cmd = await buildLaunchCommand(orchestrator, heroicGogGame, null);
+
+      // Even without Pixxiden's Proton-GE, Heroic's proton should be used
+      expect(cmd).toContain("--no-wine");
+      expect(cmd).toContain("--wrapper");
+
+      const wrapperIdx = cmd.indexOf("--wrapper");
+      const wrapperValue = cmd[wrapperIdx + 1];
+      expect(wrapperValue).toContain("proton-cachyos/proton");
+    });
+
+    it("should set STEAM_COMPAT_DATA_PATH even without Pixxiden protonConfig", async () => {
+      const env = await buildLaunchEnv(orchestrator, heroicGogGame, null);
+
+      expect(env.STEAM_COMPAT_DATA_PATH).toBe(
+        "/home/user/Games/Heroic/Prefixes/default/Baldurs Gate 3",
+      );
+    });
+
+    it("should fall back to Pixxiden Proton-GE when no Heroic runner configured", async () => {
+      const gameWithoutHeroicRunner = createGame({
+        id: "gog-999999",
+        store: "gog",
+        storeId: "999999",
+        title: "Some GOG Game",
+        installed: true,
+        installPath: "/home/user/Games/GOG/SomeGame",
+      });
+
+      const cmd = await buildLaunchCommand(orchestrator, gameWithoutHeroicRunner, mockProtonConfig);
+
+      const wrapperIdx = cmd.indexOf("--wrapper");
+      const wrapperValue = cmd[wrapperIdx + 1];
+
+      // Should use Pixxiden's GE-Proton as fallback
+      expect(wrapperValue).toContain("GE-Proton");
+    });
+  });
 });

@@ -39,6 +39,7 @@
     "@vueuse/core": "^10.7.2",
     "axios": "^1.6.5",
     "lucide-vue-next": "^0.309.0",
+    "oxc": "^1.0.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5"
@@ -58,7 +59,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-vue": "^9.20.1",
     "happy-dom": "^20.3.4",
-    "oxfmt": "^0.26.0",
+    "oxfmt": "^0.28.0",
     "oxlint": "^1.41.0",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",

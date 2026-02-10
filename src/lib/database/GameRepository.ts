@@ -228,6 +228,48 @@ export class GameRepository {
   }
 
   /**
+   * Update installation data for a game (install_path, install_size, installed flag).
+   * Used by HeroicImportService to merge external installation info.
+   * Only updates if the game exists — does nothing otherwise.
+   */
+  async updateInstallation(
+    gameId: string,
+    data: {
+      installed: boolean;
+      installPath: string;
+      installSize?: string;
+      winePrefix?: string;
+      wineVersion?: string;
+      runner?: string;
+      runnerPath?: string;
+    },
+  ): Promise<void> {
+    await this.db.execute(
+      `UPDATE games SET
+        installed = ?,
+        install_path = ?,
+        install_size = COALESCE(?, install_size),
+        wine_prefix = COALESCE(?, wine_prefix),
+        wine_version = COALESCE(?, wine_version),
+        runner = COALESCE(?, runner),
+        runner_path = COALESCE(?, runner_path),
+        updated_at = ?
+      WHERE id = ?`,
+      [
+        data.installed ? 1 : 0,
+        data.installPath,
+        data.installSize || null,
+        data.winePrefix || null,
+        data.wineVersion || null,
+        data.runner || null,
+        data.runnerPath || null,
+        new Date().toISOString(),
+        gameId,
+      ],
+    );
+  }
+
+  /**
    * Delete a game by ID
    */
   async deleteGame(id: string): Promise<void> {
@@ -273,6 +315,7 @@ export class GameRepository {
         executablePath: (row.executable_path as string) || "",
         customExecutablePath: "",
         runner: (row.runner as string) || "",
+        runnerPath: (row.runner_path as string) || "",
         cloudSaveSupport: Boolean(row.cloud_save_support),
       },
       gameCompletion: {

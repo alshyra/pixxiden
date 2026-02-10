@@ -60,6 +60,9 @@
         },
         {
           "path": "$HOME/.local/**"
+        },
+        {
+          "path": "$HOME/.var/**"
         }
       ]
     },
@@ -68,14 +71,23 @@
       "allow": [
         {
           "path": "$HOME/.local/share/pixxiden/**"
+        },
+        {
+          "path": "$HOME/.config/heroic/**"
+        },
+        {
+          "path": "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/**"
         }
       ]
     },
     {
-      "identifier": "fs:allow-mkdir",
+      "identifier": "fs:allow-read-text-file",
       "allow": [
         {
-          "path": "$HOME/.local/share/pixxiden/**"
+          "path": "$HOME/.config/heroic/**"
+        },
+        {
+          "path": "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/**"
         }
       ]
     },
@@ -84,6 +96,14 @@
       "allow": [
         {
           "path": "$HOME/.local/share/pixxiden/runners/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        {
+          "path": "$HOME/.local/share/pixxiden/**"
         }
       ]
     },

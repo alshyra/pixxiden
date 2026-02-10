@@ -117,4 +117,6 @@ export const MIGRATIONS: string[] = [
   `ALTER TABLE games ADD COLUMN cloud_save_support INTEGER DEFAULT 0`,
   // Migration 5: Add horizontal_grid_path for landscape grid images (92:43)
   `ALTER TABLE games ADD COLUMN horizontal_grid_path TEXT`,
+  // Migration 6: Add runner_path for Heroic-configured Proton/Wine binary path
+  `ALTER TABLE games ADD COLUMN runner_path TEXT`,
 ];

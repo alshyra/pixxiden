@@ -52,6 +52,12 @@ export {
 export type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "./enrichment";
 
 // ============================================================================
+// Heroic Import (merge installation data from Heroic launcher)
+// ============================================================================
+export { HeroicImportService } from "./heroic";
+export type { HeroicInstallInfo } from "./heroic";
+
+// ============================================================================
 // Installation Services
 // ============================================================================
 import { InstallationService } from "./installation";

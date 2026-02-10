@@ -117,8 +117,8 @@ onMounted(async () => {
 
       // GameSyncService handles everything: fetch → enrich → persist
       // Progress events are emitted automatically
-      // const syncService = GameSyncService.getInstance();
-      // await syncService.sync();
+      const syncService = GameSyncService.getInstance();
+      await syncService.sync();
     } catch (error) {
       await warn(`Sync failed (may need authentication or stores not configured): ${error}`);
       // Don't block — continue with current library

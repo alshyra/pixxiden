@@ -17,7 +17,7 @@ import { DatabaseService, SidecarService } from "./base";
 import { LegendaryService, GogdlService, NileService } from "./stores";
 import type { StoreCapabilities } from "./stores";
 import { ProtonService, type ProtonConfig } from "./runners";
-import { warn } from "@tauri-apps/plugin-log";
+import { warn, info } from "@tauri-apps/plugin-log";
 import { mkdir } from "@tauri-apps/plugin-fs";
 
 export type { SyncResult, SyncOptions };
@@ -222,7 +222,9 @@ export class GameLibraryOrchestrator {
     game: Game,
     protonConfig: ProtonConfig | null,
   ): Promise<string[]> {
-    const protonPath = protonConfig?.protonPath ?? null;
+    // Resolve effective proton path: prefer Heroic-configured runner (if Proton type),
+    // otherwise fall back to Pixxiden's own Proton-GE
+    const protonPath = this.resolveProtonPath(game, protonConfig);
 
     switch (game.storeData.store) {
       case "epic": {
@@ -234,7 +236,7 @@ export class GameLibraryOrchestrator {
           // Instead: --no-wine disables legendary's wine handling, and --wrapper
           // passes the full `proton waitforexitandrun` as a command prefix.
           // Wine prefix is handled via STEAM_COMPAT_DATA_PATH env var (see buildLaunchEnv).
-          args.push("--no-wine", "--wrapper", `'${protonPath}' waitforexitandrun`);
+          args.push("--no-wine", "--wrapper", `${protonPath} waitforexitandrun`);
         }
         return args;
       }
@@ -245,7 +247,7 @@ export class GameLibraryOrchestrator {
         if (protonPath) {
           args.push("--platform", "windows");
           // Same Proton wrapper approach as epic — see comment above
-          args.push("--no-wine", "--wrapper", `'${protonPath}' waitforexitandrun`);
+          args.push("--no-wine", "--wrapper", `${protonPath} waitforexitandrun`);
         }
         if (game.installation.installPath) {
           args.push(game.installation.installPath);
@@ -262,35 +264,90 @@ export class GameLibraryOrchestrator {
     }
   }
 
+  /**
+   * Resolve the effective Proton binary path for a game.
+   *
+   * Priority:
+   * 1. Heroic-configured Proton path (from GamesConfig/{storeId}.json → wineVersion.bin)
+   *    — only if runner type is "proton"
+   * 2. Pixxiden's own Proton-GE install path
+   * 3. null (no Proton available)
+   */
+  private resolveProtonPath(game: Game, protonConfig: ProtonConfig | null): string | null {
+    // If game has a Heroic-configured Proton runner with a binary path, prefer it
+    if (
+      game.installation.runner === "proton" &&
+      game.installation.runnerPath
+    ) {
+      return game.installation.runnerPath;
+    }
+
+    return protonConfig?.protonPath ?? null;
+  }
+
   private async buildLaunchEnv(
     game: Game,
     protonConfig: ProtonConfig | null,
   ): Promise<Record<string, string>> {
     const env: Record<string, string> = {};
 
-    // Set Proton-required env vars for non-Steam games
-    if (protonConfig && (game.storeData.store === "epic" || game.storeData.store === "gog")) {
+    // Determine if this game needs Proton env vars:
+    // - Game is from Epic or GOG (non-Steam, non-Amazon)
+    // - AND either Pixxiden has Proton-GE installed OR the game has a Heroic Proton config
+    const needsProton =
+      (game.storeData.store === "epic" || game.storeData.store === "gog") &&
+      (protonConfig || (game.installation.runner === "proton" && game.installation.runnerPath));
+
+    if (needsProton) {
       const protonService = ProtonService.getInstance();
 
       try {
-        const prefixesDir = await protonService.getPrefixesDir();
-        const compatDataPath = `${prefixesDir}/${game.storeData.store}/${game.storeData.storeId}`;
+        // If the game has a Heroic-configured wine prefix, use it directly.
+        // Heroic (via umu-launcher) sets STEAM_COMPAT_DATA_PATH = WINEPREFIX
+        // and leaves STEAM_COMPAT_CLIENT_INSTALL_PATH empty — this is correct
+        // for Proton launched through umu-launcher or directly.
+        if (game.installation.winePrefix) {
+          env.STEAM_COMPAT_DATA_PATH = game.installation.winePrefix;
 
-        // Ensure the per-game prefix directory exists before Proton tries to lock it
-        await mkdir(compatDataPath, { recursive: true });
+          // proton-cachyos (and some other Proton forks) crash if
+          // STEAM_COMPAT_CLIENT_INSTALL_PATH is missing — they use
+          // os.environ["..."] instead of .get(). Set it to an empty
+          // compat dir just like we do for non-Heroic games.
+          const runnersDir = await protonService.getRunnersDir();
+          const compatDir = `${runnersDir}/compat`;
+          await mkdir(compatDir, { recursive: true });
+          env.STEAM_COMPAT_CLIENT_INSTALL_PATH = compatDir;
 
-        // STEAM_COMPAT_DATA_PATH: where Proton stores the Wine prefix (pfx/ subdir)
-        env.STEAM_COMPAT_DATA_PATH = compatDataPath;
+          await info(
+            `[Orchestrator] Using Heroic prefix: STEAM_COMPAT_DATA_PATH=${game.installation.winePrefix}`,
+          );
+        } else {
+          // No Heroic prefix — create our own per-game prefix directory
+          const prefixesDir = await protonService.getPrefixesDir();
+          const compatDataPath = `${prefixesDir}/${game.storeData.store}/${game.storeData.storeId}`;
 
-        // STEAM_COMPAT_CLIENT_INSTALL_PATH: Proton expects a Steam install dir
-        // for copying runtime DLLs (steamclient.dll etc). When running outside Steam,
-        // we point to an empty compat dir — Proton handles missing files gracefully.
-        const runnersDir = await protonService.getRunnersDir();
-        const compatDir = `${runnersDir}/compat`;
-        await mkdir(compatDir, { recursive: true });
-        env.STEAM_COMPAT_CLIENT_INSTALL_PATH = compatDir;
-      } catch {
-        await warn("[Orchestrator] Could not set Proton env vars");
+          // Ensure the per-game prefix directory exists before Proton tries to lock it
+          await mkdir(compatDataPath, { recursive: true });
+
+          // STEAM_COMPAT_DATA_PATH: where Proton stores the Wine prefix (pfx/ subdir)
+          env.STEAM_COMPAT_DATA_PATH = compatDataPath;
+
+          // STEAM_COMPAT_CLIENT_INSTALL_PATH: Proton expects a Steam install dir
+          // for copying runtime DLLs (steamclient.dll etc). When running outside Steam,
+          // we point to an empty compat dir — Proton handles missing files gracefully.
+          // Note: umu-launcher sets this to empty, so we only set it for non-Heroic games.
+          const runnersDir = await protonService.getRunnersDir();
+          const compatDir = `${runnersDir}/compat`;
+          await mkdir(compatDir, { recursive: true });
+          env.STEAM_COMPAT_CLIENT_INSTALL_PATH = compatDir;
+
+          await info(
+            `[Orchestrator] Set Proton env: STEAM_COMPAT_DATA_PATH=${compatDataPath}, STEAM_COMPAT_CLIENT_INSTALL_PATH=${compatDir}`,
+          );
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        await warn(`[Orchestrator] Could not set Proton env vars: ${msg}`);
       }
     }
 

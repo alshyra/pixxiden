@@ -33,6 +33,8 @@ export interface InstallationData {
   executablePath: string;
   customExecutablePath: string;
   runner: string;
+  /** Absolute path to the Proton/Wine binary (from Heroic config or manual setup) */
+  runnerPath: string;
   /** Whether this game supports cloud save sync (e.g. gogdl save-sync) */
   cloudSaveSupport: boolean;
 }
@@ -134,6 +136,7 @@ export function defaultInstallationData(): InstallationData {
     executablePath: "",
     customExecutablePath: "",
     runner: "",
+    runnerPath: "",
     cloudSaveSupport: false,
   };
 }
