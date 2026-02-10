@@ -1,9 +1,11 @@
 <template>
   <div
-    class="group relative aspect-[2/3] overflow-hidden rounded-xl border-2 border-indigo-950 bg-[#1a1a1c] bg-cover bg-center transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) cursor-pointer hover:scale-105 hover:border-remix-accent hover:shadow-[0_0_30px_rgba(94,92,230,0.4)] hover:z-10 focus:scale-105 focus:border-remix-accent focus:shadow-[0_0_30px_rgba(94,92,230,0.4)] focus:z-10"
+    class="group relative overflow-hidden rounded-xl border-2 border-indigo-950 bg-[#1a1a1c] bg-cover bg-center transition-all duration-500 ease-out cursor-pointer hover:scale-105 hover:border-remix-accent hover:shadow-[0_0_30px_rgba(94,92,230,0.4)] hover:z-10 focus:scale-105 focus:border-remix-accent focus:shadow-[0_0_30px_rgba(94,92,230,0.4)] focus:z-10"
     :class="{
       selected: selected,
       'border-remix-accent shadow-[0_0_40px_rgba(94,92,230,0.6)]': selected,
+      'aspect-[2/3]': !selected,
+      'aspect-[92/43] !w-[500px] scale-105 border-remix-accent shadow-[0_0_30px_rgba(94,92,230,0.4)] z-10': selected,
     }"
     :style="cardStyle"
     :data-id="game.id"
@@ -83,30 +85,31 @@ const props = defineProps<Props>();
 
 /**
  * Resolve the best available image for the card background.
- * Priority: local gridPath → local coverPath → local heroPath → legacy URL
+ * When selected: horizontalGridPath → heroPath → gridPath → coverPath
+ * When not selected: gridPath → coverPath → heroPath
  */
 const cardStyle = computed(() => {
-  const localPath =
-    props.game.assets.gridPath || props.game.assets.coverPath || props.game.assets.heroPath;
-  if (localPath) {
-    try {
-      const src = convertFileSrc(localPath);
-      return { backgroundImage: `url(${src})` };
-    } catch {
-      // fall through to legacy URLs
-    }
+  let localPath;
+
+  if (props.selected) {
+    // Selected: prefer horizontalGridPath (landscape 92:43 format)
+    localPath =
+      props.game.assets.horizontalGridPath ||
+      props.game.assets.gridPath;
+  } else {
+    // Not selected: prefer gridPath (portrait 2:3 format)
+    localPath =
+      props.game.assets.gridPath;
   }
 
-  const imageUrl = props.game.assets.backgroundUrl;
-  if (imageUrl) {
-    return { backgroundImage: `url(${imageUrl})` };
-  }
-  return {};
+  const src = convertFileSrc(localPath);
+  return { backgroundImage: `url(${src})` };
 });
 
 const hasImage = computed(() => {
   return !!(
     props.game.assets.gridPath ||
+    props.game.assets.horizontalGridPath ||
     props.game.assets.coverPath ||
     props.game.assets.heroPath ||
     props.game.assets.backgroundUrl

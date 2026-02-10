@@ -310,6 +310,7 @@ export class GameSyncService {
           hero_path: enriched.assets.heroPath || null,
           cover_path: enriched.assets.coverPath || null,
           grid_path: enriched.assets.gridPath || null,
+          horizontal_grid_path: enriched.assets.horizontalGridPath || null,
           logo_path: enriched.assets.logoPath || null,
           icon_path: enriched.assets.iconPath || null,
           screenshot_paths: enriched.assets.screenshotPaths,

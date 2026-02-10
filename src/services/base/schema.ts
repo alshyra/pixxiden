@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS games (
   hero_path TEXT,
   cover_path TEXT,
   grid_path TEXT,
+  horizontal_grid_path TEXT,
   logo_path TEXT,
   icon_path TEXT,
   screenshot_paths TEXT DEFAULT '[]',
@@ -114,4 +115,6 @@ export const MIGRATIONS: string[] = [
   `ALTER TABLE games ADD COLUMN screenshot_paths TEXT DEFAULT '[]'`,
   // Migration 4: Add cloud_save_support flag
   `ALTER TABLE games ADD COLUMN cloud_save_support INTEGER DEFAULT 0`,
+  // Migration 5: Add horizontal_grid_path for landscape grid images (92:43)
+  `ALTER TABLE games ADD COLUMN horizontal_grid_path TEXT`,
 ];

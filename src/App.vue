@@ -5,11 +5,17 @@
       <!-- Setup Wizard (first-run) -->
       <SetupWizard v-if="showSetupWizard" @complete="onSetupComplete" @skip="onSetupSkip" />
 
-      <!-- Main router view - no transitions for E2E compatibility -->
-      <RouterView :class="{ 'view-blurred': isSettingsOpen && route.name !== 'settings' }" />
+      <!-- Main router view -->
+      <RouterView />
 
       <!-- Console Footer (persistent) -->
       <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
+
+      <!-- Side Nav (SteamOS-style, triggered by Guide/Start button) -->
+      <SideNav @open-power-menu="showPowerModal = true" />
+
+      <!-- Power Modal (shutdown / quit) -->
+      <PowerModal :show="showPowerModal" @close="showPowerModal = false" />
 
       <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
       <GameOverlay ref="gameOverlay" />
@@ -18,22 +24,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, computed, onMounted, onUnmounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, provide, onMounted, onUnmounted } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 import { GameOverlay } from "@/components/game";
-import { ConsoleFooter } from "@/components/layout";
+import { ConsoleFooter, SideNav } from "@/components/layout";
 import { SetupWizard } from "@/components/ui";
+import PowerModal from "@/components/settings/PowerModal.vue";
 import { useGamepad } from "@/composables/useGamepad";
+import { useSideNavStore } from "@/stores/sideNav";
 import * as api from "@/services/api";
 import SplashScreen from "./views/SplashScreen.vue";
 
-const route = useRoute();
-const router = useRouter();
 const gamepad = useGamepad();
+const sideNavStore = useSideNavStore();
 const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null);
 const showSetupWizard = ref(false);
+const showPowerModal = ref(false);
 const isSplashScreen = ref(true)
 
 function onSplashReady() {
@@ -72,21 +79,23 @@ onMounted(async () => {
     await warn(`Failed to setup game event listeners: ${e}`);
   }
 
-  // Handle PS/Guide button: toggle settings when no game is running
+  // Handle PS/Guide button: toggle SideNav (or game overlay during gameplay)
   gamepad.on("guide", () => {
     if (isSplashScreen.value || showSetupWizard.value) return;
 
-    if (isGameRunning.value) {
-      // When game is running, toggle game overlay
+    if (isGameRunning.value && !sideNavStore.isOpen) {
+      // When game is running and SideNav is closed, toggle game overlay
       gameOverlay.value?.toggle();
     } else {
-      // When no game is running, toggle settings
-      if (route.name === "settings") {
-        router.back();
-      } else {
-        router.push("/settings");
-      }
+      // Toggle SideNav (SteamOS-style)
+      sideNavStore.toggle();
     }
+  });
+
+  // Start button also toggles SideNav (fallback for controllers without Guide)
+  gamepad.on("start", () => {
+    if (isSplashScreen.value || showSetupWizard.value) return;
+    sideNavStore.toggle();
   });
 });
 
@@ -105,14 +114,6 @@ function onSetupSkip() {
 
 // Provide overlay control to child components
 provide("gameOverlay", gameOverlay);
-
-// Check if we're on splash screen (hide footer)
-
-// Check if settings overlay is open
-const isSettingsOpen = computed(() => route.name === "settings");
-
-// Provide settings state for child components
-provide("isSettingsOpen", isSettingsOpen);
 </script>
 
 <style>
@@ -157,33 +158,6 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
-}
-
-/* View blurred effect when settings overlay is open */
-.view-blurred {
-  opacity: 0.3;
-  transform: scale(0.92) translateZ(0);
-  filter: grayscale(0.8) blur(8px);
-  pointer-events: none;
-  transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* Transition: Settings Overlay */
-.settings-overlay-enter-active,
-.settings-overlay-leave-active {
-  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.settings-overlay-enter-from {
-  opacity: 0;
-  transform: scale(1.05) translateZ(0);
-  filter: blur(15px);
-}
-
-.settings-overlay-leave-to {
-  opacity: 0;
-  transform: scale(1.05) translateZ(0);
-  filter: blur(15px);
 }
 
 /* Transition: Fade */

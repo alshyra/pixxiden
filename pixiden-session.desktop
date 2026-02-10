@@ -7,3 +7,4 @@ Type=XSession
 DesktopNames=pixxiden
 Icon=pixxiden
 X-Session-Type=wayland
+X-Session-IsRunnableHelper=true

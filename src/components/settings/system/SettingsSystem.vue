@@ -1,16 +1,5 @@
 <template>
   <div class="animate-fade-in">
-    <header class="mb-14">
-      <h2
-        class="text-6xl font-black text-white italic tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-      >
-        Système
-      </h2>
-      <p class="text-gray-500 text-lg italic font-medium">
-        Configuration des paramètres du noyau Pixxiden.
-      </p>
-    </header>
-
     <!-- Loading State -->
     <div
       v-if="loading"
@@ -76,8 +65,6 @@
       <Card variant="glass">
         <SystemUpdates />
       </Card>
-
-      <!-- Library Sync Card -->
       <Card variant="glass">
         <h3 class="text-[10px] uppercase tracking-[0.4em] text-[#5e5ce6] font-black mb-6">
           Bibliothèque
@@ -93,6 +80,7 @@
               variant="outline"
               size="sm"
               :disabled="syncing"
+              :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': focusedIndex === 0 }"
               @click="handleSync"
             >
               <template v-if="syncing">
@@ -115,6 +103,7 @@
               variant="outline"
               size="sm"
               :disabled="syncing"
+              :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': focusedIndex === 1 }"
               @click="handleResync"
             >
               <template v-if="syncing">
@@ -134,21 +123,6 @@
           {{ syncMessage }}
         </div>
       </Card>
-
-      <!-- Action Button -->
-      <div class="flex justify-end">
-        <Button
-          variant="danger"
-          size="lg"
-          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 0 }"
-          @click="shutdown"
-        >
-          <template #icon>
-            <PowerIcon class="w-5 h-5" />
-          </template>
-          ÉTEINDRE LA MACHINE
-        </Button>
-      </div>
     </div>
   </div>
 </template>
@@ -156,7 +130,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { Card, Button, ProgressBar } from "@/components/ui";
-import { Power as PowerIcon, RefreshCw } from "lucide-vue-next";
+import { RefreshCw } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
 import { useLibraryStore } from "@/stores/library";
 import SystemUpdates from "./system-updates/SystemUpdates.vue";
@@ -176,8 +150,10 @@ interface DiskInfo {
 }
 
 const { on: onGamepad } = useGamepad();
-const focusedIndex = ref(0);
 const libraryStore = useLibraryStore();
+
+// Focus state for gamepad navigation
+const focusedIndex = ref(0); // 0 = Sync, 1 = Resync
 
 // System state
 const systemInfo = ref<SystemInfo | null>(null);
@@ -219,17 +195,6 @@ async function handleResync() {
   }
 }
 
-// Shutdown system
-async function shutdown() {
-  if (confirm("Êtes-vous sûr de vouloir éteindre la machine ?")) {
-    try {
-      await api.shutdownSystem();
-    } catch (_error) {
-      // Shutdown failed silently
-    }
-  }
-}
-
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -254,13 +219,23 @@ async function loadSystemInfo() {
 // Gamepad navigation
 onMounted(() => {
   loadSystemInfo();
+
   onGamepad("navigate", ({ direction }: { direction: string }) => {
-    // Navigation will be handled by SystemUpdates component
+    // Left/Right navigation between buttons
+    if (direction === "left" && focusedIndex.value > 0) {
+      focusedIndex.value--;
+    } else if (direction === "right" && focusedIndex.value < 1) {
+      focusedIndex.value++;
+    }
   });
 
   onGamepad("confirm", () => {
+    if (syncing.value) return; // Don't trigger if syncing
+
     if (focusedIndex.value === 0) {
-      shutdown();
+      handleSync();
+    } else if (focusedIndex.value === 1) {
+      handleResync();
     }
   });
 });

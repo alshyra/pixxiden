@@ -1,11 +1,6 @@
 <template>
   <div class="animate-fade-in">
     <header class="mb-14">
-      <h2
-        class="text-6xl font-black text-white italic tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-      >
-        Avancé
-      </h2>
       <p class="text-gray-500 text-lg italic font-medium">
         Configuration experte de la couche de compatibilité.
       </p>
@@ -17,12 +12,13 @@
         <SettingsRow
           title="Version Proton Global"
           description="Compatibilité par défaut pour les titres Windows."
+          :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)] rounded-lg': focusedIndex === 0 }"
         >
           <Select
             :model-value="protonVersion"
             :options="protonVersions"
             placeholder="Sélectionner une version"
-            @update:model-value="(val) => $emit('update:protonVersion', String(val))"
+            @update:model-value="(val) => updateProtonVersion(String(val))"
           />
         </SettingsRow>
 
@@ -31,10 +27,11 @@
           title="MangoHud Overlay"
           description="Affiche FPS, températures et utilisation matérielle."
           :divider="false"
+          :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)] rounded-lg': focusedIndex === 1 }"
         >
           <Toggle
             :model-value="mangoHudEnabled"
-            @update:model-value="$emit('update:mangoHudEnabled', $event)"
+            @update:model-value="updateMangoHud"
           />
         </SettingsRow>
       </Card>
@@ -55,6 +52,7 @@ import { Card, Select, Toggle } from "@/components/ui";
 import SettingsRow from "../layout/SettingsRow.vue";
 import { AlertTriangle } from "lucide-vue-next";
 import { onMounted, ref } from "vue";
+import { useGamepad } from "@/composables/useGamepad";
 import * as api from "@/services/api";
 
 // Proton versions options
@@ -69,6 +67,11 @@ const protonVersions = [
 const protonVersion = ref("ge-proton-8-32");
 const mangoHudEnabled = ref(false);
 
+// Focus state for gamepad navigation
+const focusedIndex = ref(0); // 0 = Proton Select, 1 = MangoHud Toggle
+
+const { on: onGamepad } = useGamepad();
+
 async function loadSettings() {
   try {
     const settings = await api.getSettings();
@@ -79,5 +82,40 @@ async function loadSettings() {
   }
 }
 
-onMounted(() => loadSettings())
+async function updateProtonVersion(version: string) {
+  protonVersion.value = version;
+  try {
+    // TODO: Implement updateSettings API
+    console.log("Proton version updated to:", version);
+  } catch (error) {
+    console.error("Failed to update Proton version:", error);
+  }
+}
+
+async function updateMangoHud(enabled: boolean) {
+  mangoHudEnabled.value = enabled;
+  try {
+    // TODO: Implement updateSettings API
+    console.log("MangoHud updated to:", enabled);
+  } catch (error) {
+    console.error("Failed to update MangoHud setting:", error);
+  }
+}
+
+onMounted(() => {
+  loadSettings();
+
+  // Gamepad navigation
+  onGamepad("navigate", ({ direction }: { direction: string }) => {
+    // Up/Down navigation between settings
+    if (direction === "up" && focusedIndex.value > 0) {
+      focusedIndex.value--;
+    } else if (direction === "down" && focusedIndex.value < 1) {
+      focusedIndex.value++;
+    }
+  });
+
+  // For now, users must click/tap to change values
+  // Implementing full gamepad control for Select/Toggle requires more work
+});
 </script>

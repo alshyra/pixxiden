@@ -16,6 +16,7 @@ export interface GameAssets {
   heroPath: string;
   coverPath: string;
   gridPath: string;
+  horizontalGridPath: string;
   logoPath: string;
   iconPath: string;
   screenshotPaths: string[];
@@ -114,6 +115,7 @@ export function defaultGameAssets(): GameAssets {
     heroPath: "",
     coverPath: "",
     gridPath: "",
+    horizontalGridPath: "",
     logoPath: "",
     iconPath: "",
     screenshotPaths: [],

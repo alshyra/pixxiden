@@ -65,9 +65,10 @@ export class SteamGridDbEnricher {
       await debug(`SteamGridDB: Found game ID ${gameId}`);
 
       // Fetch all artwork types for this game
-      const [hero, grid, logo, icon] = await Promise.all([
+      const [hero, grid, horizontalGrid, logo, icon] = await Promise.all([
         this.getHeroImage(gameId),
         this.getGridImage(gameId),
+        this.getHorizontalGridImage(gameId),
         this.getLogoImage(gameId),
         this.getIconImage(gameId),
       ]);
@@ -75,6 +76,7 @@ export class SteamGridDbEnricher {
       return {
         hero,
         grid,
+        horizontalGrid,
         logo,
         icon,
       };
@@ -124,10 +126,18 @@ export class SteamGridDbEnricher {
   }
 
   /**
-   * Get grid image (box art)
+   * Get grid image (vertical box art, 2:3 ratio — e.g. 600x900)
    */
   private async getGridImage(gameId: number): Promise<string | undefined> {
-    const images = await this.fetchImages(gameId, "grids");
+    const images = await this.fetchImages(gameId, "grids", "600x900");
+    return images.length > 0 ? images[0].url : undefined;
+  }
+
+  /**
+   * Get horizontal grid image (landscape, 92:43 ratio — e.g. 920x430, 460x215)
+   */
+  private async getHorizontalGridImage(gameId: number): Promise<string | undefined> {
+    const images = await this.fetchImages(gameId, "grids", "920x430,460x215");
     return images.length > 0 ? images[0].url : undefined;
   }
 
@@ -149,14 +159,21 @@ export class SteamGridDbEnricher {
 
   /**
    * Fetch images of a specific type for a game
+   * @param dimensions Optional SteamGridDB dimensions filter (e.g. "600x900" or "920x430,460x215")
    */
   private async fetchImages(
     gameId: number,
     type: "heroes" | "grids" | "logos" | "icons",
+    dimensions?: string,
   ): Promise<SteamGridDbImage[]> {
     if (!this.config) throw new Error("SteamGridDB not configured");
 
-    const response = await fetch(`${SteamGridDbEnricher.API_URL}/${type}/game/${gameId}`, {
+    let url = `${SteamGridDbEnricher.API_URL}/${type}/game/${gameId}`;
+    if (dimensions) {
+      url += `?dimensions=${dimensions}`;
+    }
+
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
@@ -219,9 +236,10 @@ export class SteamGridDbEnricher {
       await debug(`SteamGridDB: Found game ID ${gameId} for Steam ID ${steamAppId}`);
 
       // Fetch all artwork types
-      const [hero, grid, logo, icon] = await Promise.all([
+      const [hero, grid, horizontalGrid, logo, icon] = await Promise.all([
         this.getHeroImage(gameId),
         this.getGridImage(gameId),
+        this.getHorizontalGridImage(gameId),
         this.getLogoImage(gameId),
         this.getIconImage(gameId),
       ]);
@@ -229,6 +247,7 @@ export class SteamGridDbEnricher {
       return {
         hero,
         grid,
+        horizontalGrid,
         logo,
         icon,
       };

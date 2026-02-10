@@ -50,6 +50,7 @@ export interface ProtonDbData {
 export interface SteamGridDbData {
   hero?: string;
   grid?: string;
+  horizontalGrid?: string;
   logo?: string;
   icon?: string;
 }
@@ -63,8 +64,9 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
  * History:
  *  v1 — initial (manual IGDB, separate HLTB, no external_games)
  *  v2 — IGDB time_to_beats + external_games for Steam App ID (2025-06)
+ *  v3 — SteamGridDB horizontal grid images (2026-02)
  */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 export class EnrichmentService {
   private igdb: IgdbEnricher;
@@ -208,6 +210,7 @@ export class EnrichmentService {
         hero?: string;
         cover?: string;
         grid?: string;
+        horizontalGrid?: string;
         logo?: string;
         icon?: string;
         screenshots?: string[];
@@ -217,6 +220,7 @@ export class EnrichmentService {
       if (data.steamGridDb) {
         imageUrls.hero = data.steamGridDb.hero;
         imageUrls.grid = data.steamGridDb.grid;
+        imageUrls.horizontalGrid = data.steamGridDb.horizontalGrid;
         imageUrls.logo = data.steamGridDb.logo;
         imageUrls.icon = data.steamGridDb.icon;
       }
@@ -240,6 +244,7 @@ export class EnrichmentService {
         if (cached.heroPath) enriched.assets.heroPath = cached.heroPath;
         if (cached.coverPath) enriched.assets.coverPath = cached.coverPath;
         if (cached.gridPath) enriched.assets.gridPath = cached.gridPath;
+        if (cached.horizontalGridPath) enriched.assets.horizontalGridPath = cached.horizontalGridPath;
         if (cached.logoPath) enriched.assets.logoPath = cached.logoPath;
         if (cached.iconPath) enriched.assets.iconPath = cached.iconPath;
         if (cached.screenshotPaths?.length) {
@@ -252,6 +257,7 @@ export class EnrichmentService {
       if (data.steamGridDb) {
         enriched.assets.heroPath = data.steamGridDb.hero || "";
         enriched.assets.gridPath = data.steamGridDb.grid || "";
+        enriched.assets.horizontalGridPath = data.steamGridDb.horizontalGrid || "";
         enriched.assets.logoPath = data.steamGridDb.logo || "";
         enriched.assets.iconPath = data.steamGridDb.icon || "";
       }

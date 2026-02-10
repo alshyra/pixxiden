@@ -1,6 +1,7 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useGamepad, type ControllerType } from "./useGamepad";
+import { useCurrentGame } from "./useCurrentGame";
 
 export type { ControllerType };
 
@@ -34,28 +35,32 @@ export function useFooterControls() {
           { key: "LB", label: "Filtre ←", action: "prev-filter" },
           { key: "RB", label: "Filtre →", action: "next-filter" },
           { key: "A", label: "Sélectionner", action: "select" },
-          { key: "B", label: "Retour", action: "back" },
           { key: "X", label: "Options", action: "options" },
         ];
 
-      case "settings":
-        return [
-          { key: "A", label: "Modifier", action: "edit" },
-          { key: "B", label: "Retour", action: "back" },
-        ];
+      case "game-detail": {
+        // Get game state to determine the correct action label
+        const { game } = useCurrentGame();
+        const actionLabel = computed(() =>
+          game.value?.installation.installed ? "Lancer" : "Installer"
+        );
 
-      case "game-detail":
         return [
-          { key: "A", label: "Lancer", action: "play" },
+          { key: "A", label: actionLabel.value, action: "play" },
           { key: "B", label: "Retour", action: "back" },
           { key: "X", label: "Options", action: "options" },
         ];
+      }
 
       case "downloads":
         return [
-          { key: "A", label: "Détails", action: "details" },
           { key: "B", label: "Retour", action: "back" },
-          { key: "X", label: "Annuler", action: "cancel" },
+        ];
+
+      case "system":
+      case "accounts":
+        return [
+          { key: "B", label: "Retour", action: "back" },
         ];
 
       default:

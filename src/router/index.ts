@@ -1,14 +1,9 @@
 import GameDetails from "@/views/GameDetails.vue";
 import GameOverlayWindow from "@/views/GameOverlayWindow.vue";
 import LibraryFullscreen from "@/views/LibraryFullscreen.vue";
-import SettingsView from "@/views/SettingsView.vue";
+import SystemView from "@/views/SystemView.vue";
+import AccountsView from "@/views/AccountsView.vue";
 import { createRouter, createWebHistory } from "vue-router";
-import {
-  SettingsStore,
-  SettingsAdvanced,
-  SettingsApiKeys,
-  SettingsSystem,
-} from "@/components/settings";
 
 const routes = [
   {
@@ -32,31 +27,14 @@ const routes = [
     component: () => import("@/views/DownloadsView.vue"),
   },
   {
-    path: "/settings/",
-    component: SettingsView,
-    children: [
-      {
-        path: "",
-        name: "settings",
-        redirect: "/settings/system",
-      },
-      {
-        path: "system",
-        component: SettingsSystem,
-      },
-      {
-        path: "store",
-        component: SettingsStore,
-      },
-      {
-        path: "api-keys",
-        component: SettingsApiKeys,
-      },
-      {
-        path: "advanced",
-        component: SettingsAdvanced,
-      },
-    ],
+    path: "/system",
+    name: "system",
+    component: SystemView,
+  },
+  {
+    path: "/accounts",
+    name: "accounts",
+    component: AccountsView,
   },
 ];
 

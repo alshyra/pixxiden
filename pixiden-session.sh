@@ -13,14 +13,4 @@ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 # Attendre que Plasma soit complètement lancé
 # sleep 5 
 # Lancement de gamescope avec Pixxiden
-exec gamescope \
-    --output-width 1920 \
-    --output-height 1080 \
-    --nested-width 1920 \
-    --nested-height 1080 \
-    --nested-refresh 60 \
-    --scaler auto \
-    --filter linear \
-    --fullscreen \
-    --adaptive-sync \
-    -- /opt/pixxiden/Pixxiden.AppImage
+exec cage /opt/pixxiden/Pixxiden.AppImage

@@ -22,6 +22,7 @@ export interface CachedImagePaths {
   heroPath?: string;
   coverPath?: string;
   gridPath?: string;
+  horizontalGridPath?: string;
   logoPath?: string;
   iconPath?: string;
   screenshotPaths?: string[];
@@ -129,6 +130,7 @@ export class ImageCacheService {
       hero?: string;
       cover?: string;
       grid?: string;
+      horizontalGrid?: string;
       logo?: string;
       icon?: string;
       screenshots?: string[];
@@ -168,6 +170,16 @@ export class ImageCacheService {
       downloads.push(
         this.downloadImage(urls.grid, dest).then((path) => {
           result.gridPath = path;
+        }),
+      );
+    }
+
+    if (urls.horizontalGrid) {
+      const ext = this.getExtension(urls.horizontalGrid);
+      const dest = await join(gameDir, `horizontal_grid.${ext}`);
+      downloads.push(
+        this.downloadImage(urls.horizontalGrid, dest).then((path) => {
+          result.horizontalGridPath = path;
         }),
       );
     }
@@ -215,8 +227,9 @@ export class ImageCacheService {
     await debug(
       `Cached images for ${gameId}: ` +
         `hero=${!!result.heroPath} cover=${!!result.coverPath} ` +
-        `grid=${!!result.gridPath} logo=${!!result.logoPath} ` +
-        `icon=${!!result.iconPath} screenshots=${result.screenshotPaths?.length ?? 0}`,
+        `grid=${!!result.gridPath} horizontalGrid=${!!result.horizontalGridPath} ` +
+        `logo=${!!result.logoPath} icon=${!!result.iconPath} ` +
+        `screenshots=${result.screenshotPaths?.length ?? 0}`,
     );
 
     return result;

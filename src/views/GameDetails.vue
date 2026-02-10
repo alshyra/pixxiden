@@ -47,12 +47,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref, provide } from "vue";
 import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import { useLibraryStore } from "@/stores/library";
+import { useDownloadsStore } from "@/stores/downloads";
 import { useGamepad } from "@/composables/useGamepad";
 import { useCurrentGame } from "@/composables/useCurrentGame";
+import { useSideNavStore } from "@/stores/sideNav";
 import { GameHeroSection, GameInfoCard, GameStatsGrid, LaunchOverlay } from "@/components/game";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 
@@ -62,14 +64,21 @@ import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
  * Architecture "Smart Components":
  * - Les composants enfants (GameHeroSection, GameInfoCard, GameStatsGrid, GameActions)
  *   récupèrent eux-mêmes leurs données via le composable useCurrentGame
- * - Le parent ne fait que l'orchestration (navigation, lifecycle)
+ * - Le parent ne fait que l'orchestration (navigation, lifecycle, focus)
  * - Zéro "Props Drilling" : les données ne passent plus par le parent
+ *
+ * Navigation Gamepad:
+ * - Focus automatique sur le bouton principal (Installer/Lancer)
+ * - A/Confirm: Exécute l'action (Install ou Play selon l'état)
+ * - B/Back: Retour à la bibliothèque
  */
 
 // === STORE & COMPOSABLES ===
 const router = useRouter();
 const libraryStore = useLibraryStore();
+const downloadsStore = useDownloadsStore();
 const { on: onGamepad } = useGamepad();
+const sideNavStore = useSideNavStore();
 
 // useCurrentGame centralise l'accès aux données du jeu courant
 const {
@@ -83,19 +92,44 @@ const {
   cleanup,
 } = useCurrentGame();
 
+// === FOCUS STATE ===
+// Focus toujours sur le bouton d'action principal pour navigation gamepad
+const actionFocused = ref(true);
+
+// Expose le focus aux composants enfants via provide
+provide("actionFocused", actionFocused);
+
 // === INPUT HANDLERS ===
 onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
   router.back();
 });
 
 onKeyStroke(KEYBOARD_SHORTCUTS.CONFIRM, () => {
-  if (game.value?.installation.installed) {
-    playGame();
-  }
+  handleConfirm();
 });
 
-onGamepad("back", () => router.back());
-onGamepad("confirm", () => game.value?.installation.installed && playGame());
+onGamepad("back", () => {
+  if (sideNavStore.isOpen) return;
+  router.back();
+});
+onGamepad("confirm", () => {
+  if (sideNavStore.isOpen) return;
+  handleConfirm();
+});
+
+// Handler unifié pour Confirm: gère Install ET Play
+function handleConfirm() {
+  if (!game.value) return;
+
+  // Si le jeu n'est pas installé: ouvrir InstallModal
+  if (!game.value.installation.installed) {
+    downloadsStore.openInstallModal(game.value.id);
+    return;
+  }
+
+  // Si le jeu est installé: lancer
+  playGame();
+}
 
 // === LIFECYCLE ===
 onMounted(async () => {

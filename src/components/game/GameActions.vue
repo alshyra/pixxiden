@@ -6,6 +6,7 @@
       variant="primary"
       size="lg"
       class="w-full"
+      :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': actionFocused }"
       data-testid="install-button"
       @click="openInstall"
     >
@@ -45,6 +46,7 @@
       variant="success"
       size="lg"
       class="w-full"
+      :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': actionFocused }"
       data-testid="play-button"
       @click="playGame"
     >
@@ -75,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject, ref, type Ref } from "vue";
 import { Button, ProgressBar } from "@/components/ui";
 import { Download, Play, Square } from "lucide-vue-next";
 import { useCurrentGame } from "@/composables/useCurrentGame";
@@ -86,10 +88,15 @@ import InstallModal from "./InstallModal.vue";
  * GameActions - Smart Component autonome
  * Gère les actions du jeu (Install/Play/Stop) via useCurrentGame + useDownloadsStore
  * Zéro props, zéro events — tout passe par les stores
+ *
+ * Focus gamepad injecté depuis GameDetails pour afficher le ring visuel
  */
 
 const { game, isLaunching, playGame, forceCloseGame } = useCurrentGame();
 const downloadsStore = useDownloadsStore();
+
+// Inject focus state from parent (GameDetails)
+const actionFocused = inject<Ref<boolean>>("actionFocused", ref(false));
 
 const currentDownload = computed(() => {
   if (!game.value) return undefined;

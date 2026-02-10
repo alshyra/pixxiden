@@ -118,6 +118,7 @@ import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import { useLibraryStore } from "@/stores/library";
 import { useGamepad } from "@/composables/useGamepad";
+import { useSideNavStore } from "@/stores/sideNav";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 import { Button } from "@/components/ui";
 import { RefreshCw, Package } from "lucide-vue-next";
@@ -132,6 +133,7 @@ const router = useRouter();
 const libraryStore = useLibraryStore();
 const { games } = storeToRefs(libraryStore);
 const { on: onGamepad } = useGamepad();
+const sideNavStore = useSideNavStore();
 
 // Carousel ref for programmatic scroll
 const carouselRef = ref<InstanceType<typeof GameCarousel> | null>(null);
@@ -215,11 +217,6 @@ function openGameDetails(game: Game | null) {
   router.push(`/game/${gameToOpen.id}`);
 }
 
-// Open settings
-function openSettings() {
-  router.push("/settings");
-}
-
 // Load games
 async function loadGames() {
   loading.value = true;
@@ -265,7 +262,7 @@ onKeyStroke(["e", "E"], () => {
 onKeyStroke(["s", "S"], (event: KeyboardEvent) => {
   const target = document.activeElement as HTMLElement;
   if (target?.tagName !== "INPUT" && !event.ctrlKey && !event.metaKey && !event.altKey) {
-    openSettings();
+    sideNavStore.open();
   }
 });
 
@@ -313,6 +310,7 @@ function switchFilter(direction: "prev" | "next") {
 
 // Setup gamepad handlers
 onGamepad("navigate", ({ direction }: { direction: string }) => {
+  if (sideNavStore.isOpen) return;
   if (direction === "left") {
     navigateCarousel("left");
   } else if (direction === "right") {
@@ -325,21 +323,25 @@ onGamepad("navigate", ({ direction }: { direction: string }) => {
 });
 
 onGamepad("confirm", () => {
+  if (sideNavStore.isOpen) return;
   if (selectedGame.value) {
     openGameDetails(selectedGame.value);
   }
 });
 
 onGamepad("options", () => {
-  openSettings();
+  if (sideNavStore.isOpen) return;
+  sideNavStore.open();
 });
 
 // LB/RB for quick filter switching
 onGamepad("lb", () => {
+  if (sideNavStore.isOpen) return;
   switchFilter("prev");
 });
 
 onGamepad("rb", () => {
+  if (sideNavStore.isOpen) return;
   switchFilter("next");
 });
 </script>

@@ -100,14 +100,14 @@ describe("SettingsView", () => {
       expect(wrapper.exists()).toBe(true);
     });
 
-    it("should have Pixxiden logo", () => {
+    it("should have Paramètres title", () => {
       const wrapper = mountWithRouter();
-      expect(wrapper.text()).toContain("Pixxiden");
+      expect(wrapper.text()).toContain("Paramètres");
     });
 
-    it("should have version badge", () => {
+    it("should have navigation sections", () => {
       const wrapper = mountWithRouter();
-      expect(wrapper.text()).toContain("v0.1.0-alpha");
+      expect(wrapper.text()).toContain("Système");
     });
   });
 
