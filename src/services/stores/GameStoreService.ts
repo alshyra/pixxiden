@@ -139,6 +139,7 @@ export abstract class GameStoreService {
       assets: {
         heroPath: (row.hero_path as string) || "",
         coverPath: (row.cover_path as string) || "",
+        horizontalGridPath: (row.horizontal_grid_path as string) || "",
         gridPath: (row.grid_path as string) || "",
         logoPath: (row.logo_path as string) || "",
         iconPath: (row.icon_path as string) || "",
@@ -147,6 +148,7 @@ export abstract class GameStoreService {
       },
       installation: {
         installed: Boolean(row.installed),
+        runnerPath: (row.runner_path as string) || "",
         installPath: (row.install_path as string) || "",
         installSize: (row.install_size as string) || "",
         customExecutable: (row.custom_executable as string) || "",

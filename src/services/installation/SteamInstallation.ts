@@ -34,7 +34,7 @@ export class SteamInstallation extends GameInstallationService {
     // Don't mark as installed immediately — Steam will handle that
   }
 
-  async uninstall(gameId: string, storeId: string): Promise<void> {
+  async uninstall(_gameId: string, storeId: string): Promise<void> {
     const result = await this.sidecar.runCommand("xdg-open", [`steam://uninstall/${storeId}`]);
 
     if (result.code !== 0) {

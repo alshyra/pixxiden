@@ -9,9 +9,20 @@
  */
 
 import { SidecarService, type StreamingHandle, type SidecarName } from "../base/SidecarService";
+import { WindowService } from "../window/WindowService";
 import type { Game } from "@/types";
 import { open } from "@tauri-apps/plugin-shell";
+import { emit } from "@tauri-apps/api/event";
 import { info, debug, warn, error as logError } from "@tauri-apps/plugin-log";
+
+/** Environment variables to disable Steam overlay UI without breaking Steam Input */
+const STEAM_SUPPRESS_ENV: Record<string, string> = {
+  // Disable Steam overlay injection for non-Steam games
+  STEAM_DISABLE_OVERLAY: "1",
+  // Prevent Steam from drawing overlay UI
+  SteamNoOverlayUIDrawing: "1",
+  // Note: LD_PRELOAD is NOT cleared to preserve Steam Input for controller support
+};
 
 export class GameLaunchService {
   private static instance: GameLaunchService | null = null;
@@ -58,13 +69,25 @@ export class GameLaunchService {
       return;
     }
 
-    // Parse command: first element is the sidecar name, rest are args
-    const [sidecarName, ...args] = launchCommand;
+    // Parse command: first element is sidecar name (legendary, gogdl, nile, umu-run-wrapper)
+    const [firstArg, ...args] = launchCommand;
 
-    await info(`[GameLaunch] Launching ${game.info.title} via ${sidecarName}: ${args.join(" ")}`);
+    // Merge Steam-suppression env vars to prevent Steam overlay conflicts
+    // Note: When using umu-run, STEAM_DISABLE_OVERLAY is ignored (umu handles Steam Input properly)
+    const launchEnv = { ...STEAM_SUPPRESS_ENV, ...env };
 
+    await info(`[GameLaunch] Launching ${game.info.title} via ${firstArg}: ${args.join(" ")}`);
+    if (Object.keys(env).length > 0) {
+      await info(`[GameLaunch] Environment: ${JSON.stringify(env)}`);
+    }
+
+    // Hide Pixxiden main window so the game takes the foreground
+    const windowService = WindowService.getInstance();
+    await windowService.hideForGame();
+
+    // Spawn the sidecar (all commands are now sidecars, including umu-run-wrapper)
     const handle = await this.sidecar.spawnStreaming(
-      sidecarName as SidecarName,
+      firstArg as SidecarName,
       args,
       {
         onStdout: (line) => {
@@ -82,7 +105,7 @@ export class GameLaunchService {
           }
         },
       },
-      { env },
+      { env: launchEnv },
     );
 
     this.activeGames.set(game.id, handle);
@@ -92,12 +115,26 @@ export class GameLaunchService {
       .then(async (result) => {
         this.activeGames.delete(game.id);
         await info(`[GameLaunch] ${game.info.title} exited with code ${result.code}`);
+
+        // Restore Pixxiden main window when game exits
+        await windowService.restoreAfterGame();
+
+        // Notify that game has exited
+        await emit("game-exited", { gameId: game.id, exitCode: result.code });
+
         callbacks.onExit?.(result.code);
       })
       .catch(async (error) => {
         this.activeGames.delete(game.id);
         const msg = error instanceof Error ? error.message : String(error);
         await logError(`[GameLaunch] ${game.info.title} error: ${msg}`);
+
+        // Restore Pixxiden main window even on error
+        await windowService.restoreAfterGame();
+
+        // Notify that game has exited with error
+        await emit("game-exited", { gameId: game.id, error: msg });
+
         callbacks.onError?.(msg);
       });
   }
@@ -109,6 +146,10 @@ export class GameLaunchService {
       await info(`[GameLaunch] Force closing game ${gameId}`);
       await handle.kill();
       this.activeGames.delete(gameId);
+
+      // Restore Pixxiden main window after force close
+      const windowService = WindowService.getInstance();
+      await windowService.restoreAfterGame();
     } else {
       await warn(`[GameLaunch] No active process for ${gameId}`);
     }

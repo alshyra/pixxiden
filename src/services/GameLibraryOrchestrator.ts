@@ -17,6 +17,7 @@ import { DatabaseService, SidecarService } from "./base";
 import { LegendaryService, GogdlService, NileService } from "./stores";
 import type { StoreCapabilities } from "./stores";
 import { ProtonService, type ProtonConfig } from "./runners";
+import { UmuLauncherService } from "./runners/UmuLauncherService";
 import { warn, info } from "@tauri-apps/plugin-log";
 import { mkdir } from "@tauri-apps/plugin-fs";
 
@@ -38,6 +39,7 @@ export class GameLibraryOrchestrator {
   private legendary: LegendaryService;
   private gogdl: GogdlService;
   private nile: NileService;
+  private umuLauncher: UmuLauncherService;
 
   private constructor() {
     const db = DatabaseService.getInstance();
@@ -48,6 +50,7 @@ export class GameLibraryOrchestrator {
     this.legendary = new LegendaryService(sidecar, db);
     this.gogdl = new GogdlService(sidecar, db);
     this.nile = new NileService(sidecar, db);
+    this.umuLauncher = UmuLauncherService.getInstance();
   }
 
   static getInstance(): GameLibraryOrchestrator {
@@ -211,10 +214,42 @@ export class GameLibraryOrchestrator {
       }
     }
 
+    // Build launch command (store-specific CLI + args)
+    let launchCommand = await this.buildLaunchCommand(game, protonConfig);
+
+    // Build environment variables (Proton env + STEAM_COMPAT_DATA_PATH)
+    let env = await this.buildLaunchEnv(game, protonConfig);
+
+    // If umu-run is available, the game has an executablePath (.exe), and we're using Proton,
+    // bypass the CLI command entirely and launch the .exe directly via umu-run-wrapper.
+    // This provides Steam Runtime + Steam Input for proper controller support.
+    const protonPath = this.resolveProtonPath(game, protonConfig);
+    const executablePath = game.installation.executablePath;
+
+    if (protonPath && executablePath && (await this.umuLauncher.isAvailable())) {
+      const winePrefix = game.installation.winePrefix || env.STEAM_COMPAT_DATA_PATH || "";
+      
+      const [umuCommand, umuEnv] = this.umuLauncher.buildDirectLaunch({
+        winePrefix,
+        protonPath,
+        store: game.storeData.store,
+        storeId: game.storeData.storeId,
+        executablePath,
+      });
+
+      launchCommand = umuCommand;
+      // Merge UMU env vars with existing env (UMU vars take precedence)
+      env = { ...env, ...umuEnv };
+
+      await info(
+        `[Orchestrator] Using umu-run for ${game.info.title}: exe=${executablePath} (GAMEID=${umuEnv.GAMEID})`,
+      );
+    }
+
     return {
       game,
-      launchCommand: await this.buildLaunchCommand(game, protonConfig),
-      env: await this.buildLaunchEnv(game, protonConfig),
+      launchCommand,
+      env,
     };
   }
 
@@ -387,6 +422,15 @@ export class GameLibraryOrchestrator {
     },
   ): Promise<void> {
     await this.gameRepo.updateMetadata(gameId, updates);
+  }
+
+  /**
+   * Update the executable path for a game (used for umu-run direct launch)
+   * This is the Windows .exe path that umu-run will execute.
+   */
+  async updateExecutablePath(gameId: string, executablePath: string): Promise<void> {
+    await this.gameRepo.updateEnrichment(gameId, { executable_path: executablePath });
+    await info(`[Orchestrator] Updated executable_path for ${gameId}: ${executablePath}`);
   }
 
   /**

@@ -5,6 +5,7 @@ export { default as InstallModal } from "./InstallModal.vue";
 export { default as LaunchOverlay } from "./LaunchOverlay.vue";
 export { default as GameOverlay } from "./GameOverlay.vue";
 export { default as OverlayActionCard } from "./OverlayActionCard.vue";
+export { default as ExecutableConfigModal } from "./ExecutableConfigModal.vue";
 
 // New sub-components for GameDetails refactor
 export { default as GameInfoCard } from "./GameInfoCard.vue";

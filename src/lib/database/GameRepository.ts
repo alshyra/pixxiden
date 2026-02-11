@@ -242,6 +242,7 @@ export class GameRepository {
       wineVersion?: string;
       runner?: string;
       runnerPath?: string;
+      executablePath?: string;
     },
   ): Promise<void> {
     await this.db.execute(
@@ -253,6 +254,7 @@ export class GameRepository {
         wine_version = COALESCE(?, wine_version),
         runner = COALESCE(?, runner),
         runner_path = COALESCE(?, runner_path),
+        executable_path = COALESCE(?, executable_path),
         updated_at = ?
       WHERE id = ?`,
       [
@@ -263,6 +265,7 @@ export class GameRepository {
         data.wineVersion || null,
         data.runner || null,
         data.runnerPath || null,
+        data.executablePath || null,
         new Date().toISOString(),
         gameId,
       ],

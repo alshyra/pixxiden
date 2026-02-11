@@ -97,6 +97,12 @@ vi.mock("@/services/runners", () => ({
       getRunnersDir: vi.fn(async () => "/home/user/.local/share/pixxiden/runners"),
     })),
   },
+  UmuLauncherService: {
+    getInstance: vi.fn(() => ({
+      // Mock umu-run as not available for existing tests
+      isAvailable: vi.fn(async () => false),
+    })),
+  },
 }));
 
 // Mock tauri log
@@ -190,7 +196,7 @@ describe("Proton Launch Integration", () => {
         "b22ce34b4ce0408c97a888554447479b",
         "--no-wine",
         "--wrapper",
-        `'${mockProtonConfig.protonPath}' waitforexitandrun`,
+        `/usr/bin/env -u PYTHONHOME -u PYTHONPATH -u PYTHONDONTWRITEBYTECODE -u _MEIPASS2 -u LD_LIBRARY_PATH ${mockProtonConfig.protonPath} waitforexitandrun`,
       ]);
     });
 
@@ -266,7 +272,7 @@ describe("Proton Launch Integration", () => {
         "windows",
         "--no-wine",
         "--wrapper",
-        `'${mockProtonConfig.protonPath}' waitforexitandrun`,
+        `/usr/bin/env -u PYTHONHOME -u PYTHONPATH -u PYTHONDONTWRITEBYTECODE -u _MEIPASS2 -u LD_LIBRARY_PATH ${mockProtonConfig.protonPath} waitforexitandrun`,
         "/home/user/Games/GOG/The Witcher 3",
         "1234567890",
       ]);

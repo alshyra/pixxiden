@@ -40,21 +40,38 @@
       </ProgressBar>
     </div>
 
-    <!-- Play Button -->
-    <Button
+    <!-- Play Button + Config -->
+    <div
       v-if="game?.installation.installed && !isLaunching"
-      variant="success"
-      size="lg"
-      class="w-full"
-      :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': actionFocused }"
-      data-testid="play-button"
-      @click="playGame"
+      class="flex gap-2"
     >
-      <template #icon>
-        <Play class="w-5 h-5" />
-      </template>
-      Lancer le jeu
-    </Button>
+      <Button
+        variant="success"
+        size="lg"
+        class="flex-1"
+        :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': actionFocused }"
+        data-testid="play-button"
+        @click="playGame"
+      >
+        <template #icon>
+          <Play class="w-5 h-5" />
+        </template>
+        Lancer le jeu
+      </Button>
+
+      <!-- Exe Config Button (non-Steam games only) -->
+      <Button
+        v-if="game?.storeData.store !== 'steam'"
+        variant="ghost"
+        size="lg"
+        class="shrink-0 !px-3"
+        data-testid="exe-config-button"
+        :title="game?.installation.executablePath ? 'Modifier l\'exécutable' : 'Configurer l\'exécutable'"
+        @click="showExeConfig = true"
+      >
+        <Settings class="w-5 h-5" />
+      </Button>
+    </div>
 
     <!-- Force Close Button -->
     <Button
@@ -73,16 +90,20 @@
 
     <!-- Install Modal (autonomous — no props, no events) -->
     <InstallModal />
+
+    <!-- Executable Config Modal -->
+    <ExecutableConfigModal v-model="showExeConfig" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from "vue";
 import { Button, ProgressBar } from "@/components/ui";
-import { Download, Play, Square } from "lucide-vue-next";
+import { Download, Play, Square, Settings } from "lucide-vue-next";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 import { useDownloadsStore } from "@/stores/downloads";
 import InstallModal from "./InstallModal.vue";
+import ExecutableConfigModal from "./ExecutableConfigModal.vue";
 
 /**
  * GameActions - Smart Component autonome
@@ -94,6 +115,7 @@ import InstallModal from "./InstallModal.vue";
 
 const { game, isLaunching, playGame, forceCloseGame } = useCurrentGame();
 const downloadsStore = useDownloadsStore();
+const showExeConfig = ref(false);
 
 // Inject focus state from parent (GameDetails)
 const actionFocused = inject<Ref<boolean>>("actionFocused", ref(false));

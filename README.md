@@ -59,6 +59,16 @@ chmod +x ~/.cache/tauri/linuxdeploy-x86_64.AppImage
 3. Connect your accounts (OAuth or Login).
 4. **Play.**
 
+### Controller
+
+- **Guide/PS**: Bring Pixxiden to front (during game) / Toggle side nav
+- **Start**: Toggle side nav
+- **A/Cross**: Confirm/Select
+- **B/Circle**: Back/Cancel
+- **D-Pad/Left Stick**: Navigate UI
+
+> **⚠️ Note**: If Steam is running in desktop mode, it may intercept the Guide/PS button before Pixxiden can see it. To fix this, configure Steam to disable the Guide button chord in `Settings → Controller → Desktop Configuration`.
+
 ## 📄 License
 
 This project is licensed under the MIT License.

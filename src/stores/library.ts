@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { emit } from "@tauri-apps/api/event";
 import { debug, info, error as logError } from "@tauri-apps/plugin-log";
 import type { Game } from "@/types";
 import {
@@ -151,6 +152,9 @@ export const useLibraryStore = defineStore("library", () => {
       const launchService = getGameLaunchService();
       await launchService.launchFromCommand(game, launchCommand, env);
 
+      // Emit event for App.vue to notify GameOverlay
+      await emit("game-launched", { gameId, game });
+
       // Update last played locally
       const localGame = games.value.find((g) => g.id === gameId);
       if (localGame) {
@@ -161,6 +165,7 @@ export const useLibraryStore = defineStore("library", () => {
     } catch (err) {
       error.value = "Failed to launch game";
       await logError(`Launch error: ${err}`);
+      await emit("game-launch-error", { gameId });
       throw err;
     }
   }
@@ -265,6 +270,22 @@ export const useLibraryStore = defineStore("library", () => {
     await orchestrator.updateGameMetadata(gameId, { isFavorite: newValue });
   }
 
+  /**
+   * Update the Windows executable path (.exe) for umu-run direct launch
+   */
+  async function updateExecutablePath(gameId: string, executablePath: string) {
+    if (!initialized.value) await initialize();
+
+    const orchestrator = getOrchestrator();
+    await orchestrator.updateExecutablePath(gameId, executablePath);
+
+    // Update local state
+    const game = games.value.find((g) => g.id === gameId);
+    if (game) {
+      game.installation.executablePath = executablePath;
+    }
+  }
+
   return {
     games,
     selectedGame,
@@ -287,5 +308,6 @@ export const useLibraryStore = defineStore("library", () => {
     getRecentlyPlayed,
     getFavorites,
     toggleFavorite,
+    updateExecutablePath,
   };
 });

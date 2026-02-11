@@ -16,21 +16,25 @@ use commands::{
     configure_sudoers,
     download_file,
     extract_runner_tarball,
+    // Window management
+    focus_main_window,
     get_disk_info,
     // System Updates
     get_distro,
     get_settings,
     get_system_info,
+    hide_main_window,
     install_system_updates,
     is_sudoers_configured,
     reboot_system,
     requires_system_reboot,
+    restore_main_window,
     save_settings,
     shutdown_system,
 };
 use gamepad::GamepadMonitor;
 use std::sync::Arc;
-use tauri::{Manager, Window};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_autostart::ManagerExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -55,6 +59,21 @@ pub fn run() {
                 ])
                 .max_file_size(5_000_000) // 5 MB rotation
                 .level(tauri_plugin_log::log::LevelFilter::Debug)
+                .filter(|metadata| {
+                    // Reduce noise from network/database libraries
+                    let target = metadata.target();
+                    if target.starts_with("hyper")
+                        || target.starts_with("reqwest")
+                        || target.starts_with("sqlx")
+                        || target.starts_with("cookie_store")
+                        || target.starts_with("h2")
+                        || target.starts_with("hyper_util")
+                    {
+                        metadata.level() <= tauri_plugin_log::log::Level::Warn
+                    } else {
+                        true
+                    }
+                })
                 .build(),
         )
         .plugin(tauri_plugin_sql::Builder::default().build())
@@ -107,6 +126,10 @@ pub fn run() {
             // Runners (Proton-GE) — only heavy I/O stays in Rust
             download_file,
             extract_runner_tarball,
+            // Window management
+            focus_main_window,
+            hide_main_window,
+            restore_main_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -115,7 +138,7 @@ pub fn run() {
 /// Start gamepad monitoring for overlay toggle
 #[tauri::command]
 fn start_gamepad_monitoring(
-    window: Window,
+    app: AppHandle,
     monitor: tauri::State<'_, Arc<GamepadMonitor>>,
 ) -> Result<(), String> {
     if monitor.is_running() {
@@ -123,7 +146,7 @@ fn start_gamepad_monitoring(
         return Ok(());
     }
 
-    monitor.start(window);
+    monitor.start(app);
     log::info!("Gamepad monitoring started");
     Ok(())
 }

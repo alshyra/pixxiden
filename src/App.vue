@@ -33,6 +33,7 @@ import { SetupWizard } from "@/components/ui";
 import PowerModal from "@/components/settings/PowerModal.vue";
 import { useGamepad } from "@/composables/useGamepad";
 import { useSideNavStore } from "@/stores/sideNav";
+import { getWindowService } from "@/services";
 import * as api from "@/services/api";
 import SplashScreen from "./views/SplashScreen.vue";
 
@@ -53,6 +54,7 @@ provide("isGameRunning", isGameRunning);
 
 let unlistenGameLaunched: UnlistenFn | null = null;
 let unlistenGameError: UnlistenFn | null = null;
+let unlistenGameExited: UnlistenFn | null = null;
 
 // Check if setup wizard is needed on mount
 onMounted(async () => {
@@ -66,25 +68,39 @@ onMounted(async () => {
 
   // Listen for game launch events
   try {
-    unlistenGameLaunched = await listen("game-launched", () => {
+    unlistenGameLaunched = await listen("game-launched", (event: any) => {
       debug("Game launched - PS button now controls game overlay");
       isGameRunning.value = true;
+      
+      // Notify the GameOverlay about the current game
+      if (event.payload?.game) {
+        gameOverlay.value?.setCurrentGame(event.payload.game);
+      }
     });
 
     unlistenGameError = await listen("game-launch-error", () => {
       debug("Game launch failed - resetting game state");
       isGameRunning.value = false;
+      gameOverlay.value?.setCurrentGame(null);
+    });
+
+    unlistenGameExited = await listen("game-exited", () => {
+      debug("Game exited - cleaning up overlay");
+      isGameRunning.value = false;
+      gameOverlay.value?.setCurrentGame(null);
     });
   } catch (e) {
     await warn(`Failed to setup game event listeners: ${e}`);
   }
 
-  // Handle PS/Guide button: toggle SideNav (or game overlay during gameplay)
-  gamepad.on("guide", () => {
+  // Handle PS/Guide button: toggle SideNav (or bring Pixxiden to front during gameplay)
+  gamepad.on("guide", async () => {
     if (isSplashScreen.value || showSetupWizard.value) return;
 
     if (isGameRunning.value && !sideNavStore.isOpen) {
-      // When game is running and SideNav is closed, toggle game overlay
+      // When game is running: bring Pixxiden to foreground and show overlay
+      const windowService = getWindowService();
+      await windowService.focusMainWindow();
       gameOverlay.value?.toggle();
     } else {
       // Toggle SideNav (SteamOS-style)
@@ -102,6 +118,7 @@ onMounted(async () => {
 onUnmounted(() => {
   unlistenGameLaunched?.();
   unlistenGameError?.();
+  unlistenGameExited?.();
 });
 
 function onSetupComplete() {

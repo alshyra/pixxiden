@@ -2,11 +2,10 @@
  * AuthService - Orchestrates authentication for all stores
  */
 
-import type { StoreType, AuthStatus } from "@/types";
-import { LegendaryService } from "../stores/LegendaryService";
+import type { AuthStatus, StoreType } from "@/types";
 import { GogdlService } from "../stores/GogdlService";
+import { LegendaryService } from "../stores/LegendaryService";
 import { NileService, type NileAuthResult } from "../stores/NileService";
-import { WebviewAuthHandler } from "./WebviewAuthHandler";
 
 export interface AuthStatusMap {
   epic: AuthStatus;
@@ -34,7 +33,6 @@ export class AuthService {
         legendary,
         gogdl,
         nile,
-        WebviewAuthHandler.getInstance(),
       );
     }
     return AuthService.instance;

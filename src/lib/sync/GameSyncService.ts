@@ -235,6 +235,7 @@ export class GameSyncService {
             wineVersion: heroicGame.wineVersion,
             runner: heroicGame.runner,
             runnerPath: heroicGame.wineBin,
+            executablePath: heroicGame.targetExe,
           });
           merged++;
           await debug(`[Heroic] Merged ${existing.info.title}: prefix=${heroicGame.winePrefix || '(none)'}, runner=${heroicGame.runner || '(none)'}`);

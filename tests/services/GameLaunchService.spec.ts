@@ -21,6 +21,11 @@ vi.mock("@tauri-apps/plugin-log", () => ({
   error: vi.fn(),
 }));
 
+// Mock @tauri-apps/api/event
+vi.mock("@tauri-apps/api/event", () => ({
+  emit: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock SidecarService
 const mockSpawnStreaming = vi.fn();
 vi.mock("@/services/base/SidecarService", () => ({
@@ -114,7 +119,13 @@ describe("GameLaunchService", () => {
           onStdout: expect.any(Function),
           onStderr: expect.any(Function),
         }),
-        { env },
+        {
+          env: expect.objectContaining({
+            STEAM_COMPAT_DATA_PATH: "/path/to/compat",
+            STEAM_DISABLE_OVERLAY: "1",
+            SteamNoOverlayUIDrawing: "1",
+          }),
+        },
       );
     });
 

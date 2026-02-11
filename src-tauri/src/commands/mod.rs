@@ -8,8 +8,10 @@
 mod runners;
 mod system;
 mod updates;
+mod window;
 
 // Re-export all commands
 pub use runners::*;
 pub use system::*;
 pub use updates::*;
+pub use window::*;

@@ -17,7 +17,7 @@
         "url": "index.html",
         "decorations": false,
         "transparent": true,
-        "alwaysOnTop": true,
+        "alwaysOnTop": false,
         "center": true,
         "resizable": false,
         "maximized": true,
@@ -73,7 +73,8 @@
     "externalBin": [
       "binaries/legendary",
       "binaries/nile",
-      "binaries/gogdl"
+      "binaries/gogdl",
+      "binaries/umu-run-wrapper"
     ],
     "resources": [
       "resources/*"

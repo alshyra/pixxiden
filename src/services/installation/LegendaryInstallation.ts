@@ -55,7 +55,7 @@ export class LegendaryInstallation extends GameInstallationService {
           options.onProgress?.({
             gameId,
             status: "downloading",
-            ...progressData,
+            progress: progressData.progress ?? -1,
             outputLine: trimmed,
           });
         } else {

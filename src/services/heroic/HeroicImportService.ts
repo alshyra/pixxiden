@@ -40,6 +40,8 @@ export interface HeroicGameConfig {
   wineBin: string;
   wineName: string;
   wineType: string; // "proton" | "wine" | etc.
+  /** Windows executable path configured in Heroic (e.g. /path/to/game.exe) */
+  targetExe: string;
 }
 
 /** Resolved installation info for a game, keyed by Pixxiden game ID */
@@ -58,6 +60,8 @@ export interface HeroicInstallInfo {
   runner: string;
   /** Absolute path to the proton/wine binary (e.g. /usr/share/steam/compatibilitytools.d/proton-cachyos/proton) */
   wineBin: string;
+  /** Windows executable path for umu-run direct launch (e.g. /path/to/game.exe) */
+  targetExe: string;
 }
 
 export class HeroicImportService {
@@ -109,6 +113,7 @@ export class HeroicImportService {
         wineVersion: gameConfig?.wineName || "",
         runner: gameConfig?.wineType || "",
         wineBin: gameConfig?.wineBin || "",
+        targetExe: gameConfig?.targetExe || "",
       });
     }
 
@@ -202,6 +207,7 @@ export class HeroicImportService {
         wineBin: wineVersion?.bin || "",
         wineName: wineVersion?.name || "",
         wineType: wineVersion?.type || "",
+        targetExe: gameSection.targetExe || "",
       };
     } catch (err) {
       await warn(`[Heroic] Failed to read GamesConfig for ${storeId}: ${err}`);

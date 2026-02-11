@@ -2,10 +2,10 @@ use gilrs::{Button, Event, EventType, Gilrs};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{Emitter, Window};
+use tauri::{AppHandle, Emitter, Manager};
 
 /// Gamepad monitor that listens for Guide/PS button presses
-/// and emits events to toggle the overlay
+/// and emits events to toggle the overlay + focus the main window.
 pub struct GamepadMonitor {
     running: Arc<AtomicBool>,
 }
@@ -18,7 +18,7 @@ impl GamepadMonitor {
     }
 
     /// Start monitoring gamepad input in a background task
-    pub fn start(&self, window: Window) {
+    pub fn start(&self, app_handle: AppHandle) {
         if self.running.load(Ordering::Relaxed) {
             log::warn!("Gamepad monitor already running");
             return;
@@ -62,8 +62,19 @@ impl GamepadMonitor {
 
                             // Guide/Mode button = PS button on PlayStation / Xbox button
                             if button == Button::Mode {
-                                log::info!("🎮 Guide/PS button pressed! Toggling overlay...");
-                                if let Err(e) = window.emit("gamepad-overlay-toggle", ()) {
+                                log::info!("🎮 Guide/PS button pressed! Focusing window and toggling overlay...");
+
+                                // 1. Bring the main window to the foreground
+                                if let Some(window) = app_handle.get_webview_window("main") {
+                                    let _ = window.unminimize();
+                                    let _ = window.show();
+                                    let _ = window.set_always_on_top(true);
+                                    let _ = window.set_focus();
+                                    log::info!("🎮 Main window brought to foreground");
+                                }
+
+                                // 2. Emit the overlay toggle event to the frontend
+                                if let Err(e) = app_handle.emit("gamepad-overlay-toggle", ()) {
                                     log::error!("Failed to emit overlay toggle event: {}", e);
                                 }
                             }

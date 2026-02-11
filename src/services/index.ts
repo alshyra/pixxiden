@@ -17,77 +17,80 @@
 // ============================================================================
 // Base Services (bas niveau)
 // ============================================================================
-import { DatabaseService, SidecarService } from "./base";
 import { info, warn } from "@tauri-apps/plugin-log";
-export { DatabaseService, SidecarService, SCHEMA, MIGRATIONS } from "./base";
+import { DatabaseService, SidecarService } from "./base";
+export { AuthService, WebviewAuthHandler } from "./auth";
+export { DatabaseService, MIGRATIONS, SCHEMA, SidecarService } from "./base";
+export {
+  EnrichmentService,
+  IgdbEnricher,
+  ProtonDbEnricher,
+  SteamGridDbEnricher
+} from "./enrichment";
+export type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "./enrichment";
+export {
+  GameStoreService, GogdlService, LegendaryService, NileService,
+  SteamService
+} from "./stores";
 
 // ============================================================================
 // Store Services (un par plateforme)
 // ============================================================================
-import { LegendaryService, GogdlService, NileService } from "./stores";
-export {
-  GameStoreService,
-  LegendaryService,
-  GogdlService,
-  NileService,
-  SteamService,
-} from "./stores";
+import { GogdlService, LegendaryService, NileService } from "./stores";
 
 // ============================================================================
 // Auth Services
 // ============================================================================
-import { AuthService, WebviewAuthHandler } from "./auth";
-export { AuthService, WebviewAuthHandler } from "./auth";
+import { AuthService } from "./auth";
 
 // ============================================================================
 // Enrichment Services
 // ============================================================================
 import { EnrichmentService } from "./enrichment";
-export {
-  EnrichmentService,
-  IgdbEnricher,
-  ProtonDbEnricher,
-  SteamGridDbEnricher,
-} from "./enrichment";
-export type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "./enrichment";
 
 // ============================================================================
 // Heroic Import (merge installation data from Heroic launcher)
 // ============================================================================
+export { GameLibraryOrchestrator } from "./GameLibraryOrchestrator";
+export type { StoreStatus, SyncOptions, SyncResult } from "./GameLibraryOrchestrator";
 export { HeroicImportService } from "./heroic";
 export type { HeroicInstallInfo } from "./heroic";
+export { InstallationService } from "./installation";
+export type { GameSizeInfo, InstallProgress } from "./installation";
+export { GameLaunchService } from "./launch";
+export { ProtonService } from "./runners";
+export type { ProtonConfig } from "./runners";
+export { WindowService } from "./window";
 
 // ============================================================================
 // Installation Services
 // ============================================================================
 import { InstallationService } from "./installation";
-export { InstallationService } from "./installation";
-export type { InstallProgress, GameSizeInfo } from "./installation";
 
 // ============================================================================
 // Runners (Proton-GE)
 // ============================================================================
 import { ProtonService } from "./runners";
-export { ProtonService } from "./runners";
-export type { ProtonConfig } from "./runners";
 
 // ============================================================================
 // Launch Service (game process management)
 // ============================================================================
 import { GameLaunchService } from "./launch";
-export { GameLaunchService } from "./launch";
+
+// ============================================================================
+// Window Service (main window focus/hide/restore)
+// ============================================================================
+import { WindowService } from "./window";
 
 // ============================================================================
 // Orchestrator (point d'entrée principal pour la lib)
 // ============================================================================
 import { GameLibraryOrchestrator } from "./GameLibraryOrchestrator";
-export { GameLibraryOrchestrator } from "./GameLibraryOrchestrator";
-export type { StoreStatus, SyncResult, SyncOptions } from "./GameLibraryOrchestrator";
 
 // ============================================================================
 // New: Database Repositories (pure TypeScript CRUD)
 // ============================================================================
-export { GameRepository, CacheRepository } from "@/lib/database";
+export { CacheRepository, GameRepository } from "@/lib/database";
 
 // ============================================================================
 // New: Sync Service (JS-first sync pipeline)
@@ -156,7 +159,6 @@ export function getAuthService(): AuthService {
       new LegendaryService(sidecar, db),
       new GogdlService(sidecar, db),
       new NileService(sidecar, db),
-      WebviewAuthHandler.getInstance(),
     );
   }
   return authServiceInstance;
@@ -208,4 +210,12 @@ export function getGameLaunchService(): GameLaunchService {
  */
 export function getProtonService(): ProtonService {
   return ProtonService.getInstance();
+}
+
+/**
+ * Raccourci pour obtenir le service de gestion de fenêtre.
+ * Usage: const window = getWindowService();
+ */
+export function getWindowService(): WindowService {
+  return WindowService.getInstance();
 }
