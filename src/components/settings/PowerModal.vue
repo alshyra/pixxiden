@@ -1,14 +1,7 @@
 <template>
-  <Modal
-    v-model="isOpen"
-    title="Éteindre"
-    size="sm"
-    :close-on-backdrop="false"
-  >
+  <Modal v-model="isOpen" title="Éteindre" size="sm" :close-on-backdrop="false">
     <div class="space-y-4">
-      <p class="text-white/60 text-sm mb-6">
-        Que voulez-vous faire ?
-      </p>
+      <p class="text-white/60 text-sm mb-6">Que voulez-vous faire ?</p>
 
       <!-- Options -->
       <div class="space-y-3">
@@ -49,6 +42,7 @@ import { Power, LogOut } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
 import { shutdownSystem } from "@/services/api";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 const props = defineProps<{
   show: boolean;
@@ -71,11 +65,14 @@ const isOpen = computed({
 const focusedIndex = ref(0);
 
 // Reset focus when modal opens
-watch(() => props.show, (show) => {
-  if (show) {
-    focusedIndex.value = 0;
-  }
-});
+watch(
+  () => props.show,
+  (show) => {
+    if (show) {
+      focusedIndex.value = 0;
+    }
+  },
+);
 
 // Gamepad navigation
 const { on: onGamepad } = useGamepad();
@@ -111,7 +108,7 @@ async function handleShutdown() {
   try {
     await shutdownSystem();
   } catch (error) {
-    console.error("Failed to shutdown system:", error);
+    await logError(`Failed to shutdown system: ${error}`);
   }
 }
 
@@ -121,7 +118,7 @@ async function handleQuit() {
     const window = getCurrentWindow();
     await window.close();
   } catch (error) {
-    console.error("Failed to quit application:", error);
+    await logError(`Failed to quit application: ${error}`);
   }
 }
 </script>

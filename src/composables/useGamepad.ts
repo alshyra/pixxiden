@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted, readonly } from "vue";
 import { useRouter } from "vue-router";
+import { info, warn } from "@tauri-apps/plugin-log";
 
 export type ControllerType = "keyboard" | "ps" | "xbox";
 
@@ -278,7 +279,7 @@ function processGamepadInput(router: ReturnType<typeof useRouter>) {
   }
 }
 
-function startGlobalListener(router: ReturnType<typeof useRouter>) {
+async function startGlobalListener(router: ReturnType<typeof useRouter>) {
   if (isGlobalListenerRegistered) return;
   if (!isGamepadApiAvailable()) return;
 
@@ -289,13 +290,13 @@ function startGlobalListener(router: ReturnType<typeof useRouter>) {
     updateGamepadState();
 
     // Event listeners
-    window.addEventListener("gamepadconnected", (e) => {
-      console.log("🎮 Gamepad connected:", e.gamepad.id);
+    window.addEventListener("gamepadconnected", async (e) => {
+      await info(`🎮 Gamepad connected: ${e.gamepad.id}`);
       updateGamepadState();
     });
 
-    window.addEventListener("gamepaddisconnected", () => {
-      console.log("🎮 Gamepad disconnected");
+    window.addEventListener("gamepaddisconnected", async () => {
+      await info("🎮 Gamepad disconnected");
       updateGamepadState();
     });
 
@@ -303,8 +304,8 @@ function startGlobalListener(router: ReturnType<typeof useRouter>) {
     setInterval(() => {
       processGamepadInput(router);
     }, 16);
-  } catch {
-    console.warn("Failed to setup gamepad listener");
+  } catch (err) {
+    await warn(`Failed to setup gamepad listener: ${err}`);
     isGlobalListenerRegistered = false;
   }
 }
