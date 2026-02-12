@@ -11,6 +11,15 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{js,ts,vue}", "tests/**/*.{test,spec}.{js,ts}"],
     coverage: {
       reporter: ["text", "json", "html"],
+      exclude: [
+        "src/services/igdb/generated/**",
+      ],
+      thresholds: {
+        statements: 60,
+        branches: 60,
+        functions: 60,
+        lines: 60,
+      },
     },
   },
   resolve: {

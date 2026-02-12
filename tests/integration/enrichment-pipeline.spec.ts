@@ -312,7 +312,7 @@ describe("Enrichment Pipeline Integration", () => {
 
       const cached = mockDb.cache.get("epic-witcher3")!;
       const data = JSON.parse(cached.data);
-      expect(data._cacheVersion).toBe(2);
+      expect(data._cacheVersion).toBe(3);
     });
 
     it("should serve from cache on second call", async () => {

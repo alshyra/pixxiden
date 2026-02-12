@@ -15,9 +15,9 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 // Mock @tauri-apps/api/path (JS-first path resolution)
-const mockHomeDir = vi.fn();
+const mockAppDataDir = vi.fn();
 vi.mock("@tauri-apps/api/path", () => ({
-  homeDir: () => mockHomeDir(),
+  appDataDir: () => mockAppDataDir(),
 }));
 
 // Mock @tauri-apps/api/event
@@ -72,8 +72,8 @@ describe("ProtonService", () => {
     // Reset singleton
     (ProtonService as any).instance = null;
     protonService = ProtonService.getInstance();
-    // Default: homeDir returns /home/user
-    mockHomeDir.mockResolvedValue("/home/user");
+    // Default: appDataDir returns /home/user/.local/share/pixxiden
+    mockAppDataDir.mockResolvedValue("/home/user/.local/share/pixxiden");
   });
 
   afterEach(() => {
@@ -307,8 +307,8 @@ describe("ProtonService", () => {
   });
 
   describe("getPrefixesDir", () => {
-    it("should resolve prefixes directory from homeDir (JS-first)", async () => {
-      mockHomeDir.mockResolvedValue("/home/user");
+    it("should resolve prefixes directory from appDataDir (JS-first)", async () => {
+      mockAppDataDir.mockResolvedValue("/home/user/.local/share/pixxiden");
       const dir = await protonService.getPrefixesDir();
       expect(dir).toBe("/home/user/.local/share/pixxiden/prefixes");
     });
