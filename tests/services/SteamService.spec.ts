@@ -62,7 +62,7 @@ describe("SteamService", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     // Import fresh to get mocked dependencies
     const { SteamService } = await import("@/services/stores/SteamService");
     service = SteamService.getInstance();
@@ -109,18 +109,6 @@ describe("SteamService", () => {
     it("should return null when no games found", async () => {
       const result = await service.getSteamAppId("Some Game");
       expect(result).toBeNull();
-    });
-  });
-
-  describe("buildLaunchCommand", () => {
-    it("should build correct steam launch command", async () => {
-      const mockGame = {
-        storeData: { storeId: "12345" },
-      };
-      
-      const command = await service.buildLaunchCommand(mockGame, null, "");
-      
-      expect(command).toEqual(["steam", "-applaunch", "12345"]);
     });
   });
 });

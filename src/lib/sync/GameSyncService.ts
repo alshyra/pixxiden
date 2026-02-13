@@ -1,17 +1,16 @@
 /**
- * GameSyncService - Main game synchronization orchestrator
+ * GameSyncService - Game synchronization pipeline
  *
- * This is the heart of the JS-first sync architecture.
+ * Pure pipeline service — no store-specific logic.
+ * Store-specific fetch + auth is delegated to SyncStrategy implementations.
  *
  * Responsibilities:
- * - Detects available/authenticated stores
- * - Fetches game libraries from each store via CLI sidecars
- * - Enriches games with metadata (IGDB, SteamGridDB, HLTB, ProtonDB)
- * - Persists everything to SQLite (pure TypeScript via plugin-sql)
+ * - Runs the sync pipeline: fetch → persist → heroic merge → enrich
  * - Reports progress via Tauri events for the splash screen
+ * - Configures enrichment API keys
  *
  * Flow:
- *   Store CLIs → StoreGame[] → SQLite (base data) → EnrichmentService → SQLite (enriched data)
+ *   SyncStrategy.fetchGames() → SQLite (base data) → EnrichmentService → SQLite (enriched data)
  *   ↳ emit('splash-progress') at each step
  */
 
@@ -19,10 +18,14 @@ import { emit } from "@tauri-apps/api/event";
 import { debug, info, warn } from "@tauri-apps/plugin-log";
 import type { Game, StoreType } from "@/types";
 import { GameRepository } from "../database";
-import { LegendaryService, GogdlService, NileService, SteamService } from "@/services/stores";
 import { EnrichmentService } from "@/services/enrichment";
 import { HeroicImportService } from "@/services/heroic";
 import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
+import type { SyncStrategy } from "./strategies/SyncStrategy";
+import { EpicSyncStrategy } from "./strategies/EpicSyncStrategy";
+import { GogSyncStrategy } from "./strategies/GogSyncStrategy";
+import { AmazonSyncStrategy } from "./strategies/AmazonSyncStrategy";
+import { SteamSyncStrategy } from "./strategies/SteamSyncStrategy";
 
 // ===== Types =====
 
@@ -67,20 +70,21 @@ export class GameSyncService {
 
   private gameRepo: GameRepository;
   private enrichment: EnrichmentService;
-  private legendary: LegendaryService;
-  private gogdl: GogdlService;
-  private nile: NileService;
-  private steam: SteamService;
   private heroicImport: HeroicImportService;
+  private strategies: Map<StoreType, SyncStrategy>;
 
   private constructor() {
     this.gameRepo = GameRepository.getInstance();
     this.enrichment = EnrichmentService.getInstance();
-    this.legendary = LegendaryService.getInstance();
-    this.gogdl = GogdlService.getInstance();
-    this.nile = NileService.getInstance();
-    this.steam = SteamService.getInstance();
     this.heroicImport = HeroicImportService.getInstance();
+
+    // Register one strategy per store
+    this.strategies = new Map<StoreType, SyncStrategy>([
+      ["epic", new EpicSyncStrategy()],
+      ["gog", new GogSyncStrategy()],
+      ["amazon", new AmazonSyncStrategy()],
+      ["steam", new SteamSyncStrategy()],
+    ]);
   }
 
   static getInstance(): GameSyncService {
@@ -126,7 +130,7 @@ export class GameSyncService {
           message: `Détection des jeux ${this.getStoreName(store)}...`,
         });
 
-        const games = await this.fetchStoreGames(store);
+        const games = await this.fetchViaStrategy(store);
 
         if (games.length > 0) {
           // Persist base game data to SQLite
@@ -230,53 +234,25 @@ export class GameSyncService {
     return result;
   }
 
-  // ===== Heroic Merge =====
+  // ===== Store Fetching (via strategies) =====
 
   /**
-   * Merge installation data from Heroic Games Launcher.
-   * Delegates to HeroicImportService and reports progress.
+   * Fetch games from a specific store using its SyncStrategy.
+   * Checks authentication before attempting to fetch.
    */
-  // ===== Store Fetching =====
-
-  /**
-   * Fetch games from a specific store
-   * Checks authentication before attempting to fetch
-   */
-  private async fetchStoreGames(store: StoreType): Promise<Game[]> {
-    switch (store) {
-      case "epic": {
-        const isAuth = await this.legendary.isAuthenticated();
-        if (!isAuth) {
-          await debug("Epic Games: not authenticated, skipping");
-          return [];
-        }
-        return await this.legendary.listGames();
-      }
-      case "gog": {
-        const isAuth = await this.gogdl.isAuthenticated();
-        await info(`GOG: isAuthenticated=${isAuth}`);
-        if (!isAuth) {
-          await warn("GOG: not authenticated, skipping");
-          return [];
-        }
-        const gogGames = await this.gogdl.listGames();
-        await info(`GOG: listGames returned ${gogGames.length} games`);
-        return gogGames;
-      }
-      case "amazon": {
-        const isAuth = await this.nile.isAuthenticated();
-        if (!isAuth) {
-          await debug("Amazon: not authenticated, skipping");
-          return [];
-        }
-        return await this.nile.listGames();
-      }
-      case "steam": {
-        return await this.steam.listGames();
-      }
-      default:
-        return [];
+  private async fetchViaStrategy(store: StoreType): Promise<Game[]> {
+    const strategy = this.strategies.get(store);
+    if (!strategy) {
+      await warn(`No sync strategy registered for store: ${store}`);
+      return [];
     }
+
+    const isAuth = await strategy.isAuthenticated();
+    if (!isAuth) {
+      return [];
+    }
+
+    return strategy.fetchGames();
   }
 
   // ===== Enrichment =====
@@ -414,9 +390,12 @@ export class GameSyncService {
   // ===== Helpers =====
 
   /**
-   * Get human-readable store name
+   * Get human-readable store name (from strategy or fallback)
    */
   private getStoreName(store: StoreType | string): string {
+    const strategy = this.strategies.get(store as StoreType);
+    if (strategy) return strategy.displayName;
+
     const names: Record<string, string> = {
       epic: "Epic Games",
       gog: "GOG",

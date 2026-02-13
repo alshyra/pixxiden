@@ -56,6 +56,8 @@ export type { HeroicInstallInfo } from "./heroic";
 export { InstallationService } from "./installation";
 export type { GameSizeInfo, InstallProgress } from "./installation";
 export { GameLaunchService } from "./launch";
+export { LaunchCommandBuilder } from "./launch";
+export type { PreparedLaunch, LaunchStrategy, LaunchContext } from "./launch";
 export { ProtonService } from "./runners";
 export type { ProtonConfig } from "./runners";
 export { WindowService } from "./window";

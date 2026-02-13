@@ -168,31 +168,6 @@ export class LegendaryService extends GameStoreService {
   }
 
   /**
-   * Build launch command for an Epic game
-   * @param game - The game to launch
-   * @param protonPath - Resolved Proton binary path (or null)
-   * @param cleanEnv - Command prefix to clean Python-related env vars
-   * @returns Array of command arguments to execute
-   */
-  async buildLaunchCommand(
-    game: Game,
-    protonPath: string | null,
-    cleanEnv: string,
-  ): Promise<string[]> {
-    const args = ["legendary", "launch", game.storeData.storeId];
-    if (protonPath) {
-      // Proton is NOT a drop-in Wine replacement — it requires a verb
-      // (e.g. waitforexitandrun) as first argument. Using --wine would call
-      // `proton game.exe` which errors with "Proton: Need a verb."
-      // Instead: --no-wine disables legendary's wine handling, and --wrapper
-      // passes the full `proton waitforexitandrun` as a command prefix.
-      // Wine prefix is handled via STEAM_COMPAT_DATA_PATH env var (see buildLaunchEnv).
-      args.push("--no-wine", "--wrapper", `${cleanEnv} ${protonPath} waitforexitandrun`);
-    }
-    return args;
-  }
-
-  /**
    * Logout from Epic Games
    */
   async logout(): Promise<void> {

@@ -121,23 +121,6 @@ export class SteamService extends GameStoreService {
   }
 
   /**
-   * Build launch command for a Steam game
-   * @param game - The game to launch
-   * @param protonPath - Resolved Proton binary path (ignored for Steam, it handles Proton internally)
-   * @param cleanEnv - Command prefix to clean Python-related env vars (ignored for Steam)
-   * @returns Array of command arguments to execute
-   */
-  async buildLaunchCommand(
-    game: Game,
-    _protonPath: string | null,
-    _cleanEnv: string,
-  ): Promise<string[]> {
-    // Steam handles Proton/Wine internally, we just need to launch via steam protocol
-    // Format: steam -applaunch <appid>
-    return ["steam", "-applaunch", game.storeData.storeId];
-  }
-
-  /**
    * Check if Steam is installed
    */
   async isInstalled(): Promise<boolean> {
