@@ -58,7 +58,6 @@ function createMockDb() {
       }),
 
       select: vi.fn(async () => []),
-      transaction: vi.fn(async (fn: () => Promise<void>) => fn()),
     } as unknown as DatabaseService,
   };
 }

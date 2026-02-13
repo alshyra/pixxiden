@@ -50,6 +50,19 @@ export abstract class GameStoreService {
   abstract isAuthenticated(): Promise<boolean>;
 
   /**
+   * Build launch command for a game from this store
+   * @param game - The game to launch
+   * @param protonPath - Resolved Proton binary path (or null)
+   * @param cleanEnv - Command prefix to clean Python-related env vars
+   * @returns Array of command arguments to execute
+   */
+  abstract buildLaunchCommand(
+    game: Game,
+    protonPath: string | null,
+    cleanEnv: string,
+  ): Promise<string[]>;
+
+  /**
    * Get capabilities of this store
    * Override in subclasses for specific support
    */

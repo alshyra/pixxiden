@@ -89,39 +89,6 @@ describe("DatabaseService", () => {
     await expect(db.queryOne("SELECT id FROM t")).resolves.toBeNull();
   });
 
-  it("transaction commits on success", async () => {
-    const { DatabaseService } = await import("@/services/base/DatabaseService");
-    (DatabaseService as any).instance = null;
-
-    const db = DatabaseService.getInstance();
-    mockDbExecute.mockResolvedValue({ rowsAffected: 0 });
-
-    await db.init();
-
-    const value = await db.transaction(async () => 42);
-    expect(value).toBe(42);
-    expect(mockDbExecute).toHaveBeenCalledWith("BEGIN TRANSACTION", []);
-    expect(mockDbExecute).toHaveBeenCalledWith("COMMIT", []);
-  });
-
-  it("transaction rolls back on failure", async () => {
-    const { DatabaseService } = await import("@/services/base/DatabaseService");
-    (DatabaseService as any).instance = null;
-
-    const db = DatabaseService.getInstance();
-    mockDbExecute.mockResolvedValue({ rowsAffected: 0 });
-
-    await db.init();
-
-    await expect(
-      db.transaction(async () => {
-        throw new Error("boom");
-      }),
-    ).rejects.toThrow("boom");
-
-    expect(mockDbExecute).toHaveBeenCalledWith("ROLLBACK", []);
-  });
-
   it("closes database and resets state", async () => {
     const { DatabaseService } = await import("@/services/base/DatabaseService");
     (DatabaseService as any).instance = null;

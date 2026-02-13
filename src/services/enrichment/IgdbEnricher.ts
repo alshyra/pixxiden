@@ -132,9 +132,7 @@ export class IgdbEnricher {
         ? {
             // Convert seconds → hours (rounded to 1 decimal)
             hastily: timeToBeat.hastily ? Math.round((timeToBeat.hastily / 3600) * 10) / 10 : 0,
-            normally: timeToBeat.normally
-              ? Math.round((timeToBeat.normally / 3600) * 10) / 10
-              : 0,
+            normally: timeToBeat.normally ? Math.round((timeToBeat.normally / 3600) * 10) / 10 : 0,
             completely: timeToBeat.completely
               ? Math.round((timeToBeat.completely / 3600) * 10) / 10
               : 0,

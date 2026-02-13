@@ -23,6 +23,8 @@ import { debug, info, warn, error as logError } from "@tauri-apps/plugin-log";
 import { appConfigDir, join } from "@tauri-apps/api/path";
 import { readTextFile, writeTextFile, exists } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
+import { DatabaseService } from "../base/DatabaseService";
+import { SidecarService } from "../base/SidecarService";
 
 /**
  * gogdl's --auth-config-path points to a flat JSON file.
@@ -74,8 +76,21 @@ interface GogdlGameInfo {
 }
 
 export class GogdlService extends GameStoreService {
+  private static instance: GogdlService | null = null;
+
   /** Cached config path for gogdl auth tokens */
   private authConfigPath: string | null = null;
+
+  private constructor() {
+    super(SidecarService.getInstance(), DatabaseService.getInstance());
+  }
+
+  static getInstance(): GogdlService {
+    if (!GogdlService.instance) {
+      GogdlService.instance = new GogdlService();
+    }
+    return GogdlService.instance;
+  }
 
   get storeName(): Game["storeData"]["store"] {
     return "gog";

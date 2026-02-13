@@ -55,7 +55,7 @@
 
         <!-- Quit Game -->
         <OverlayActionCard variant="danger" title="Quit Game" :class="{ 'ring-2 ring-yellow-400': focusIndex === 3 }"
-          @click="quitGame">
+          @click="closeOverlay">
           <template #icon>
             <XCircle class="w-8 h-8" />
           </template>
@@ -112,7 +112,7 @@ const actions = [
   { id: "resume", action: () => resumeGame() },
   { id: "achievements", action: () => showAchievements() },
   { id: "screenshot", action: () => takeScreenshot() },
-  { id: "quit", action: () => quitGame() },
+  { id: "quit", action: () => closeOverlay() },
 ];
 
 let sessionInterval: ReturnType<typeof setInterval> | undefined;
@@ -193,12 +193,6 @@ function showAchievements() {
 
 function takeScreenshot() {
   console.log("Take screenshot");
-}
-
-async function quitGame() {
-  // TODO: Confirm dialog
-  console.log("Quit game");
-  await closeOverlay();
 }
 
 onMounted(async () => {

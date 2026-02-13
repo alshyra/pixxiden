@@ -69,16 +69,27 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CACHE_VERSION = 3;
 
 export class EnrichmentService {
+  private static instance: EnrichmentService | null = null;
+
   private igdb: IgdbEnricher;
   private protonDb: ProtonDbEnricher;
   private steamGridDb: SteamGridDbEnricher;
   private imageCache: ImageCacheService;
+  private db: DatabaseService;
 
-  constructor(private db: DatabaseService) {
+  private constructor() {
+    this.db = DatabaseService.getInstance();
     this.igdb = new IgdbEnricher();
     this.protonDb = new ProtonDbEnricher();
     this.steamGridDb = new SteamGridDbEnricher();
     this.imageCache = ImageCacheService.getInstance();
+  }
+
+  static getInstance(): EnrichmentService {
+    if (!EnrichmentService.instance) {
+      EnrichmentService.instance = new EnrichmentService();
+    }
+    return EnrichmentService.instance;
   }
 
   /**

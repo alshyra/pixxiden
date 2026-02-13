@@ -13,7 +13,7 @@
 import type { Game, StoreType } from "@/types";
 import { GameRepository } from "@/lib/database";
 import { GameSyncService, type SyncOptions, type SyncResult } from "@/lib/sync";
-import { DatabaseService, SidecarService } from "./base";
+import { DatabaseService } from "./base";
 import { LegendaryService, GogdlService, NileService } from "./stores";
 import type { StoreCapabilities } from "./stores";
 import { ProtonService, type ProtonConfig } from "./runners";
@@ -42,14 +42,11 @@ export class GameLibraryOrchestrator {
   private umuLauncher: UmuLauncherService;
 
   private constructor() {
-    const db = DatabaseService.getInstance();
-    const sidecar = SidecarService.getInstance();
-
     this.gameRepo = GameRepository.getInstance();
     this.syncService = GameSyncService.getInstance();
-    this.legendary = new LegendaryService(sidecar, db);
-    this.gogdl = new GogdlService(sidecar, db);
-    this.nile = new NileService(sidecar, db);
+    this.legendary = LegendaryService.getInstance();
+    this.gogdl = GogdlService.getInstance();
+    this.nile = NileService.getInstance();
     this.umuLauncher = UmuLauncherService.getInstance();
   }
 
@@ -221,7 +218,7 @@ export class GameLibraryOrchestrator {
 
     if (protonPath && executablePath && (await this.umuLauncher.isAvailable())) {
       const winePrefix = game.installation.winePrefix || env.STEAM_COMPAT_DATA_PATH || "";
-      
+
       const [umuCommand, umuEnv] = this.umuLauncher.buildDirectLaunch({
         winePrefix,
         protonPath,
@@ -257,7 +254,8 @@ export class GameLibraryOrchestrator {
     // PyInstaller-bundled sidecars (legendary, gogdl, nile) pollute PYTHONHOME/PYTHONPATH/
     // LD_LIBRARY_PATH. When they spawn Proton (also Python), it crashes.
     // Fix: /usr/bin/env -u unsets those vars before Proton runs.
-    const cleanEnv = "/usr/bin/env -u PYTHONHOME -u PYTHONPATH -u PYTHONDONTWRITEBYTECODE -u _MEIPASS2 -u LD_LIBRARY_PATH";
+    const cleanEnv =
+      "/usr/bin/env -u PYTHONHOME -u PYTHONPATH -u PYTHONDONTWRITEBYTECODE -u _MEIPASS2 -u LD_LIBRARY_PATH";
 
     switch (game.storeData.store) {
       case "epic": {
@@ -308,10 +306,7 @@ export class GameLibraryOrchestrator {
    */
   private resolveProtonPath(game: Game, protonConfig: ProtonConfig | null): string | null {
     // If game has a Heroic-configured Proton runner with a binary path, prefer it
-    if (
-      game.installation.runner === "proton" &&
-      game.installation.runnerPath
-    ) {
+    if (game.installation.runner === "proton" && game.installation.runnerPath) {
       return game.installation.runnerPath;
     }
 

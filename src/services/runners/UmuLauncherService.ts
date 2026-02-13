@@ -135,14 +135,4 @@ export class UmuLauncherService {
 
     return [umuCommand, umuEnv];
   }
-
-  /**
-   * @deprecated Use buildDirectLaunch() instead. umu-run cannot wrap CLI tools.
-   */
-  transformToUmuCommand(
-    _originalCommand: string[],
-    config: UmuLaunchConfig,
-  ): [string[], Record<string, string>] {
-    return this.buildDirectLaunch(config);
-  }
 }

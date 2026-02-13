@@ -13,6 +13,8 @@ import type { Game } from "@/types";
 import { createGame } from "@/types";
 import { GameStoreService, type StoreCapabilities } from "./GameStoreService";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
+import { DatabaseService } from "../base/DatabaseService";
+import { SidecarService } from "../base/SidecarService";
 
 export interface NileAuthResult {
   success: boolean;
@@ -21,6 +23,19 @@ export interface NileAuthResult {
 }
 
 export class NileService extends GameStoreService {
+  private static instance: NileService | null = null;
+
+  private constructor() {
+    super(SidecarService.getInstance(), DatabaseService.getInstance());
+  }
+
+  static getInstance(): NileService {
+    if (!NileService.instance) {
+      NileService.instance = new NileService();
+    }
+    return NileService.instance;
+  }
+
   get storeName(): Game["storeData"]["store"] {
     return "amazon";
   }

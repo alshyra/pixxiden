@@ -17,23 +17,19 @@ export interface AuthStatusMap {
 export class AuthService {
   private static instance: AuthService | null = null;
 
-  constructor(
-    private legendary: LegendaryService,
-    private gogdl: GogdlService,
-    private nile: NileService,
-  ) {}
+  private legendary: LegendaryService;
+  private gogdl: GogdlService;
+  private nile: NileService;
 
-  static getInstance(
-    legendary: LegendaryService,
-    gogdl: GogdlService,
-    nile: NileService,
-  ): AuthService {
+  private constructor() {
+    this.legendary = LegendaryService.getInstance();
+    this.gogdl = GogdlService.getInstance();
+    this.nile = NileService.getInstance();
+  }
+
+  static getInstance(): AuthService {
     if (!AuthService.instance) {
-      AuthService.instance = new AuthService(
-        legendary,
-        gogdl,
-        nile,
-      );
+      AuthService.instance = new AuthService();
     }
     return AuthService.instance;
   }

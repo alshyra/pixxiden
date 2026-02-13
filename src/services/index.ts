@@ -25,18 +25,16 @@ export {
   EnrichmentService,
   IgdbEnricher,
   ProtonDbEnricher,
-  SteamGridDbEnricher
+  SteamGridDbEnricher,
 } from "./enrichment";
 export type { EnrichmentData, IgdbData, ProtonDbData, SteamGridDbData } from "./enrichment";
 export {
-  GameStoreService, GogdlService, LegendaryService, NileService,
-  SteamService
+  GameStoreService,
+  GogdlService,
+  LegendaryService,
+  NileService,
+  SteamService,
 } from "./stores";
-
-// ============================================================================
-// Store Services (un par plateforme)
-// ============================================================================
-import { GogdlService, LegendaryService, NileService } from "./stores";
 
 // ============================================================================
 // Auth Services
@@ -105,8 +103,6 @@ export type { SyncError, SyncProgressEvent } from "@/lib/sync";
 let initialized = false;
 
 // Cache pour les services instanciés (lazy loading)
-let authServiceInstance: AuthService | null = null;
-let enrichmentServiceInstance: EnrichmentService | null = null;
 let installationServiceInstance: InstallationService | null = null;
 
 /**
@@ -152,16 +148,7 @@ export function getOrchestrator(): GameLibraryOrchestrator {
  * Usage: const auth = getAuthService();
  */
 export function getAuthService(): AuthService {
-  if (!authServiceInstance) {
-    const db = DatabaseService.getInstance();
-    const sidecar = SidecarService.getInstance();
-    authServiceInstance = new AuthService(
-      new LegendaryService(sidecar, db),
-      new GogdlService(sidecar, db),
-      new NileService(sidecar, db),
-    );
-  }
-  return authServiceInstance;
+  return AuthService.getInstance();
 }
 
 /**
@@ -169,10 +156,7 @@ export function getAuthService(): AuthService {
  * Usage: const enrichment = getEnrichmentService();
  */
 export function getEnrichmentService(): EnrichmentService {
-  if (!enrichmentServiceInstance) {
-    enrichmentServiceInstance = new EnrichmentService(DatabaseService.getInstance());
-  }
-  return enrichmentServiceInstance;
+  return EnrichmentService.getInstance();
 }
 
 /**

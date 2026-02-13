@@ -6,8 +6,23 @@
 import type { Game } from "@/types";
 import { GameStoreService, type StoreCapabilities } from "./GameStoreService";
 import { warn } from "@tauri-apps/plugin-log";
+import { DatabaseService } from "../base/DatabaseService";
+import { SidecarService } from "../base/SidecarService";
 
 export class SteamService extends GameStoreService {
+  private static instance: SteamService | null = null;
+
+  private constructor() {
+    super(SidecarService.getInstance(), DatabaseService.getInstance());
+  }
+
+  static getInstance(): SteamService {
+    if (!SteamService.instance) {
+      SteamService.instance = new SteamService();
+    }
+    return SteamService.instance;
+  }
+
   get storeName(): Game["storeData"]["store"] {
     return "steam";
   }
