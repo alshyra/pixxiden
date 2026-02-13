@@ -6,7 +6,6 @@ const mockOnCloseRequested = vi.fn();
 const mockOnce = vi.fn();
 // Variable used in mock constructor - TS and eslint cannot detect mock usage
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-// @ts-expect-error - used in WebviewWindow mock
 let _createdWindow: any = null;
 
 vi.mock("@tauri-apps/api/event", () => ({

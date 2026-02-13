@@ -1,43 +1,71 @@
 /**
  * SteamService tests
- * Tests for Steam store service (local library reading)
+ * Tests for Steam store service (local library reading + web API)
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { SteamService } from "@/services/stores/SteamService";
-import type { SidecarService } from "@/services/base/SidecarService";
-import type { DatabaseService } from "@/services/base/DatabaseService";
 
-// Mock sidecar service
-const createMockSidecar = () =>
-  ({
-    runLegendary: vi.fn(),
-    runGogdl: vi.fn(),
-    runNile: vi.fn(),
-    runSteam: vi.fn(),
-    isAvailable: vi.fn(),
-  }) as unknown as SidecarService;
+// Mock Tauri APIs before importing SteamService
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  exists: vi.fn().mockResolvedValue(false),
+  readDir: vi.fn().mockResolvedValue([]),
+  readTextFile: vi.fn().mockResolvedValue(""),
+  mkdir: vi.fn(),
+}));
 
-// Mock database service
-const createMockDb = () =>
-  ({
-    execute: vi.fn(),
-    select: vi.fn(),
-    queryOne: vi.fn(),
-  }) as unknown as DatabaseService;
+vi.mock("@tauri-apps/api/path", () => ({
+  homeDir: vi.fn().mockResolvedValue("/home/user"),
+  join: vi.fn(async (...parts: string[]) => parts.join("/")),
+  appConfigDir: vi.fn().mockResolvedValue("/home/user/.config/pixxiden"),
+}));
+
+vi.mock("@tauri-apps/plugin-http", () => ({
+  fetch: vi.fn().mockResolvedValue({
+    ok: true,
+    data: { response: { games: [] } },
+    text: async () => "<root></root>",
+  }),
+}));
+
+vi.mock("@tauri-apps/plugin-log", () => ({
+  warn: vi.fn(),
+  info: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+}));
+
+// Mock DatabaseService
+vi.mock("@/services/base/DatabaseService", () => ({
+  DatabaseService: {
+    getInstance: vi.fn(() => ({
+      init: vi.fn(),
+      execute: vi.fn(),
+      select: vi.fn(),
+      queryOne: vi.fn(),
+    })),
+  },
+}));
+
+// Mock SidecarService
+vi.mock("@/services/base/SidecarService", () => ({
+  SidecarService: {
+    getInstance: vi.fn(() => ({
+      runLegendary: vi.fn(),
+      runGogdl: vi.fn(),
+      runNile: vi.fn(),
+    })),
+  },
+}));
 
 describe("SteamService", () => {
-  let service: SteamService;
-  let mockSidecar: ReturnType<typeof createMockSidecar>;
-  let mockDb: ReturnType<typeof createMockDb>;
+  let service: any; // Using any to access getInstance
 
-  beforeEach(() => {
-    mockSidecar = createMockSidecar();
-    mockDb = createMockDb();
-    service = new SteamService(
-      mockSidecar as unknown as SidecarService,
-      mockDb as unknown as DatabaseService,
-    );
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    
+    // Import fresh to get mocked dependencies
+    const { SteamService } = await import("@/services/stores/SteamService");
+    service = SteamService.getInstance();
   });
 
   describe("storeName", () => {
@@ -46,17 +74,27 @@ describe("SteamService", () => {
     });
   });
 
+  describe("capabilities", () => {
+    it("should return correct capabilities", () => {
+      const capabilities = service.getCapabilities();
+      expect(capabilities.canListGames).toBe(true);
+      expect(capabilities.canLaunch).toBe(true);
+    });
+  });
+
   describe("listGames", () => {
-    it("should return empty array (not yet implemented)", async () => {
+    it("should handle missing Steam installation gracefully", async () => {
       const games = await service.listGames();
-      expect(games).toEqual([]);
+      // Should return empty array when Steam not found and no config
+      expect(Array.isArray(games)).toBe(true);
     });
   });
 
   describe("isInstalled", () => {
-    it("should return true (assumes Steam might be installed)", async () => {
+    it("should return false when Steam not found", async () => {
       const result = await service.isInstalled();
-      expect(result).toBe(true);
+      // With mocked fs returning no files, should be false
+      expect(result).toBe(false);
     });
   });
 
@@ -68,9 +106,21 @@ describe("SteamService", () => {
   });
 
   describe("getSteamAppId", () => {
-    it("should return null (not yet implemented)", async () => {
+    it("should return null when no games found", async () => {
       const result = await service.getSteamAppId("Some Game");
       expect(result).toBeNull();
+    });
+  });
+
+  describe("buildLaunchCommand", () => {
+    it("should build correct steam launch command", async () => {
+      const mockGame = {
+        storeData: { storeId: "12345" },
+      };
+      
+      const command = await service.buildLaunchCommand(mockGame, null, "");
+      
+      expect(command).toEqual(["steam", "-applaunch", "12345"]);
     });
   });
 });

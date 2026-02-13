@@ -43,12 +43,12 @@ export class ProtonDbEnricher {
 
       const data: ProtonDbResponse = await response.json();
 
-      if (!data.tier) {
+      if (!data.tier && !data.bestReportedTier) {
         await debug(`ProtonDB: No tier data for appId ${steamAppId}`);
         return null;
       }
 
-      await debug(`ProtonDB: Found tier "${data.tier}" for appId ${steamAppId}`);
+      await debug(`ProtonDB: Found tier "${data.tier || data.bestReportedTier}" for appId ${steamAppId}`);
 
       return this.mapToProtonDbData(data);
     } catch (error) {
