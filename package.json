@@ -24,6 +24,9 @@
     "test:build": "npm run tauri:build && npm run test:e2e",
     "type-check": "tsc --noEmit",
     "type-check:fix": "tsc",
+    "deadcode:prune": "npx -y ts-prune --ignore 'src/index.ts|src/types.ts|src/services/igdb/generated/.*|src/services/igdb/client/.*|src/services/igdb/core/.*' | grep -Ev '/index.ts:|\\(used in module\\)$' || true",
+    "deadcode:unused": "npx -y ts-unused-exports tsconfig.json | grep -Ev 'src/services/igdb/generated/|/index.ts:' || true",
+    "deadcode:check": "npm run deadcode:prune && npm run deadcode:unused",
     "validate": "npm run type-check && npm run lint:check && npm run test:run"
   },
   "dependencies": {

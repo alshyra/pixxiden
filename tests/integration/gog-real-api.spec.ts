@@ -19,10 +19,10 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import * as os from "node:os";
+import * as path from "node:path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ===== Real GOG constants (same as GogdlService) =====
 const GOG_CLIENT_ID = "46899977096215655";
@@ -38,9 +38,6 @@ const TOKEN_FILE_PATH = path.join(
 const tokenFileExists = fs.existsSync(TOKEN_FILE_PATH);
 
 // ===== Setup Tauri API mocks that use REAL file I/O and REAL HTTP =====
-
-// We need to read the token file path that appConfigDir + join would resolve to
-const realConfigDir = path.join(os.homedir(), ".config", "com.Pixxiden.launcher") + "/";
 
 vi.mock("@tauri-apps/plugin-log", () => ({
   debug: vi.fn(),
@@ -78,9 +75,9 @@ vi.mock("@tauri-apps/plugin-http", () => ({
 }));
 
 // Import AFTER mocks are set up
-import { GogdlService } from "@/services/stores/GogdlService";
-import type { SidecarService } from "@/services/base/SidecarService";
 import type { DatabaseService } from "@/services/base/DatabaseService";
+import type { SidecarService } from "@/services/base/SidecarService";
+import { GogdlService } from "@/services/stores/GogdlService";
 
 // Mock sidecar (gogdl binary not needed for API tests)
 const createMockSidecar = () =>
@@ -269,34 +266,5 @@ describe.skipIf(!tokenFileExists)("GOG Integration Tests (REAL API)", () => {
         console.log(`✅ Sync flow would add ${games.length} GOG games to DB`);
       }
     }, 30000);
-  });
-});
-
-describe("SplashScreen sync logic", () => {
-  it("should always trigger sync regardless of existing game count", () => {
-    // Previously, the splash screen only synced when gamesCount === 0
-    // This is the bug that prevented GOG games from ever being fetched.
-    // After the fix, sync runs every time.
-    //
-    // The old code:
-    //   if (gamesCount === 0) { sync(); } else { skip; }
-    //
-    // The new code:
-    //   sync({ skipEnrichment: gamesCount > 0 });
-    //
-    // Verify the concept: with 53 existing games, sync MUST still run
-    const gamesCount = 53;
-
-    // Old logic (BROKEN): sync only on empty DB
-    const oldWouldSync = gamesCount === 0;
-    expect(oldWouldSync).toBe(false); // This was the bug!
-
-    // New logic (FIXED): always sync
-    const newWouldSync = true; // Always sync
-    expect(newWouldSync).toBe(true);
-
-    // With existing games, skip enrichment for speed
-    const skipEnrichment = gamesCount > 0;
-    expect(skipEnrichment).toBe(true);
   });
 });

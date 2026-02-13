@@ -1,7 +1,6 @@
 import { ref, onMounted, onUnmounted, readonly } from "vue";
 import { useRouter } from "vue-router";
 import { info, warn } from "@tauri-apps/plugin-log";
-
 export type ControllerType = "keyboard" | "ps" | "xbox";
 
 export interface GamepadState {

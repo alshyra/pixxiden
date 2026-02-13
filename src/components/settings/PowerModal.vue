@@ -1,10 +1,21 @@
 <template>
-  <Modal v-model="isOpen" title="Éteindre" size="sm" :close-on-backdrop="false">
+  <Modal v-model="isOpen" title="Éteindre" size="sm" :close-on-backdrop="true">
     <div class="space-y-4">
       <p class="text-white/60 text-sm mb-6">Que voulez-vous faire ?</p>
 
       <!-- Options -->
       <div class="space-y-3">
+        <Button
+          size="lg"
+          class="w-full justify-start"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
+          @click="handleQuit"
+        >
+          <template #icon>
+            <LogOut class="w-5 h-5" />
+          </template>
+          Quitter l'application
+        </Button>
         <Button
           variant="danger"
           size="lg"
@@ -18,17 +29,8 @@
           Éteindre le système
         </Button>
 
-        <Button
-          variant="outline"
-          size="lg"
-          class="w-full justify-start"
-          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
-          @click="handleQuit"
-        >
-          <template #icon>
-            <LogOut class="w-5 h-5" />
-          </template>
-          Quitter l'application
+        <Button variant="outline" size="lg" class="w-full justify-start" @click="cancel">
+          Annuler
         </Button>
       </div>
     </div>
@@ -97,10 +99,9 @@ onGamepad("confirm", () => {
   }
 });
 
-onGamepad("back", () => {
-  if (!props.show) return;
-  emit("close");
-});
+const cancel = () => isOpen.value = false
+
+onGamepad("back", cancel);
 
 // Actions
 async function handleShutdown() {
@@ -121,4 +122,5 @@ async function handleQuit() {
     await logError(`Failed to quit application: ${error}`);
   }
 }
+
 </script>

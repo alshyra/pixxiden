@@ -8,17 +8,17 @@
       <!-- Main router view -->
       <RouterView />
 
-      <!-- Console Footer (persistent) -->
-      <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
-
       <!-- Side Nav (SteamOS-style, triggered by Guide/Start button) -->
       <SideNav @open-power-menu="showPowerModal = true" />
-
+      
       <!-- Power Modal (shutdown / quit) -->
       <PowerModal :show="showPowerModal" @close="showPowerModal = false" />
-
+      
       <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
       <GameOverlay ref="gameOverlay" />
+
+      <!-- Console Footer (persistent) -->
+      <ConsoleFooter v-if="!isSplashScreen && !showSetupWizard" />
     </template>
   </div>
 </template>

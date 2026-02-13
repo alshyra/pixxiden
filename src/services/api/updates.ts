@@ -1,7 +1,7 @@
 /**
  * System Updates API functions
  */
-import { invoke } from "./core";
+import { invoke } from "@tauri-apps/api/core";
 
 export type Distro = "arch" | "steamos" | "debian" | "fedora" | "unknown";
 

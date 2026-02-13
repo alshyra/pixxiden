@@ -1,7 +1,7 @@
 /**
  * System-related API functions
  */
-import { invoke } from "./core";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface SystemInfo {
   osName: string;
