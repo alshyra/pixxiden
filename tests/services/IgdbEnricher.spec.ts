@@ -148,9 +148,7 @@ describe("IgdbEnricher", () => {
           cover: {
             url: "//images.igdb.com/igdb/image/upload/t_thumb/cover.jpg",
           },
-          screenshots: [
-            { url: "//images.igdb.com/igdb/image/upload/t_thumb/screenshot1.jpg" },
-          ],
+          screenshots: [{ url: "//images.igdb.com/igdb/image/upload/t_thumb/screenshot1.jpg" }],
         },
       ]);
       mockGetTimeToBeat.mockResolvedValueOnce(null);

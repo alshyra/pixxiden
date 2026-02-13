@@ -48,7 +48,9 @@ export class ProtonDbEnricher {
         return null;
       }
 
-      await debug(`ProtonDB: Found tier "${data.tier || data.bestReportedTier}" for appId ${steamAppId}`);
+      await debug(
+        `ProtonDB: Found tier "${data.tier || data.bestReportedTier}" for appId ${steamAppId}`,
+      );
 
       return this.mapToProtonDbData(data);
     } catch (error) {
