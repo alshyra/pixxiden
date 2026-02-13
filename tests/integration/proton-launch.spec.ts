@@ -136,9 +136,9 @@ describe("Proton Launch Integration", () => {
     protonConfig: ProtonConfig | null,
   ): Promise<string[]> {
     // Access private method for testing
-    return (orchestrator as unknown as { buildLaunchCommand: typeof buildLaunchCommand })[
-      "buildLaunchCommand"
-    ](game, protonConfig);
+    return (
+      orchestrator as unknown as { buildLaunchCommand(game: any, config: any): Promise<string[]> }
+    )["buildLaunchCommand"](game, protonConfig);
   }
 
   async function buildLaunchEnv(
@@ -146,10 +146,11 @@ describe("Proton Launch Integration", () => {
     game: ReturnType<typeof createGame>,
     protonConfig: ProtonConfig | null,
   ): Promise<Record<string, string>> {
-    return (orchestrator as unknown as { buildLaunchEnv: typeof buildLaunchEnv })["buildLaunchEnv"](
-      game,
-      protonConfig,
-    );
+    return (
+      orchestrator as unknown as {
+        buildLaunchEnv(game: any, config: any): Promise<Record<string, string>>;
+      }
+    )["buildLaunchEnv"](game, protonConfig);
   }
 
   describe("Epic Games (legendary) with Proton", () => {

@@ -149,7 +149,7 @@ interface DiskInfo {
   totalSpace: number;
 }
 
-const { on: onGamepad } = useGamepad();
+const { on: onGamepad } = await useGamepad();
 const libraryStore = useLibraryStore();
 
 // Focus state for gamepad navigation
@@ -186,7 +186,7 @@ async function handleSync() {
 async function handleResync() {
   syncMessage.value = null;
   try {
-    await libraryStore.resyncLibrary();
+    await libraryStore.syncLibrary(true);
     syncMessage.value = `Re-synchronisation terminée — ${libraryStore.games.length} jeux enrichis.`;
     syncSuccess.value = true;
   } catch {

@@ -44,7 +44,7 @@ export const useLibraryStore = defineStore("library", () => {
   }
 
   /**
-   * Fetch games from SQLite (pure TypeScript — no Rust invoke)
+   * Fetch games from SQLite
    * Initial sync is handled by SplashScreen, so this just reads from DB.
    */
   async function fetchGames() {
@@ -71,7 +71,7 @@ export const useLibraryStore = defineStore("library", () => {
    * Sync library with all authenticated stores
    * Delegates to GameSyncService via the orchestrator
    */
-  async function syncLibrary() {
+  async function syncLibrary(forceEnrich: boolean = false) {
     await debug("syncLibrary()");
     syncing.value = true;
     loading.value = true;
@@ -82,7 +82,7 @@ export const useLibraryStore = defineStore("library", () => {
       if (!initialized.value) await initialize();
 
       const orchestrator = getOrchestrator();
-      const result: SyncResult = await orchestrator.syncLibrary();
+      const result: SyncResult = await orchestrator.syncLibrary({forceEnrich});
 
       await info(`Sync result: ${result.total} total, ${result.errors.length} errors`);
       syncErrors.value = result.errors.map(
@@ -91,50 +91,11 @@ export const useLibraryStore = defineStore("library", () => {
       hasSynced.value = true;
 
       // Refresh games from DB after sync
-      const data = await orchestrator.getAllGames();
-      games.value = data;
-      await info(`Loaded ${data.length} games after sync`);
+      games.value =  await orchestrator.getAllGames();
+      await info(`Loaded ${games.value.length} games after sync`);
     } catch (err) {
       error.value = "Failed to sync library";
       await logError(`Sync error: ${err}`);
-    } finally {
-      loading.value = false;
-      syncing.value = false;
-    }
-  }
-
-  /**
-   * Force re-sync: re-fetches games and forces re-enrichment of all games
-   * Useful for updating metadata after initial sync or fixing broken data
-   */
-  async function resyncLibrary() {
-    await debug("resyncLibrary()");
-    syncing.value = true;
-    loading.value = true;
-    error.value = null;
-    syncErrors.value = [];
-
-    try {
-      if (!initialized.value) await initialize();
-
-      const orchestrator = getOrchestrator();
-      const result: SyncResult = await orchestrator.resyncLibrary();
-
-      await info(
-        `Re-sync result: ${result.total} total, ${result.enriched} enriched, ${result.errors.length} errors`,
-      );
-      syncErrors.value = result.errors.map(
-        (e) => `${e.store || e.gameTitle || "unknown"}: ${e.message}`,
-      );
-      hasSynced.value = true;
-
-      // Refresh games from DB after sync
-      const data = await orchestrator.getAllGames();
-      games.value = data;
-      await info(`Loaded ${data.length} games after re-sync`);
-    } catch (err) {
-      error.value = "Failed to re-sync library";
-      await logError(`Re-sync error: ${err}`);
     } finally {
       loading.value = false;
       syncing.value = false;
@@ -217,12 +178,6 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
-  // TODO: Migrer scan GOG vers GogdlService
-  async function scanGogInstalled() {
-    await debug("scanGogInstalled() - TODO: migrate to services");
-    // Temporairement désactivé pendant la migration
-  }
-
   function selectGameById(gameId: string) {
     selectedGame.value = games.value.find((g) => g.id === gameId) || null;
   }
@@ -298,8 +253,6 @@ export const useLibraryStore = defineStore("library", () => {
     initialize,
     fetchGames,
     syncLibrary,
-    resyncLibrary,
-    scanGogInstalled,
     launchGame,
     installGame,
     uninstallGame,

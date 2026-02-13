@@ -2,10 +2,10 @@
   <div class="flex flex-col gap-8">
     <SudoersConfigInfo v-if="step === 'info'" />
     <SudoersConfigPassword
-      v-else-if="step === 'password'"
+      v-else-if="step === 'password' && password !== undefined"
       :password="password"
-      :show-password="showPassword"
-      :error="error"
+      :show-password="showPassword || false"
+      :error="error || null"
       @update:password="$emit('update:password', $event)"
       @update:showPassword="$emit('update:showPassword', $event)"
       @validate="$emit('validate')"
@@ -30,5 +30,10 @@ defineProps<{
   showPassword?: boolean;
   error?: string | null;
 }>();
-defineEmits(["update:password", "update:showPassword", "validate"]);
+
+defineEmits<{
+  "update:password": [value: string];
+  "update:showPassword": [value: boolean];
+  validate: [];
+}>();
 </script>

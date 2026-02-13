@@ -5,7 +5,7 @@
       <img
         v-if="heroImage"
         :src="heroImage"
-        :alt="game?.title"
+        :alt="game?.info.title"
         class="w-full h-full object-cover"
       />
       <div

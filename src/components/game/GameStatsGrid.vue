@@ -44,6 +44,6 @@ const protonColor = computed(() => {
     pending: "gray",
     borked: "red",
   };
-  return colors[game.value?.protonTier || ""] || "gray";
+  return colors[game.value?.protonData.protonTier || ""] || "gray";
 });
 </script>

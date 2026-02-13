@@ -15,8 +15,8 @@ import {
   EXTERNAL_GAME_STEAM,
   type IgdbClientConfig,
   type IgdbGameExpanded,
+  type GameTimeToBeat,
 } from "@/services/igdb";
-import type { GameTimeToBeat } from "@/services/igdb";
 
 export class IgdbEnricher {
   private client = new IgdbClient();

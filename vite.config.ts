@@ -1,10 +1,20 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "path";
+import checker from "vite-plugin-checker";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    checker({
+      oxlint: true, // Run oxlint for code quality checks
+      typescript: {
+        tsconfigPath: "./tsconfig.app.json", // Exclude test files from build checks
+      },
+      vueTsc: true, // Vue template type checking
+    }),
+    vue(),
+  ],
 
   resolve: {
     alias: {

@@ -3,7 +3,7 @@
  * Tests for Steam store service (local library reading)
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { SteamService } from "@/services/stores/SteamService";
 import type { SidecarService } from "@/services/base/SidecarService";
 import type { DatabaseService } from "@/services/base/DatabaseService";

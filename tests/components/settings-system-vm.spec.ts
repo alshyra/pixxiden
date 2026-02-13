@@ -12,7 +12,6 @@ const mockLibraryStore = {
   syncing: false,
   games: [{ id: "g1" }, { id: "g2" }, { id: "g3" }],
   syncLibrary: (...args: unknown[]) => mockSyncLibrary(...args),
-  resyncLibrary: (...args: unknown[]) => mockResyncLibrary(...args),
 };
 
 vi.mock("@/composables/useGamepad", () => ({

@@ -217,6 +217,11 @@ function openGameDetails(game: Game | null) {
   router.push(`/game/${gameToOpen.id}`);
 }
 
+// Open settings page
+function openSettings() {
+  router.push("/settings");
+}
+
 // Load games
 async function loadGames() {
   loading.value = true;

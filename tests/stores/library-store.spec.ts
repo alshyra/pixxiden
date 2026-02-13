@@ -8,7 +8,6 @@ const mockEmit = vi.fn();
 const mockOrchestrator = {
   getAllGames: vi.fn(),
   syncLibrary: vi.fn(),
-  resyncLibrary: vi.fn(),
   prepareGameLaunch: vi.fn(),
   updateGameMetadata: vi.fn(),
   searchGames: vi.fn(),
@@ -66,11 +65,6 @@ describe("Library Store (real store)", () => {
       enriched: 1,
       errors: [{ store: "epic", message: "minor" }],
     });
-    mockOrchestrator.resyncLibrary.mockResolvedValue({
-      total: 2,
-      enriched: 2,
-      errors: [],
-    });
     mockOrchestrator.searchGames.mockResolvedValue([makeGame("g1")]);
     mockOrchestrator.getRecentlyPlayed.mockResolvedValue([makeGame("g2")]);
     mockOrchestrator.getFavorites.mockResolvedValue([makeGame("g2")]);
@@ -114,10 +108,10 @@ describe("Library Store (real store)", () => {
   it("resyncs library", async () => {
     const store = useLibraryStore();
 
-    await store.resyncLibrary();
+    await store.syncLibrary(true);
 
-    expect(mockOrchestrator.resyncLibrary).toHaveBeenCalled();
-    expect(store.syncErrors).toEqual([]);
+    expect(mockOrchestrator.syncLibrary).toHaveBeenCalledWith({forceEnrich: true});
+    expect(store.syncErrors).toEqual(["epic: minor"]);
     expect(store.loading).toBe(false);
   });
 

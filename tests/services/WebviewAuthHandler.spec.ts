@@ -4,7 +4,10 @@ const mockListen = vi.fn();
 const mockClose = vi.fn();
 const mockOnCloseRequested = vi.fn();
 const mockOnce = vi.fn();
-let createdWindow: any = null;
+// Variable used in mock constructor - TS and eslint cannot detect mock usage
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// @ts-expect-error - used in WebviewWindow mock
+let _createdWindow: any = null;
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: (...args: unknown[]) => mockListen(...args),
@@ -13,7 +16,8 @@ vi.mock("@tauri-apps/api/event", () => ({
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   WebviewWindow: class {
     constructor(..._args: unknown[]) {
-      createdWindow = this;
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      _createdWindow = this;
     }
     close = (...args: unknown[]) => mockClose(...args);
     onCloseRequested = (...args: unknown[]) => mockOnCloseRequested(...args);
@@ -27,13 +31,13 @@ describe("WebviewAuthHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
-    createdWindow = null;
+    _createdWindow = null;
     (WebviewAuthHandler as any).instance = null;
     mockClose.mockResolvedValue(undefined);
   });
 
   it("resolves when auth-code event is received", async () => {
-    let eventHandler: ((event: { payload: string }) => void) | null = null;
+    let eventHandler: ((event: { payload: string }) => void) | undefined;
 
     mockListen.mockImplementationOnce(
       async (_eventName: string, handler: (event: { payload: string }) => void) => {
@@ -54,7 +58,7 @@ describe("WebviewAuthHandler", () => {
   });
 
   it("rejects when window is closed by user", async () => {
-    let closeHandler: (() => void) | null = null;
+    let closeHandler: (() => void) | undefined;
 
     mockListen.mockResolvedValueOnce(vi.fn());
     mockOnCloseRequested.mockImplementationOnce((handler: () => void) => {
@@ -71,7 +75,7 @@ describe("WebviewAuthHandler", () => {
   });
 
   it("rejects on webview creation error event", async () => {
-    let errorHandler: ((event: { payload: string }) => void) | null = null;
+    let errorHandler: ((event: { payload: string }) => void) | undefined;
 
     mockListen.mockResolvedValueOnce(vi.fn());
     mockOnCloseRequested.mockImplementationOnce(() => {});

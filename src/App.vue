@@ -10,10 +10,10 @@
 
       <!-- Side Nav (SteamOS-style, triggered by Guide/Start button) -->
       <SideNav @open-power-menu="showPowerModal = true" />
-      
+
       <!-- Power Modal (shutdown / quit) -->
       <PowerModal :show="showPowerModal" @close="showPowerModal = false" />
-      
+
       <!-- Global Game Overlay (triggered by gamepad Guide/PS button) -->
       <GameOverlay ref="gameOverlay" />
 
@@ -42,7 +42,7 @@ const sideNavStore = useSideNavStore();
 const gameOverlay = ref<InstanceType<typeof GameOverlay> | null>(null);
 const showSetupWizard = ref(false);
 const showPowerModal = ref(false);
-const isSplashScreen = ref(true)
+const isSplashScreen = ref(true);
 
 function onSplashReady() {
   isSplashScreen.value = false;
@@ -55,6 +55,7 @@ provide("isGameRunning", isGameRunning);
 let unlistenGameLaunched: UnlistenFn | null = null;
 let unlistenGameError: UnlistenFn | null = null;
 let unlistenGameExited: UnlistenFn | null = null;
+let unsubscribeGamepad: Array<() => void> = [];
 
 // Check if setup wizard is needed on mount
 onMounted(async () => {
@@ -71,7 +72,7 @@ onMounted(async () => {
     unlistenGameLaunched = await listen("game-launched", (event: any) => {
       debug("Game launched - PS button now controls game overlay");
       isGameRunning.value = true;
-      
+
       // Notify the GameOverlay about the current game
       if (event.payload?.game) {
         gameOverlay.value?.setCurrentGame(event.payload.game);
@@ -94,31 +95,37 @@ onMounted(async () => {
   }
 
   // Handle PS/Guide button: toggle SideNav (or bring Pixxiden to front during gameplay)
-  gamepad.on("guide", async () => {
-    if (isSplashScreen.value || showSetupWizard.value) return;
+  unsubscribeGamepad.push(
+    gamepad.on("guide", async () => {
+      if (isSplashScreen.value || showSetupWizard.value) return;
 
-    if (isGameRunning.value && !sideNavStore.isOpen) {
-      // When game is running: bring Pixxiden to foreground and show overlay
-      const windowService = getWindowService();
-      await windowService.focusMainWindow();
-      gameOverlay.value?.toggle();
-    } else {
-      // Toggle SideNav (SteamOS-style)
-      sideNavStore.toggle();
-    }
-  });
+      if (isGameRunning.value && !sideNavStore.isOpen) {
+        // When game is running: bring Pixxiden to foreground and show overlay
+        const windowService = getWindowService();
+        await windowService.focusMainWindow();
+        gameOverlay.value?.toggle();
+      } else {
+        // Toggle SideNav (SteamOS-style)
+        sideNavStore.toggle();
+      }
+    }),
+  );
 
   // Start button also toggles SideNav (fallback for controllers without Guide)
-  gamepad.on("start", () => {
-    if (isSplashScreen.value || showSetupWizard.value) return;
-    sideNavStore.toggle();
-  });
+  unsubscribeGamepad.push(
+    gamepad.on("start", () => {
+      if (isSplashScreen.value || showSetupWizard.value) return;
+      sideNavStore.toggle();
+    }),
+  );
 });
 
 onUnmounted(() => {
   unlistenGameLaunched?.();
   unlistenGameError?.();
   unlistenGameExited?.();
+  // Cleanup gamepad listeners
+  unsubscribeGamepad.forEach((unsub) => unsub());
 });
 
 function onSetupComplete() {

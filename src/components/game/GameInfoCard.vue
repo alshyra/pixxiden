@@ -39,7 +39,7 @@
         <div class="flex gap-2 mt-2 flex-wrap">
           <Badge v-if="game?.info.genres?.[0]" variant="muted">{{ game.info.genres[0] }}</Badge>
           <Badge v-if="game?.info.genres?.[1]" variant="muted">{{ game.info.genres[1] }}</Badge>
-          <Badge v-if="game?.installation.cloudSaveSupport" variant="accent"> ☁ Cloud Save </Badge>
+          <Badge v-if="game?.installation.cloudSaveSupport" variant="success"> ☁ Cloud Save </Badge>
         </div>
       </div>
     </div>
