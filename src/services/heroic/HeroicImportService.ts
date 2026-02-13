@@ -17,6 +17,7 @@ import { debug, info, warn } from "@tauri-apps/plugin-log";
 import { homeDir } from "@tauri-apps/api/path";
 import { readTextFile, exists } from "@tauri-apps/plugin-fs";
 import { GameRepository } from "@/lib/database";
+import type { ExternalLauncherMerger } from "@/lib/sync/GameSyncService";
 
 /** Entry from gog_store/installed.json → installed[] array */
 export interface HeroicGogInstalledEntry {
@@ -65,10 +66,12 @@ export interface HeroicInstallInfo {
   targetExe: string;
 }
 
-export class HeroicImportService {
+export class HeroicImportService implements ExternalLauncherMerger {
   private static instance: HeroicImportService | null = null;
   private homeDirCache: string | null = null;
   private heroicConfigDirCache: string | null = null;
+
+  readonly name = "heroic";
 
   static getInstance(): HeroicImportService {
     if (!HeroicImportService.instance) {
@@ -136,14 +139,12 @@ export class HeroicImportService {
 
   /**
    * Merge installation data from Heroic into existing games in database.
-   * Returns the number of games that were updated.
-   *
-   * This method handles the database update logic that was previously in GameSyncService.
+   * Returns scanned/merged counts for the ExternalLauncherMerger contract.
    */
-  async mergeInstallations(): Promise<number> {
+  async mergeInstallations(): Promise<{ scanned: number; merged: number }> {
     const heroicGames = await this.getInstalledGames();
     if (heroicGames.length === 0) {
-      return 0;
+      return { scanned: 0, merged: 0 };
     }
 
     const gameRepo = GameRepository.getInstance();
@@ -151,29 +152,28 @@ export class HeroicImportService {
 
     for (const heroicGame of heroicGames) {
       const existing = await gameRepo.getGameById(heroicGame.gameId);
-      if (existing) {
-        await gameRepo.updateInstallation(heroicGame.gameId, {
-          installed: true,
-          installPath: heroicGame.installPath,
-          installSize: heroicGame.installSize,
-          winePrefix: heroicGame.winePrefix,
-          wineVersion: heroicGame.wineVersion,
-          runner: heroicGame.runner,
-          runnerPath: heroicGame.wineBin,
-          executablePath: heroicGame.targetExe,
-        });
-        merged++;
-        await debug(
-          `[Heroic] Merged ${existing.info.title}: prefix=${heroicGame.winePrefix || "(none)"}, runner=${heroicGame.runner || "(none)"}`,
-        );
-      }
+      if (!existing) continue;
+      await gameRepo.updateInstallation(heroicGame.gameId, {
+        installed: true,
+        installPath: heroicGame.installPath,
+        installSize: heroicGame.installSize,
+        winePrefix: heroicGame.winePrefix,
+        wineVersion: heroicGame.wineVersion,
+        runner: heroicGame.runner,
+        runnerPath: heroicGame.wineBin,
+        executablePath: heroicGame.targetExe,
+      });
+      merged++;
+      await debug(
+        `[Heroic] Merged ${existing.info.title}: prefix=${heroicGame.winePrefix || "(none)"}, runner=${heroicGame.runner || "(none)"}`,
+      );
     }
 
     if (merged > 0) {
       await info(`[Heroic] Merged installation data for ${merged} games`);
     }
 
-    return merged;
+    return { scanned: heroicGames.length, merged };
   }
 
   // ===== Private helpers =====

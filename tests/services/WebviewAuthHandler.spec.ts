@@ -4,7 +4,8 @@ const mockListen = vi.fn();
 const mockClose = vi.fn();
 const mockOnCloseRequested = vi.fn();
 const mockOnce = vi.fn();
-// Variable used in mock constructor - TS and eslint cannot detect mock usage
+// Used in mock constructor below — TS cannot detect mock usage
+// @ts-expect-error Variable used in mock constructor, not directly read
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let _createdWindow: any = null;
 

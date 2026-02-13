@@ -57,7 +57,7 @@ export class SteamWebApi {
   private static async getOwnedGamesViaApi(steamId: string, apiKey: string): Promise<Game[]> {
     const url = `${this.API_BASE}/IPlayerService/GetOwnedGames/v0001/?key=${apiKey}&steamid=${steamId}&include_appinfo=true&include_played_free_games=true&format=json`;
 
-    const response = await fetch<SteamGamesResponse>(url, {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -68,13 +68,15 @@ export class SteamWebApi {
       throw new Error(`Steam API request failed: ${response.status}`);
     }
 
-    const data = response.data;
+    const data: SteamGamesResponse = await response.json();
 
     if (!data || !data.response || !data.response.games) {
       throw new Error("Invalid response from Steam API");
     }
 
-    const games = data.response.games.map((game) => this.convertWebApiGameToGame(game));
+    const games = data.response.games.map((game: SteamWebApiGame) =>
+      this.convertWebApiGameToGame(game),
+    );
 
     await info(`Fetched ${games.length} owned games from Steam Web API`);
     return games;

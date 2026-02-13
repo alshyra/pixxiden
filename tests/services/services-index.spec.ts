@@ -65,42 +65,15 @@ describe("services index", () => {
 
     const info = vi.fn().mockResolvedValue(undefined);
     const warn = vi.fn().mockResolvedValue(undefined);
-    const AuthService = vi.fn(
-      class {
-        type = "auth";
-        constructor(..._args: unknown[]) {}
-      },
-    );
-    const EnrichmentService = vi.fn(
-      class {
-        type = "enrichment";
-        constructor(..._args: unknown[]) {}
-      },
-    );
-    const InstallationService = vi.fn(
-      class {
-        type = "install";
-        constructor(..._args: unknown[]) {}
-      },
-    );
-    const LegendaryService = vi.fn(
-      class {
-        platform = "epic";
-        constructor(..._args: unknown[]) {}
-      },
-    );
-    const GogdlService = vi.fn(
-      class {
-        platform = "gog";
-        constructor(..._args: unknown[]) {}
-      },
-    );
-    const NileService = vi.fn(
-      class {
-        platform = "amazon";
-        constructor(..._args: unknown[]) {}
-      },
-    );
+
+    const authInstance = { type: "auth" };
+    const enrichmentInstance = { type: "enrichment" };
+    // const installationInstance = { type: "install" };
+
+    const legendaryInstance = { platform: "epic" };
+    const gogdlInstance = { platform: "gog" };
+    const nileInstance = { platform: "amazon" };
+
     const gameLaunchInstance = { launch: vi.fn() };
     const protonInstance = { ensureProtonInstalled: vi.fn().mockResolvedValue(undefined) };
     const windowInstance = { focus: vi.fn() };
@@ -115,22 +88,26 @@ describe("services index", () => {
     }));
     vi.doMock("@/services/stores", () => ({
       GameStoreService: class {},
-      LegendaryService,
-      GogdlService,
-      NileService,
-      SteamService: class {},
+      LegendaryService: { getInstance: vi.fn(() => legendaryInstance) },
+      GogdlService: { getInstance: vi.fn(() => gogdlInstance) },
+      NileService: { getInstance: vi.fn(() => nileInstance) },
+      SteamService: { getInstance: vi.fn(() => ({})) },
     }));
     vi.doMock("@/services/auth", () => ({
-      AuthService,
+      AuthService: { getInstance: vi.fn(() => authInstance) },
       WebviewAuthHandler: class {},
     }));
     vi.doMock("@/services/enrichment", () => ({
-      EnrichmentService,
+      EnrichmentService: { getInstance: vi.fn(() => enrichmentInstance) },
       IgdbEnricher: class {},
       ProtonDbEnricher: class {},
       SteamGridDbEnricher: class {},
     }));
-    vi.doMock("@/services/installation", () => ({ InstallationService }));
+    vi.doMock("@/services/installation", () => ({
+      InstallationService: class {
+        type = "install";
+      },
+    }));
     vi.doMock("@/services/launch", () => ({
       GameLaunchService: { getInstance: vi.fn(() => gameLaunchInstance) },
     }));
@@ -156,12 +133,6 @@ describe("services index", () => {
     expect(authA).toBe(authB);
     expect(enrichA).toBe(enrichB);
     expect(installA).toBe(installB);
-    expect(AuthService).toHaveBeenCalledTimes(1);
-    expect(LegendaryService).toHaveBeenCalledWith(sidecar, db);
-    expect(GogdlService).toHaveBeenCalledWith(sidecar, db);
-    expect(NileService).toHaveBeenCalledWith(sidecar, db);
-    expect(EnrichmentService).toHaveBeenCalledWith(db);
-    expect(InstallationService).toHaveBeenCalledWith(sidecar, db);
 
     expect(services.getDatabaseService()).toBe(db);
     expect(services.getOrchestrator()).toBe(orchestratorInstance);

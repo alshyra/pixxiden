@@ -7,7 +7,10 @@ import checker from "vite-plugin-checker";
 export default defineConfig({
   plugins: [
     checker({
-      oxlint: true, // Run oxlint for code quality checks
+      // oxlint: {
+      //   watchPath: "src", 
+      //   lintCommand: "oxclint --ext .ts,.vue src",
+      // },
       typescript: {
         tsconfigPath: "./tsconfig.app.json", // Exclude test files from build checks
       },

@@ -81,15 +81,25 @@ export class GogdlService extends GameStoreService {
   /** Cached config path for gogdl auth tokens */
   private authConfigPath: string | null = null;
 
-  private constructor() {
-    super(SidecarService.getInstance(), DatabaseService.getInstance());
+  private constructor(sidecar: SidecarService, db: DatabaseService) {
+    super(sidecar, db);
   }
 
   static getInstance(): GogdlService {
     if (!GogdlService.instance) {
-      GogdlService.instance = new GogdlService();
+      GogdlService.instance = new GogdlService(
+        SidecarService.getInstance(),
+        DatabaseService.getInstance(),
+      );
     }
     return GogdlService.instance;
+  }
+
+  /**
+   * Create an instance with custom dependencies (for testing).
+   */
+  static createWithDeps(sidecar: SidecarService, db: DatabaseService): GogdlService {
+    return new GogdlService(sidecar, db);
   }
 
   get storeName(): Game["storeData"]["store"] {

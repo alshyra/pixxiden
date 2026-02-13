@@ -49,7 +49,7 @@ describe("LegendaryService", () => {
   beforeEach(() => {
     mockSidecar = createMockSidecar();
     mockDb = createMockDb();
-    service = new LegendaryService(
+    service = LegendaryService.createWithDeps(
       mockSidecar as unknown as SidecarService,
       mockDb as unknown as DatabaseService,
     );

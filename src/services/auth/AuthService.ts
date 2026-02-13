@@ -21,17 +21,32 @@ export class AuthService {
   private gogdl: GogdlService;
   private nile: NileService;
 
-  private constructor() {
-    this.legendary = LegendaryService.getInstance();
-    this.gogdl = GogdlService.getInstance();
-    this.nile = NileService.getInstance();
+  private constructor(legendary: LegendaryService, gogdl: GogdlService, nile: NileService) {
+    this.legendary = legendary;
+    this.gogdl = gogdl;
+    this.nile = nile;
   }
 
   static getInstance(): AuthService {
     if (!AuthService.instance) {
-      AuthService.instance = new AuthService();
+      AuthService.instance = new AuthService(
+        LegendaryService.getInstance(),
+        GogdlService.getInstance(),
+        NileService.getInstance(),
+      );
     }
     return AuthService.instance;
+  }
+
+  /**
+   * Create an instance with custom dependencies (for testing).
+   */
+  static createWithDeps(
+    legendary: LegendaryService,
+    gogdl: GogdlService,
+    nile: NileService,
+  ): AuthService {
+    return new AuthService(legendary, gogdl, nile);
   }
 
   /**

@@ -28,15 +28,25 @@ interface LegendaryGame {
 export class LegendaryService extends GameStoreService {
   private static instance: LegendaryService | null = null;
 
-  private constructor() {
-    super(SidecarService.getInstance(), DatabaseService.getInstance());
+  private constructor(sidecar: SidecarService, db: DatabaseService) {
+    super(sidecar, db);
   }
 
   static getInstance(): LegendaryService {
     if (!LegendaryService.instance) {
-      LegendaryService.instance = new LegendaryService();
+      LegendaryService.instance = new LegendaryService(
+        SidecarService.getInstance(),
+        DatabaseService.getInstance(),
+      );
     }
     return LegendaryService.instance;
+  }
+
+  /**
+   * Create an instance with custom dependencies (for testing).
+   */
+  static createWithDeps(sidecar: SidecarService, db: DatabaseService): LegendaryService {
+    return new LegendaryService(sidecar, db);
   }
 
   get storeName(): Game["storeData"]["store"] {

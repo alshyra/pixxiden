@@ -75,13 +75,12 @@ vi.mock("@/services/enrichment", () => ({
 }));
 
 // Mock HeroicImportService
-const mockGetInstalledGames = vi.fn();
 const mockMergeInstallations = vi.fn();
 
 vi.mock("@/services/heroic", () => ({
   HeroicImportService: {
     getInstance: vi.fn(() => ({
-      getInstalledGames: mockGetInstalledGames,
+      name: "heroic",
       mergeInstallations: mockMergeInstallations,
     })),
   },
@@ -108,8 +107,7 @@ describe("GameSyncService", () => {
     vi.clearAllMocks();
     mockGetAllGames.mockResolvedValue([]);
     mockUpsertGames.mockResolvedValue(undefined);
-    mockGetInstalledGames.mockResolvedValue([]);
-    mockMergeInstallations.mockResolvedValue(0);
+    mockMergeInstallations.mockResolvedValue({ scanned: 0, merged: 0 });
     mockInvalidateOutdatedCache.mockResolvedValue(0);
     mockGetApiKeys.mockResolvedValue({
       hasIgdb: false,
@@ -239,18 +237,10 @@ describe("GameSyncService", () => {
       mockNileIsAuth.mockResolvedValue(false);
       mockSteamListGames.mockResolvedValue([]);
 
-      mockGetInstalledGames.mockResolvedValue([
-        {
-          gameId: "gog-123",
-          store: "gog",
-          installPath: "/games/test",
-        },
-      ]);
-      mockMergeInstallations.mockResolvedValue(1);
+      mockMergeInstallations.mockResolvedValue({ scanned: 1, merged: 1 });
 
       const result = await service.sync({ skipEnrichment: true });
 
-      expect(mockGetInstalledGames).toHaveBeenCalled();
       expect(mockMergeInstallations).toHaveBeenCalled();
       expect(result.updated).toBe(1);
     });

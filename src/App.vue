@@ -36,6 +36,9 @@ import { useSideNavStore } from "@/stores/sideNav";
 import { getWindowService } from "@/services";
 import * as api from "@/services/api";
 import SplashScreen from "./views/SplashScreen.vue";
+import { attachConsole } from '@tauri-apps/plugin-log';
+
+attachConsole();
 
 const gamepad = useGamepad();
 const sideNavStore = useSideNavStore();

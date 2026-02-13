@@ -108,7 +108,7 @@ describe.skipIf(!tokenFileExists)("GOG Integration Tests (REAL API)", () => {
   beforeEach(() => {
     mockSidecar = createMockSidecar();
     mockDb = createMockDb();
-    service = new GogdlService(mockSidecar, mockDb);
+    service = GogdlService.createWithDeps(mockSidecar, mockDb);
   });
 
   describe("Token file reading", () => {

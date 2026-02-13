@@ -1,16 +1,19 @@
 /**
  * GameSyncService - Game synchronization pipeline
  *
- * Pure pipeline service — no store-specific logic.
- * Store-specific fetch + auth is delegated to SyncStrategy implementations.
+ * Pure pipeline service — no store-specific logic, no concrete service imports.
+ * All dependencies are injected via interfaces:
+ * - SyncStrategy[] for store fetch/auth
+ * - EnrichmentPipeline for metadata enrichment
+ * - HeroicMerger for Heroic launcher integration
+ * - GameRepository for persistence
  *
  * Responsibilities:
  * - Runs the sync pipeline: fetch → persist → heroic merge → enrich
  * - Reports progress via Tauri events for the splash screen
- * - Configures enrichment API keys
  *
  * Flow:
- *   SyncStrategy.fetchGames() → SQLite (base data) → EnrichmentService → SQLite (enriched data)
+ *   SyncStrategy.fetchGames() → SQLite (base data) → EnrichmentPipeline → SQLite (enriched data)
  *   ↳ emit('splash-progress') at each step
  */
 
@@ -18,14 +21,17 @@ import { emit } from "@tauri-apps/api/event";
 import { debug, info, warn } from "@tauri-apps/plugin-log";
 import type { Game, StoreType } from "@/types";
 import { GameRepository } from "../database";
-import { EnrichmentService } from "@/services/enrichment";
-import { HeroicImportService } from "@/services/heroic";
-import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
 import type { SyncStrategy } from "./strategies/SyncStrategy";
 import { EpicSyncStrategy } from "./strategies/EpicSyncStrategy";
 import { GogSyncStrategy } from "./strategies/GogSyncStrategy";
 import { AmazonSyncStrategy } from "./strategies/AmazonSyncStrategy";
 import { SteamSyncStrategy } from "./strategies/SteamSyncStrategy";
+
+// Concrete imports — used ONLY in getInstance() for default wiring.
+// For testing, use createWithDeps() to inject mocks instead.
+import { EnrichmentService } from "@/services/enrichment";
+import { HeroicImportService } from "@/services/heroic";
+import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
 
 // ===== Types =====
 
@@ -63,20 +69,70 @@ export interface SyncProgressEvent {
   message: string;
 }
 
+// ===== Dependency Interfaces =====
+
+/**
+ * Interface for the enrichment pipeline.
+ * Decouples GameSyncService from the concrete EnrichmentService.
+ */
+export interface EnrichmentPipeline {
+  /** Configure API keys for enrichment providers */
+  configureApis(config: {
+    igdb?: { clientId: string; accessToken: string };
+    steamGridDb?: { apiKey: string };
+  }): void;
+  /** Invalidate outdated cache entries, returns count of invalidated */
+  invalidateOutdatedCache(): Promise<number>;
+  /** Enrich a single game with metadata from external APIs */
+  enrichGame(game: Game): Promise<Game>;
+}
+
+/**
+ * Interface for external launcher merge (Heroic, Lutris, etc.).
+ * External launchers install games independently — this interface
+ * discovers those installations and updates Pixxiden's DB.
+ */
+export interface ExternalLauncherMerger {
+  /** Human-readable name for progress display (e.g. "heroic", "lutris") */
+  readonly name: string;
+  /** Discover and merge installations into DB. Returns scan/merge counts. */
+  mergeInstallations(): Promise<{ scanned: number; merged: number }>;
+}
+
+/**
+ * Interface for API key resolution.
+ * Decouples GameSyncService from the concrete apiKeys module.
+ */
+export interface ApiKeyProvider {
+  getApiKeys(): Promise<{
+    hasIgdb: boolean;
+    igdbClientId: string | null;
+    hasSteamgriddb: boolean;
+    steamgriddbApiKey: string | null;
+  }>;
+  getIGDBAccessToken(): Promise<string | null>;
+}
+
 // ===== Service =====
 
 export class GameSyncService {
   private static instance: GameSyncService | null = null;
 
   private gameRepo: GameRepository;
-  private enrichment: EnrichmentService;
-  private heroicImport: HeroicImportService;
+  private enrichment: EnrichmentPipeline;
+  private externalMergers: ExternalLauncherMerger[];
+  private apiKeyProvider: ApiKeyProvider;
   private strategies: Map<StoreType, SyncStrategy>;
 
-  private constructor() {
+  private constructor(
+    enrichment: EnrichmentPipeline,
+    externalMergers: ExternalLauncherMerger[],
+    apiKeyProvider: ApiKeyProvider,
+  ) {
     this.gameRepo = GameRepository.getInstance();
-    this.enrichment = EnrichmentService.getInstance();
-    this.heroicImport = HeroicImportService.getInstance();
+    this.enrichment = enrichment;
+    this.externalMergers = externalMergers;
+    this.apiKeyProvider = apiKeyProvider;
 
     // Register one strategy per store
     this.strategies = new Map<StoreType, SyncStrategy>([
@@ -87,11 +143,30 @@ export class GameSyncService {
     ]);
   }
 
+  /**
+   * Get or create the singleton instance.
+   * On first call, wires the concrete implementations.
+   */
   static getInstance(): GameSyncService {
     if (!GameSyncService.instance) {
-      GameSyncService.instance = new GameSyncService();
+      GameSyncService.instance = new GameSyncService(
+        EnrichmentService.getInstance(),
+        [HeroicImportService.getInstance()],
+        { getApiKeys, getIGDBAccessToken },
+      );
     }
     return GameSyncService.instance;
+  }
+
+  /**
+   * Create an instance with custom dependencies (for testing).
+   */
+  static createWithDeps(
+    enrichment: EnrichmentPipeline,
+    externalMergers: ExternalLauncherMerger[],
+    apiKeyProvider: ApiKeyProvider,
+  ): GameSyncService {
+    return new GameSyncService(enrichment, externalMergers, apiKeyProvider);
   }
 
   /**
@@ -169,40 +244,40 @@ export class GameSyncService {
 
     result.total = allFetchedGames.length;
 
-    // ===== Phase 1.5: Merge Heroic installation data =====
-    // Heroic is a launcher (not a store) that uses the same CLIs.
+    // ===== Phase 1.5: Merge external launcher installations =====
+    // External launchers (Heroic, etc.) install games independently.
     // We match installed games by storeId and update their install_path.
-    try {
-      const heroicGames = await this.heroicImport.getInstalledGames();
-      if (heroicGames.length > 0) {
-        await this.emitProgress({
-          store: "heroic",
-          gameTitle: "",
-          current: 0,
-          total: heroicGames.length,
-          phase: "fetching",
-          message: `Détection des jeux Heroic...`,
-        });
+    for (const merger of this.externalMergers) {
+      try {
+        const { scanned, merged } = await merger.mergeInstallations();
+        if (scanned > 0) {
+          await this.emitProgress({
+            store: merger.name,
+            gameTitle: "",
+            current: 0,
+            total: scanned,
+            phase: "fetching",
+            message: `Détection des jeux ${merger.name}...`,
+          });
 
-        const merged = await this.heroicImport.mergeInstallations();
+          if (merged > 0) {
+            result.updated += merged;
+          }
 
-        if (merged > 0) {
-          result.updated += merged;
+          await this.emitProgress({
+            store: merger.name,
+            gameTitle: "",
+            current: scanned,
+            total: scanned,
+            phase: "fetching",
+            message: `${merger.name}: ${merged} jeux mis à jour`,
+          });
         }
-
-        await this.emitProgress({
-          store: "heroic",
-          gameTitle: "",
-          current: heroicGames.length,
-          total: heroicGames.length,
-          phase: "fetching",
-          message: `Heroic: ${merged} jeux mis à jour`,
-        });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        await warn(`[${merger.name}] Failed to merge installations: ${msg}`);
+        result.errors.push({ store: undefined, phase: "fetch", message: `${merger.name}: ${msg}` });
       }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      await warn(`[Heroic] Failed to merge installations: ${msg}`);
-      result.errors.push({ store: undefined, phase: "fetch", message: `Heroic: ${msg}` });
     }
 
     // ===== Phase 2: Enrich games with metadata =====
@@ -347,13 +422,13 @@ export class GameSyncService {
   }
 
   /**
-   * Configure enrichment service with API keys from config file
-   * Uses getIGDBAccessToken() which handles OAuth token refresh
+   * Configure enrichment service with API keys
+   * Uses the injected ApiKeyProvider for key resolution
    */
   private async configureEnrichment(): Promise<void> {
     try {
-      const apiKeys = await getApiKeys();
-      const igdbToken = await getIGDBAccessToken();
+      const apiKeys = await this.apiKeyProvider.getApiKeys();
+      const igdbToken = await this.apiKeyProvider.getIGDBAccessToken();
 
       this.enrichment.configureApis({
         igdb:

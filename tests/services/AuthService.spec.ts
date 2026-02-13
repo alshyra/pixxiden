@@ -23,7 +23,7 @@ function createService() {
     logout: async () => undefined,
   } as any;
 
-  return { service: new AuthService(legendary, gogdl, nile), legendary, gogdl, nile };
+  return { service: AuthService.createWithDeps(legendary, gogdl, nile), legendary, gogdl, nile };
 }
 
 describe("AuthService", () => {
@@ -83,12 +83,12 @@ describe("AuthService", () => {
     await service.logoutAmazon();
   });
 
-  it("reuses singleton in getInstance", () => {
+  it("creates separate instances with createWithDeps", () => {
     const { legendary, gogdl, nile } = createService();
 
-    const a = AuthService.getInstance(legendary, gogdl, nile);
-    const b = AuthService.getInstance(legendary, gogdl, nile);
+    const a = AuthService.createWithDeps(legendary, gogdl, nile);
+    const b = AuthService.createWithDeps(legendary, gogdl, nile);
 
-    expect(a).toBe(b);
+    expect(a).not.toBe(b);
   });
 });

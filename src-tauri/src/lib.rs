@@ -52,6 +52,7 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("pixxiden.log".into()),
@@ -73,6 +74,18 @@ pub fn run() {
                     } else {
                         true
                     }
+                })
+                .format(|out, message, record| {
+                    out.finish(format_args!(
+                        "[{} {}] {}",
+                        record.level(),
+                        record
+                            .file()
+                            .and_then(|f| std::path::Path::new(f).file_name())
+                            .and_then(|f| f.to_str())
+                            .unwrap_or("js"),
+                        message
+                    ))
                 })
                 .build(),
         )
