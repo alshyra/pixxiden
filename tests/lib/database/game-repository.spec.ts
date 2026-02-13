@@ -126,7 +126,9 @@ describe("GameRepository", () => {
 
   it("reads and maps game queries", async () => {
     const row = makeRow();
-    db.select.mockResolvedValueOnce([row]);
+    // First select: getAllGames rows, Second select: overrides for getAllGames,
+    // Third select: overrides for getGameById
+    db.select.mockResolvedValueOnce([row]).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
     db.queryOne.mockResolvedValueOnce(row);
 
     const all = await repository.getAllGames();

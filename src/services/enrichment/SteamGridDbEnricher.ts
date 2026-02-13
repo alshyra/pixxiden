@@ -112,8 +112,37 @@ export class SteamGridDbEnricher {
       return null;
     }
 
-    // Return first result (usually best match)
     const results: SteamGridDbSearchResult[] = data.data;
+    return this.pickBestMatch(results, title);
+  }
+
+  /**
+   * Pick the best match from autocomplete results.
+   *
+   * Priority:
+   * 1. Exact match (case-insensitive) + verified
+   * 2. Exact match (case-insensitive)
+   * 3. Verified result (first)
+   * 4. First result (fallback)
+   */
+  private pickBestMatch(results: SteamGridDbSearchResult[], title: string): number {
+    const normalizedTitle = title.toLowerCase().trim();
+
+    // 1. Exact match + verified
+    const exactVerified = results.find(
+      (r) => r.name.toLowerCase().trim() === normalizedTitle && r.verified,
+    );
+    if (exactVerified) return exactVerified.id;
+
+    // 2. Exact match (any)
+    const exactMatch = results.find((r) => r.name.toLowerCase().trim() === normalizedTitle);
+    if (exactMatch) return exactMatch.id;
+
+    // 3. First verified result
+    const verified = results.find((r) => r.verified);
+    if (verified) return verified.id;
+
+    // 4. Fallback to first result
     return results[0].id;
   }
 
@@ -193,11 +222,9 @@ export class SteamGridDbEnricher {
       return [];
     }
 
-    // Sort by score (community rating) descending
+    // Trust API's default ordering (factors in views + community score)
     const images: SteamGridDbImage[] = data.data;
-    return images
-      .filter((img) => !img.nsfw) // Filter out NSFW images
-      .sort((a, b) => (b.score || 0) - (a.score || 0));
+    return images.filter((img) => !img.nsfw); // Filter out NSFW images
   }
 
   /**

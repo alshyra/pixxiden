@@ -119,4 +119,13 @@ export const MIGRATIONS: string[] = [
   `ALTER TABLE games ADD COLUMN horizontal_grid_path TEXT`,
   // Migration 6: Add runner_path for Heroic-configured Proton/Wine binary path
   `ALTER TABLE games ADD COLUMN runner_path TEXT`,
+  // Migration 7: Image overrides table — user-chosen images that survive re-enrichment
+  `CREATE TABLE IF NOT EXISTS image_overrides (
+    game_id TEXT NOT NULL,
+    asset_type TEXT NOT NULL CHECK(asset_type IN ('hero','grid','horizontal_grid','logo','icon','cover')),
+    path TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (game_id, asset_type),
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+  )`,
 ];

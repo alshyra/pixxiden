@@ -236,6 +236,29 @@ export class ImageCacheService {
   }
 
   /**
+   * Cache a user-chosen override image for a specific asset type.
+   * Saves to: games/{gameId}/{assetType}_override.{ext}
+   *
+   * @param gameId - The game ID
+   * @param assetType - e.g. "hero", "grid", "logo"
+   * @param sourceUrl - URL to download from (user-selected SteamGridDB image)
+   * @returns The local file path of the cached override, or undefined on failure
+   */
+  async cacheOverrideImage(
+    gameId: string,
+    assetType: string,
+    sourceUrl: string,
+  ): Promise<string | undefined> {
+    const gameDir = await this.getGameDir(gameId);
+    await this.ensureDir(gameDir);
+
+    const ext = this.getExtension(sourceUrl);
+    const dest = await join(gameDir, `${assetType}_override.${ext}`);
+
+    return this.downloadImage(sourceUrl, dest);
+  }
+
+  /**
    * Check if a game already has cached images
    */
   async hasCachedImages(gameId: string): Promise<boolean> {

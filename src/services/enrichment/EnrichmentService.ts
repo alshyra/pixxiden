@@ -15,6 +15,8 @@ import { IgdbEnricher } from "./IgdbEnricher";
 import { ProtonDbEnricher } from "./ProtonDbEnricher";
 import { SteamGridDbEnricher } from "./SteamGridDbEnricher";
 import { ImageCacheService } from "./ImageCacheService";
+import { ImageOverrideRepository } from "@/lib/database/ImageOverrideRepository";
+import type { OverridableAssetType } from "@/lib/database/ImageOverrideRepository";
 import { info, warn } from "@tauri-apps/plugin-log";
 
 export interface EnrichmentData {
@@ -76,6 +78,7 @@ export class EnrichmentService {
   private steamGridDb: SteamGridDbEnricher;
   private imageCache: ImageCacheService;
   private db: DatabaseService;
+  private overrideRepo: ImageOverrideRepository;
 
   private constructor() {
     this.db = DatabaseService.getInstance();
@@ -83,6 +86,7 @@ export class EnrichmentService {
     this.protonDb = new ProtonDbEnricher();
     this.steamGridDb = new SteamGridDbEnricher();
     this.imageCache = ImageCacheService.getInstance();
+    this.overrideRepo = ImageOverrideRepository.getInstance();
   }
 
   static getInstance(): EnrichmentService {
@@ -217,6 +221,9 @@ export class EnrichmentService {
 
     // ===== Download & cache images locally =====
     try {
+      // Check which asset types the user has overridden — skip those
+      const lockedAssets = await this.overrideRepo.getLockedAssetTypes(game.id);
+
       const imageUrls: {
         hero?: string;
         cover?: string;
@@ -227,16 +234,17 @@ export class EnrichmentService {
         screenshots?: string[];
       } = {};
 
-      // SteamGridDB images
+      // SteamGridDB images — only for non-locked asset types
       if (data.steamGridDb) {
-        imageUrls.hero = data.steamGridDb.hero;
-        imageUrls.grid = data.steamGridDb.grid;
-        imageUrls.horizontalGrid = data.steamGridDb.horizontalGrid;
-        imageUrls.logo = data.steamGridDb.logo;
-        imageUrls.icon = data.steamGridDb.icon;
+        if (!lockedAssets.has("hero")) imageUrls.hero = data.steamGridDb.hero;
+        if (!lockedAssets.has("grid")) imageUrls.grid = data.steamGridDb.grid;
+        if (!lockedAssets.has("horizontal_grid"))
+          imageUrls.horizontalGrid = data.steamGridDb.horizontalGrid;
+        if (!lockedAssets.has("logo")) imageUrls.logo = data.steamGridDb.logo;
+        if (!lockedAssets.has("icon")) imageUrls.icon = data.steamGridDb.icon;
       }
 
-      // IGDB screenshots
+      // IGDB screenshots (not overridable)
       if (data.igdb?.screenshots?.length) {
         imageUrls.screenshots = data.igdb.screenshots.map((s) =>
           s.url
@@ -255,11 +263,20 @@ export class EnrichmentService {
         if (cached.heroPath) enriched.assets.heroPath = cached.heroPath;
         if (cached.coverPath) enriched.assets.coverPath = cached.coverPath;
         if (cached.gridPath) enriched.assets.gridPath = cached.gridPath;
-        if (cached.horizontalGridPath) enriched.assets.horizontalGridPath = cached.horizontalGridPath;
+        if (cached.horizontalGridPath)
+          enriched.assets.horizontalGridPath = cached.horizontalGridPath;
         if (cached.logoPath) enriched.assets.logoPath = cached.logoPath;
         if (cached.iconPath) enriched.assets.iconPath = cached.iconPath;
         if (cached.screenshotPaths?.length) {
           enriched.assets.screenshotPaths = cached.screenshotPaths;
+        }
+      }
+
+      // Apply user overrides on top — these always win
+      if (lockedAssets.size > 0) {
+        const overrides = await this.overrideRepo.getOverrides(game.id);
+        for (const ov of overrides) {
+          this.applyOverrideToAssets(enriched, ov.assetType, ov.path);
         }
       }
     } catch (err) {
@@ -276,6 +293,24 @@ export class EnrichmentService {
 
     enriched.enrichedAt = new Date().toISOString();
     return enriched;
+  }
+
+  /**
+   * Map an OverridableAssetType to the corresponding Game.assets property
+   */
+  private applyOverrideToAssets(game: Game, assetType: OverridableAssetType, path: string): void {
+    const mapping: Record<OverridableAssetType, keyof Game["assets"]> = {
+      hero: "heroPath",
+      cover: "coverPath",
+      grid: "gridPath",
+      horizontal_grid: "horizontalGridPath",
+      logo: "logoPath",
+      icon: "iconPath",
+    };
+    const key = mapping[assetType];
+    if (key && typeof game.assets[key] === "string") {
+      (game.assets[key] as string) = path;
+    }
   }
 
   // ===== Cache Management =====

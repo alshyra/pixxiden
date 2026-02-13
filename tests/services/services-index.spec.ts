@@ -22,6 +22,46 @@ describe("services index", () => {
     vi.doMock("@/services/runners", () => ({
       ProtonService: { getInstance: vi.fn(() => ({ ensureProtonInstalled })) },
     }));
+    vi.doMock("@/services/stores", () => ({
+      GameStoreService: class {},
+      LegendaryService: { getInstance: vi.fn() },
+      GogdlService: { getInstance: vi.fn() },
+      NileService: { getInstance: vi.fn() },
+      SteamService: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/services/auth", () => ({
+      AuthService: { getInstance: vi.fn() },
+      WebviewAuthHandler: class {},
+    }));
+    vi.doMock("@/services/enrichment", () => ({
+      EnrichmentService: { getInstance: vi.fn() },
+      IgdbEnricher: class {},
+      ProtonDbEnricher: class {},
+      SteamGridDbEnricher: class {},
+    }));
+    vi.doMock("@/services/installation", () => ({
+      InstallationService: class {},
+    }));
+    vi.doMock("@/services/launch", () => ({
+      GameLaunchService: { getInstance: vi.fn() },
+      LaunchCommandBuilder: class {},
+    }));
+    vi.doMock("@/services/window", () => ({
+      WindowService: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/services/GameLibraryOrchestrator", () => ({
+      GameLibraryOrchestrator: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/services/heroic", () => ({
+      HeroicImportService: class {},
+    }));
+    vi.doMock("@/lib/database", () => ({
+      GameRepository: { getInstance: vi.fn() },
+      CacheRepository: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/lib/sync", () => ({
+      GameSyncService: { getInstance: vi.fn() },
+    }));
 
     const { initializeServices } = await import("@/services");
 
@@ -50,6 +90,46 @@ describe("services index", () => {
     }));
     vi.doMock("@/services/runners", () => ({
       ProtonService: { getInstance: vi.fn(() => ({ ensureProtonInstalled })) },
+    }));
+    vi.doMock("@/services/stores", () => ({
+      GameStoreService: class {},
+      LegendaryService: { getInstance: vi.fn() },
+      GogdlService: { getInstance: vi.fn() },
+      NileService: { getInstance: vi.fn() },
+      SteamService: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/services/auth", () => ({
+      AuthService: { getInstance: vi.fn() },
+      WebviewAuthHandler: class {},
+    }));
+    vi.doMock("@/services/enrichment", () => ({
+      EnrichmentService: { getInstance: vi.fn() },
+      IgdbEnricher: class {},
+      ProtonDbEnricher: class {},
+      SteamGridDbEnricher: class {},
+    }));
+    vi.doMock("@/services/installation", () => ({
+      InstallationService: class {},
+    }));
+    vi.doMock("@/services/launch", () => ({
+      GameLaunchService: { getInstance: vi.fn() },
+      LaunchCommandBuilder: class {},
+    }));
+    vi.doMock("@/services/window", () => ({
+      WindowService: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/services/GameLibraryOrchestrator", () => ({
+      GameLibraryOrchestrator: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/services/heroic", () => ({
+      HeroicImportService: class {},
+    }));
+    vi.doMock("@/lib/database", () => ({
+      GameRepository: { getInstance: vi.fn() },
+      CacheRepository: { getInstance: vi.fn() },
+    }));
+    vi.doMock("@/lib/sync", () => ({
+      GameSyncService: { getInstance: vi.fn() },
     }));
 
     const { initializeServices } = await import("@/services");

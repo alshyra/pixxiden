@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { ref, provide, onMounted, onUnmounted } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
+import { attachConsole, debug, warn, error as logError } from "@tauri-apps/plugin-log";
 import { GameOverlay } from "@/components/game";
 import { ConsoleFooter, SideNav } from "@/components/layout";
 import { SetupWizard } from "@/components/ui";
@@ -36,7 +36,6 @@ import { useSideNavStore } from "@/stores/sideNav";
 import { getWindowService } from "@/services";
 import * as api from "@/services/api";
 import SplashScreen from "./views/SplashScreen.vue";
-import { attachConsole } from '@tauri-apps/plugin-log';
 
 attachConsole();
 
