@@ -1,71 +1,71 @@
 <template>
-  <div class="flex-1 flex flex-col items-center justify-center px-10">
-    <p class="text-xs text-gray-500 mb-8 italic">
+  <div class="flex-1 flex flex-col items-center justify-center px-10 overflow-hidden">
+    <p class="text-xs text-gray-500 mb-4 italic">
       Sélectionnez un type d'image pour parcourir SteamGridDB ou importer un fichier local.
     </p>
 
-    <div class="flex flex-wrap justify-center gap-6 w-full max-w-5xl">
-      <Card
-        v-for="(slot, idx) in slots"
-        :key="slot.type"
-        :data-id="`slot-${idx}`"
-        data-testid="asset-slot"
-        variant="outlined"
-        :hoverable="true"
-        :no-padding="true"
-        :class="[
-          'cursor-pointer transition-all focus:outline-none',
-          'w-52',
-          focusedIndex === idx && 'ring-2 ring-[#5e5ce6]/30 !border-[#5e5ce6] scale-[1.02]',
-        ]"
-        @click="$emit('select', slot, idx)"
-      >
-        <!-- Image preview with correct aspect ratio -->
-        <div
-          :style="{ aspectRatio: slot.aspectRatio }"
-          class="bg-black/30 flex items-center justify-center overflow-hidden"
-        >
-          <img
-            v-if="slot.currentSrc"
-            :src="slot.currentSrc"
-            :alt="slot.label"
-            class="w-full h-full object-cover hover:brightness-75 transition-all duration-300"
-          />
-          <div v-else class="flex flex-col items-center gap-2 text-gray-700">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-8 h-8"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-        </div>
+    <!-- 3-col × 2-row grid, fills available space, no scroll -->
+    <div class="grid grid-cols-3 grid-rows-2 gap-6 w-full max-w-7xl flex-1 min-h-0 max-h-[70vh]">
+      <!-- Hero: col 1–2, row 1 -->
+      <SlotCard
+        v-if="slotMap.hero"
+        :slot-data="slotMap.hero"
+        :index="slotIndex('hero')"
+        :focused="focusedIndex === slotIndex('hero')"
+        :overridden="overriddenTypes.has('hero')"
+        class="col-span-2 row-span-1"
+        @select="onSelect"
+      />
 
-        <!-- Label bar -->
-        <div class="p-3 flex flex-col gap-1">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-black text-gray-300 uppercase tracking-widest">
-              {{ slot.label }}
-            </span>
-            <Badge v-if="overriddenTypes.has(slot.type)" variant="default" label="Perso" />
-          </div>
-          <span class="text-[9px] text-gray-600 italic">{{ slot.description }}</span>
-        </div>
-      </Card>
+      <!-- Grille verticale: col 3, row 1–2 -->
+      <SlotCard
+        v-if="slotMap.grid"
+        :slot-data="slotMap.grid"
+        :index="slotIndex('grid')"
+        :focused="focusedIndex === slotIndex('grid')"
+        :overridden="overriddenTypes.has('grid')"
+        class="row-span-2"
+        @select="onSelect"
+      />
+
+      <!-- Col 1, row 2: Logo + Icon (flex row) -->
+      <div class="flex gap-4">
+        <SlotCard
+          v-if="slotMap.logo"
+          :slot-data="slotMap.logo"
+          :index="slotIndex('logo')"
+          :focused="focusedIndex === slotIndex('logo')"
+          :overridden="overriddenTypes.has('logo')"
+          class="flex-[2]"
+          @select="onSelect"
+        />
+        <SlotCard
+          v-if="slotMap.icon"
+          :slot-data="slotMap.icon"
+          :index="slotIndex('icon')"
+          :focused="focusedIndex === slotIndex('icon')"
+          :overridden="overriddenTypes.has('icon')"
+          class="flex-1"
+          @select="onSelect"
+        />
+      </div>
+
+      <!-- Col 2, row 2: Grille horizontale (capsule) -->
+      <SlotCard
+        v-if="slotMap.horizontal_grid"
+        :slot-data="slotMap.horizontal_grid"
+        :index="slotIndex('horizontal_grid')"
+        :focused="focusedIndex === slotIndex('horizontal_grid')"
+        :overridden="overriddenTypes.has('horizontal_grid')"
+        @select="onSelect"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Card, Badge } from "@/components/ui";
+import { computed } from "vue";
+import SlotCard from "./SlotCard.vue";
 import type { OverridableAssetType } from "@/lib/database";
 
 export interface AssetSlotDisplay {
@@ -76,13 +76,29 @@ export interface AssetSlotDisplay {
   currentSrc: string;
 }
 
-defineProps<{
+const props = defineProps<{
   slots: AssetSlotDisplay[];
   overriddenTypes: Set<OverridableAssetType>;
   focusedIndex: number;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   select: [slot: AssetSlotDisplay, index: number];
 }>();
+
+/** Quick lookup by type */
+const slotMap = computed(() => {
+  const map: Partial<Record<OverridableAssetType, AssetSlotDisplay>> = {};
+  for (const s of props.slots) map[s.type] = s;
+  return map;
+});
+
+/** Original index for a type (for focus navigation) */
+function slotIndex(type: OverridableAssetType): number {
+  return props.slots.findIndex((s) => s.type === type);
+}
+
+function onSelect(slot: AssetSlotDisplay, idx: number) {
+  emit("select", slot, idx);
+}
 </script>

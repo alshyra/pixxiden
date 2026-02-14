@@ -134,7 +134,7 @@ const ASSET_SLOTS: AssetSlot[] = [
   {
     type: "hero",
     label: "Hero",
-    description: "Bannière dans la page du jeu",
+    description: "Bannière page de jeu · 1920×620",
     assetField: "heroPath",
     sgdbType: "heroes",
     aspectRatio: "96/31",
@@ -142,7 +142,7 @@ const ASSET_SLOTS: AssetSlot[] = [
   {
     type: "grid",
     label: "Grille verticale",
-    description: "Bibliothèque (jeu non survolé)",
+    description: "Bibliothèque · 600×900",
     assetField: "gridPath",
     sgdbType: "grids",
     sgdbDimensions: "600x900",
@@ -151,7 +151,7 @@ const ASSET_SLOTS: AssetSlot[] = [
   {
     type: "horizontal_grid",
     label: "Grille horizontale",
-    description: "Bibliothèque (jeu survolé)",
+    description: "Bibliothèque survolé · 920×430",
     assetField: "horizontalGridPath",
     sgdbType: "grids",
     sgdbDimensions: "920x430,460x215",
@@ -160,7 +160,7 @@ const ASSET_SLOTS: AssetSlot[] = [
   {
     type: "logo",
     label: "Logo",
-    description: "Affiché à la place du titre",
+    description: "Titre du jeu · PNG transparent",
     assetField: "logoPath",
     sgdbType: "logos",
     aspectRatio: "3/1",
@@ -168,7 +168,7 @@ const ASSET_SLOTS: AssetSlot[] = [
   {
     type: "icon",
     label: "Icône",
-    description: "Détail du jeu",
+    description: "Détail du jeu · 256×256",
     assetField: "iconPath",
     sgdbType: "icons",
     aspectRatio: "1/1",
