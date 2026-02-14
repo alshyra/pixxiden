@@ -110,13 +110,11 @@ export function createMockGame(id = "game-1", overrides: Partial<any> = {}) {
     },
     assets: {
       heroPath: "",
-      coverPath: "",
       gridPath: "",
       horizontalGridPath: "",
       logoPath: "",
       iconPath: "",
       screenshotPaths: [],
-      backgroundUrl: "",
       ...overrides.assets,
     },
     storeData: {

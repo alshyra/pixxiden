@@ -20,7 +20,6 @@ import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
 
 export interface CachedImagePaths {
   heroPath?: string;
-  coverPath?: string;
   gridPath?: string;
   horizontalGridPath?: string;
   logoPath?: string;
@@ -128,7 +127,6 @@ export class ImageCacheService {
     gameId: string,
     urls: {
       hero?: string;
-      cover?: string;
       grid?: string;
       horizontalGrid?: string;
       logo?: string;
@@ -150,16 +148,6 @@ export class ImageCacheService {
       downloads.push(
         this.downloadImage(urls.hero, dest).then((path) => {
           result.heroPath = path;
-        }),
-      );
-    }
-
-    if (urls.cover) {
-      const ext = this.getExtension(urls.cover);
-      const dest = await join(gameDir, `cover.${ext}`);
-      downloads.push(
-        this.downloadImage(urls.cover, dest).then((path) => {
-          result.coverPath = path;
         }),
       );
     }
@@ -226,7 +214,7 @@ export class ImageCacheService {
 
     await debug(
       `Cached images for ${gameId}: ` +
-        `hero=${!!result.heroPath} cover=${!!result.coverPath} ` +
+        `hero=${!!result.heroPath} ` +
         `grid=${!!result.gridPath} horizontalGrid=${!!result.horizontalGridPath} ` +
         `logo=${!!result.logoPath} icon=${!!result.iconPath} ` +
         `screenshots=${result.screenshotPaths?.length ?? 0}`,

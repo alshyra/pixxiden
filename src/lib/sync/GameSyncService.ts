@@ -400,7 +400,6 @@ export class GameSyncService {
           proton_trending_tier: enriched.protonData.protonTrendingTier,
           steam_app_id: enriched.protonData.steamAppId || null,
           hero_path: enriched.assets.heroPath || null,
-          cover_path: enriched.assets.coverPath || null,
           grid_path: enriched.assets.gridPath || null,
           horizontal_grid_path: enriched.assets.horizontalGridPath || null,
           logo_path: enriched.assets.logoPath || null,

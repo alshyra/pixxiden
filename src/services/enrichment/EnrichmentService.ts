@@ -261,7 +261,6 @@ export class EnrichmentService {
       if (hasAnyUrl) {
         const cached = await this.imageCache.cacheGameImages(game.id, imageUrls);
         if (cached.heroPath) enriched.assets.heroPath = cached.heroPath;
-        if (cached.coverPath) enriched.assets.coverPath = cached.coverPath;
         if (cached.gridPath) enriched.assets.gridPath = cached.gridPath;
         if (cached.horizontalGridPath)
           enriched.assets.horizontalGridPath = cached.horizontalGridPath;
@@ -301,7 +300,6 @@ export class EnrichmentService {
   private applyOverrideToAssets(game: Game, assetType: OverridableAssetType, path: string): void {
     const mapping: Record<OverridableAssetType, keyof Game["assets"]> = {
       hero: "heroPath",
-      cover: "coverPath",
       grid: "gridPath",
       horizontal_grid: "horizontalGridPath",
       logo: "logoPath",

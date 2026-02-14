@@ -1,25 +1,60 @@
 #!/usr/bin/env bash
 #
-# reset-enrichment.sh — Developer utility to reset all enrichment data
+# reset-enrichment.sh — Developer utility to reset enrichment data or nuke the DB
 #
-# Use this when the enrichment pipeline has changed and you want to
-# force a full re-enrichment on the next app sync.
+# Use this when the enrichment pipeline or schema has changed.
 #
-# What it does:
-#   1. Deletes ALL entries from enrichment_cache
-#   2. Resets enriched_at to NULL for ALL games
-#   3. Resets enrichment columns (hltb_*, proton_*, steam_app_id) to defaults
-#
-# The games themselves (id, title, store, installed) are NOT touched.
+# Modes:
+#   --reset (default): Reset enrichment columns, keep games
+#   --nuke:            Delete entire database + cached images (full fresh start)
 #
 # Usage:
-#   ./scripts/reset-enrichment.sh         # Uses default DB path
-#   ./scripts/reset-enrichment.sh /path/to/pixxiden.db
+#   ./scripts/reset-enrichment.sh                  # Reset enrichment
+#   ./scripts/reset-enrichment.sh --nuke            # Delete DB + images
+#   ./scripts/reset-enrichment.sh /path/to/db       # Custom DB path
+#   ./scripts/reset-enrichment.sh --nuke /path/to/db
 #
 
 set -euo pipefail
 
-DB="${1:-$HOME/.config/com.Pixxiden.launcher/pixxiden.db}"
+MODE="reset"
+DB=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --nuke) MODE="nuke" ;;
+    *) DB="$arg" ;;
+  esac
+done
+
+DB="${DB:-$HOME/.config/com.Pixxiden.launcher/pixxiden.db}"
+CONFIG_DIR="$(dirname "$DB")"
+
+if [ "$MODE" = "nuke" ]; then
+  echo "💣 NUKE MODE — Deleting database and cached images"
+  echo "   DB: $DB"
+  echo "   Config dir: $CONFIG_DIR"
+  echo ""
+
+  if [ -f "$DB" ]; then
+    rm -f "$DB"
+    echo "   ✅ Database deleted"
+  else
+    echo "   ⚠️  Database not found (already clean)"
+  fi
+
+  GAMES_DIR="$CONFIG_DIR/games"
+  if [ -d "$GAMES_DIR" ]; then
+    rm -rf "$GAMES_DIR"
+    echo "   ✅ Cached images deleted ($GAMES_DIR)"
+  else
+    echo "   ⚠️  No cached images found"
+  fi
+
+  echo ""
+  echo "✅ Fresh start! Launch the app to recreate the database."
+  exit 0
+fi
 
 if [ ! -f "$DB" ]; then
   echo "❌ Database not found: $DB"
@@ -73,13 +108,10 @@ sqlite3 "$DB" "
     proton_trending_tier = NULL,
     steam_app_id = NULL,
     hero_path = NULL,
-    cover_path = NULL,
     grid_path = NULL,
     logo_path = NULL,
     icon_path = NULL,
     screenshot_paths = '[]',
-    cover_url = NULL,
-    background_url = NULL,
     updated_at = datetime('now');
 "
 

@@ -70,13 +70,11 @@ const mockGame = {
   info: { title: "Test Game" },
   assets: {
     heroPath: "/cache/test-game/hero.jpg",
-    coverPath: "/cache/test-game/cover.jpg",
     gridPath: "/cache/test-game/grid.jpg",
     horizontalGridPath: "/cache/test-game/hgrid.jpg",
     logoPath: "",
     iconPath: "",
     screenshotPaths: [],
-    backgroundUrl: "",
   },
 };
 
@@ -208,11 +206,11 @@ describe("GameCustomize", () => {
     expect(wrapper.text()).toContain("Personnaliser les images");
   });
 
-  it("renders AssetSlotGrid with 6 slots", () => {
+  it("renders AssetSlotGrid with 5 slots", () => {
     const wrapper = mountView();
     expect(wrapper.find("[data-testid='asset-slot-grid']").exists()).toBe(true);
     const slots = wrapper.findAll("[data-testid='asset-slot']");
-    expect(slots.length).toBe(6);
+    expect(slots.length).toBe(5);
   });
 
   it("loads overrides on mount", async () => {

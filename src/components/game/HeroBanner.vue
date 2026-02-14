@@ -61,15 +61,15 @@ const emit = defineEmits<{
 
 const heroImageSrc = computed(() => {
   if (!props.game) return "";
-  // Prefer local heroPath, then fallback to backgroundUrl
+  // Use local heroPath
   if (props.game.assets.heroPath) {
     try {
       return convertFileSrc(props.game.assets.heroPath);
     } catch {
-      return props.game.assets.backgroundUrl || "";
+      return "";
     }
   }
-  return props.game.assets.backgroundUrl || "";
+  return "";
 });
 
 const releaseYear = computed(() => {

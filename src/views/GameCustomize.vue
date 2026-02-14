@@ -57,6 +57,7 @@
     <SteamGridGallery
       v-else-if="currentLevel === 'gallery' && browsingSlot"
       :slot-label="browsingSlot.label"
+      :aspect-ratio="browsingSlot.aspectRatio"
       :current-src="browsingSlotSrc"
       :images="galleryImages"
       :loading="galleryLoading"
@@ -122,36 +123,56 @@ type NavigationLevel = "slots" | "gallery" | "carousel";
 interface AssetSlot {
   type: OverridableAssetType;
   label: string;
+  description: string;
   assetField: keyof GameAssets;
   sgdbType: "heroes" | "grids" | "logos" | "icons";
   sgdbDimensions?: string;
+  aspectRatio: string; // CSS aspect-ratio value
 }
 
 const ASSET_SLOTS: AssetSlot[] = [
-  { type: "hero", label: "Hero", assetField: "heroPath", sgdbType: "heroes" },
   {
-    type: "cover",
-    label: "Cover",
-    assetField: "coverPath",
-    sgdbType: "grids",
-    sgdbDimensions: "600x900",
+    type: "hero",
+    label: "Hero",
+    description: "Bannière dans la page du jeu",
+    assetField: "heroPath",
+    sgdbType: "heroes",
+    aspectRatio: "96/31",
   },
   {
     type: "grid",
-    label: "Grid",
+    label: "Grille verticale",
+    description: "Bibliothèque (jeu non survolé)",
     assetField: "gridPath",
     sgdbType: "grids",
     sgdbDimensions: "600x900",
+    aspectRatio: "2/3",
   },
   {
     type: "horizontal_grid",
     label: "Grille horizontale",
+    description: "Bibliothèque (jeu survolé)",
     assetField: "horizontalGridPath",
     sgdbType: "grids",
     sgdbDimensions: "920x430,460x215",
+    aspectRatio: "92/43",
   },
-  { type: "logo", label: "Logo", assetField: "logoPath", sgdbType: "logos" },
-  { type: "icon", label: "Icône", assetField: "iconPath", sgdbType: "icons" },
+  {
+    type: "logo",
+    label: "Logo",
+    description: "Affiché à la place du titre",
+    assetField: "logoPath",
+    sgdbType: "logos",
+    aspectRatio: "3/1",
+  },
+  {
+    type: "icon",
+    label: "Icône",
+    description: "Détail du jeu",
+    assetField: "iconPath",
+    sgdbType: "icons",
+    aspectRatio: "1/1",
+  },
 ];
 
 // === COMPOSABLES ===
@@ -190,7 +211,13 @@ const assetSlotDisplays = computed<AssetSlotDisplay[]>(() =>
         currentSrc = "";
       }
     }
-    return { type: slot.type, label: slot.label, currentSrc };
+    return {
+      type: slot.type,
+      label: slot.label,
+      description: slot.description,
+      aspectRatio: slot.aspectRatio,
+      currentSrc,
+    };
   }),
 );
 

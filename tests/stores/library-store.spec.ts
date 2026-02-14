@@ -47,13 +47,11 @@ function makeGame(id = "g1") {
     },
     assets: {
       heroPath: `/cache/${id}/hero.jpg`,
-      coverPath: `/cache/${id}/cover.jpg`,
       gridPath: `/cache/${id}/grid.jpg`,
       horizontalGridPath: `/cache/${id}/hgrid.jpg`,
       logoPath: "",
       iconPath: "",
       screenshotPaths: [],
-      backgroundUrl: "",
     },
     gameCompletion: {
       lastPlayed: null,
@@ -234,18 +232,16 @@ describe("Library Store (real store)", () => {
     expect(game.assets.heroPath).toBe("/new/hero.webp");
   });
 
-  it("applyAssetOverride updates cover, grid, horizontal_grid, logo, icon", async () => {
+  it("applyAssetOverride updates grid, horizontal_grid, logo, icon", async () => {
     const store = useLibraryStore();
     await store.fetchGames();
 
-    store.applyAssetOverride("g1", "cover", "/new/cover.png");
     store.applyAssetOverride("g1", "grid", "/new/grid.jpg");
     store.applyAssetOverride("g1", "horizontal_grid", "/new/hgrid.jpg");
     store.applyAssetOverride("g1", "logo", "/new/logo.png");
     store.applyAssetOverride("g1", "icon", "/new/icon.png");
 
     const game = store.games.find((g) => g.id === "g1")!;
-    expect(game.assets.coverPath).toBe("/new/cover.png");
     expect(game.assets.gridPath).toBe("/new/grid.jpg");
     expect(game.assets.horizontalGridPath).toBe("/new/hgrid.jpg");
     expect(game.assets.logoPath).toBe("/new/logo.png");

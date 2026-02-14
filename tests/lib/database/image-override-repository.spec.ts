@@ -129,14 +129,7 @@ describe("ImageOverrideRepository", () => {
     });
 
     it("works with all overridable asset types", async () => {
-      const types: OverridableAssetType[] = [
-        "hero",
-        "grid",
-        "horizontal_grid",
-        "logo",
-        "icon",
-        "cover",
-      ];
+      const types: OverridableAssetType[] = ["hero", "grid", "horizontal_grid", "logo", "icon"];
 
       for (const type of types) {
         await repo.setOverride("game-1", type, `/cache/${type}_override.jpg`);

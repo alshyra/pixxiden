@@ -252,7 +252,6 @@ export const useLibraryStore = defineStore("library", () => {
 
     const fieldMap: Record<OverridableAssetType, keyof Game["assets"]> = {
       hero: "heroPath",
-      cover: "coverPath",
       grid: "gridPath",
       horizontal_grid: "horizontalGridPath",
       logo: "logoPath",
@@ -260,7 +259,7 @@ export const useLibraryStore = defineStore("library", () => {
     };
 
     const field = fieldMap[assetType];
-    if (field && field !== "screenshotPaths" && field !== "backgroundUrl") {
+    if (field && field !== "screenshotPaths") {
       (game.assets[field] as string) = path;
     }
   }

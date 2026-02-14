@@ -48,18 +48,13 @@ CREATE TABLE IF NOT EXISTS games (
   achievements_total INTEGER,
   achievements_unlocked INTEGER,
   
-  -- Assets (local file paths)
+  -- Assets (local file paths, aligned with SteamGridDB types)
   hero_path TEXT,
-  cover_path TEXT,
   grid_path TEXT,
   horizontal_grid_path TEXT,
   logo_path TEXT,
   icon_path TEXT,
   screenshot_paths TEXT DEFAULT '[]',
-  
-  -- Legacy URL assets
-  cover_url TEXT,
-  background_url TEXT,
   
   -- User data
   is_favorite INTEGER DEFAULT 0,
@@ -106,23 +101,26 @@ CREATE INDEX IF NOT EXISTS idx_games_last_played ON games(last_played);
 CREATE INDEX IF NOT EXISTS idx_enrichment_cache_game_id ON enrichment_cache(game_id);
 `;
 
+// Migrations are sequential and idempotent.
+// Columns already in the base CREATE TABLE do NOT need a migration.
+// After a --nuke reset, all migrations run on a fresh DB — use IF NOT EXISTS / ADD COLUMN safely.
 export const MIGRATIONS: string[] = [
   // Migration 1: Add is_favorite column for game favorites
   `ALTER TABLE games ADD COLUMN is_favorite INTEGER DEFAULT 0`,
-  // Migration 2: Add cover_path for locally cached cover image
-  `ALTER TABLE games ADD COLUMN cover_path TEXT`,
-  // Migration 3: Add screenshot_paths for locally cached screenshots
-  `ALTER TABLE games ADD COLUMN screenshot_paths TEXT DEFAULT '[]'`,
+  // Migration 2: (removed — cover_path eliminated)
+  `SELECT 1`,
+  // Migration 3: (folded into base schema)
+  `SELECT 1`,
   // Migration 4: Add cloud_save_support flag
   `ALTER TABLE games ADD COLUMN cloud_save_support INTEGER DEFAULT 0`,
-  // Migration 5: Add horizontal_grid_path for landscape grid images (92:43)
-  `ALTER TABLE games ADD COLUMN horizontal_grid_path TEXT`,
+  // Migration 5: (folded into base schema)
+  `SELECT 1`,
   // Migration 6: Add runner_path for Heroic-configured Proton/Wine binary path
   `ALTER TABLE games ADD COLUMN runner_path TEXT`,
   // Migration 7: Image overrides table — user-chosen images that survive re-enrichment
   `CREATE TABLE IF NOT EXISTS image_overrides (
     game_id TEXT NOT NULL,
-    asset_type TEXT NOT NULL CHECK(asset_type IN ('hero','grid','horizontal_grid','logo','icon','cover')),
+    asset_type TEXT NOT NULL CHECK(asset_type IN ('hero','grid','horizontal_grid','logo','icon')),
     path TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (game_id, asset_type),

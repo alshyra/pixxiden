@@ -4,7 +4,7 @@
       Sélectionnez un type d'image pour parcourir SteamGridDB ou importer un fichier local.
     </p>
 
-    <div class="grid grid-cols-3 gap-6 w-full max-w-4xl">
+    <div class="flex flex-wrap justify-center gap-6 w-full max-w-5xl">
       <Card
         v-for="(slot, idx) in slots"
         :key="slot.type"
@@ -15,12 +15,16 @@
         :no-padding="true"
         :class="[
           'cursor-pointer transition-all focus:outline-none',
+          'w-52',
           focusedIndex === idx && 'ring-2 ring-[#5e5ce6]/30 !border-[#5e5ce6] scale-[1.02]',
         ]"
         @click="$emit('select', slot, idx)"
       >
-        <!-- Image preview -->
-        <div class="aspect-[16/9] bg-black/30 flex items-center justify-center overflow-hidden">
+        <!-- Image preview with correct aspect ratio -->
+        <div
+          :style="{ aspectRatio: slot.aspectRatio }"
+          class="bg-black/30 flex items-center justify-center overflow-hidden"
+        >
           <img
             v-if="slot.currentSrc"
             :src="slot.currentSrc"
@@ -30,7 +34,7 @@
           <div v-else class="flex flex-col items-center gap-2 text-gray-700">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              class="w-10 h-10"
+              class="w-8 h-8"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -42,16 +46,18 @@
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <span class="text-[10px] font-medium">Aucune image</span>
           </div>
         </div>
 
         <!-- Label bar -->
-        <div class="p-3 flex items-center justify-between">
-          <span class="text-[11px] font-black text-gray-300 uppercase tracking-widest">
-            {{ slot.label }}
-          </span>
-          <Badge v-if="overriddenTypes.has(slot.type)" variant="default" label="Perso" />
+        <div class="p-3 flex flex-col gap-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-black text-gray-300 uppercase tracking-widest">
+              {{ slot.label }}
+            </span>
+            <Badge v-if="overriddenTypes.has(slot.type)" variant="default" label="Perso" />
+          </div>
+          <span class="text-[9px] text-gray-600 italic">{{ slot.description }}</span>
         </div>
       </Card>
     </div>
@@ -65,6 +71,8 @@ import type { OverridableAssetType } from "@/lib/database";
 export interface AssetSlotDisplay {
   type: OverridableAssetType;
   label: string;
+  description: string;
+  aspectRatio: string;
   currentSrc: string;
 }
 

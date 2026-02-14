@@ -317,7 +317,6 @@ export class GameRepository {
 
     const assetMapping: Record<OverridableAssetType, keyof Game["assets"]> = {
       hero: "heroPath",
-      cover: "coverPath",
       grid: "gridPath",
       horizontal_grid: "horizontalGridPath",
       logo: "logoPath",
@@ -359,13 +358,11 @@ export class GameRepository {
       },
       assets: {
         heroPath: (row.hero_path as string) || "",
-        coverPath: (row.cover_path as string) || "",
         gridPath: (row.grid_path as string) || "",
         horizontalGridPath: (row.horizontal_grid_path as string) || "",
         logoPath: (row.logo_path as string) || "",
         iconPath: (row.icon_path as string) || "",
         screenshotPaths: JSON.parse((row.screenshot_paths as string) || "[]"),
-        backgroundUrl: (row.background_url as string) || "",
       },
       installation: {
         installed: Boolean(row.installed),

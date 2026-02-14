@@ -44,7 +44,7 @@
 
     <!-- Image grid -->
     <div v-else class="flex-1 overflow-y-auto pr-2 pb-4">
-      <div class="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+      <div class="flex flex-wrap gap-3 justify-center">
         <Card
           v-for="(img, idx) in images"
           :key="img.id"
@@ -56,10 +56,11 @@
           :class="[
             focusedIndex === idx && 'ring-2 ring-[#5e5ce6]/30 !border-[#5e5ce6] scale-[1.02]',
           ]"
+          :style="{ width: galleryCardWidth }"
           @click="$emit('select-image', idx)"
           @focus="$emit('focus', idx)"
         >
-          <div class="aspect-[3/2] overflow-hidden relative">
+          <div class="overflow-hidden relative" :style="{ aspectRatio }">
             <img :src="img.thumb" class="w-full h-full object-cover" loading="lazy" />
             <div class="absolute bottom-1 right-1">
               <Badge variant="muted"> {{ img.width }}×{{ img.height }} </Badge>
@@ -72,11 +73,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { Card, Button, Badge } from "@/components/ui";
 import type { SteamGridDbImage } from "@/services/enrichment/SteamGridDbEnricher";
 
-defineProps<{
+const props = defineProps<{
   slotLabel: string;
+  aspectRatio: string;
   currentSrc: string;
   images: SteamGridDbImage[];
   loading: boolean;
@@ -91,4 +94,15 @@ defineEmits<{
   reset: [];
   focus: [index: number];
 }>();
+
+/** Card width adapted to the asset's aspect ratio so thumbnails look natural */
+const galleryCardWidth = computed(() => {
+  const [w, h] = props.aspectRatio.split("/").map(Number);
+  const ratio = w / h;
+  // Tall assets (grid 2:3) → narrow cards; wide assets (hero 96:31) → wide cards
+  if (ratio < 1) return "10rem"; // portrait (grid)
+  if (ratio > 2.5) return "20rem"; // ultra-wide (hero)
+  if (ratio > 1.8) return "16rem"; // wide (horizontal_grid)
+  return "12rem"; // square-ish (logo, icon)
+});
 </script>

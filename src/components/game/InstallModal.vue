@@ -10,7 +10,9 @@
       <div class="flex items-center gap-4 pb-6 border-b border-white/10">
         <div
           class="w-20 h-20 rounded-xl bg-cover bg-center"
-          :style="{ backgroundImage: `url(${game.assets.backgroundUrl || '/placeholder.png'})` }"
+          :style="{
+            backgroundImage: `url(${game.assets.gridPath ? convertFileSrc(game.assets.gridPath) : '/placeholder.png'})`,
+          }"
         ></div>
         <div class="flex-1">
           <h3 class="text-xl font-bold text-white">{{ game.info.title }}</h3>
@@ -230,6 +232,7 @@ import { Download, AlertTriangle, Terminal, ChevronDown } from "lucide-vue-next"
 import * as api from "@/services/api";
 import { open } from "@tauri-apps/plugin-dialog";
 import { homeDir } from "@tauri-apps/api/path";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 import { useDownloadsStore } from "@/stores/downloads";
 

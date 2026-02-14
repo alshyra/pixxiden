@@ -14,7 +14,7 @@ import { DatabaseService } from "@/services/base/DatabaseService";
  * Asset types that can be overridden by the user.
  * Matches the CHECK constraint in the image_overrides table.
  */
-export type OverridableAssetType = "hero" | "grid" | "horizontal_grid" | "logo" | "icon" | "cover";
+export type OverridableAssetType = "hero" | "grid" | "horizontal_grid" | "logo" | "icon";
 
 export interface ImageOverride {
   gameId: string;
