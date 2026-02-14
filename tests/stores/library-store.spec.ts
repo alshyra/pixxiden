@@ -45,6 +45,16 @@ function makeGame(id = "g1") {
       installPath: "",
       executablePath: "",
     },
+    assets: {
+      heroPath: `/cache/${id}/hero.jpg`,
+      coverPath: `/cache/${id}/cover.jpg`,
+      gridPath: `/cache/${id}/grid.jpg`,
+      horizontalGridPath: `/cache/${id}/hgrid.jpg`,
+      logoPath: "",
+      iconPath: "",
+      screenshotPaths: [],
+      backgroundUrl: "",
+    },
     gameCompletion: {
       lastPlayed: null,
       downloading: false,
@@ -110,7 +120,7 @@ describe("Library Store (real store)", () => {
 
     await store.syncLibrary(true);
 
-    expect(mockOrchestrator.syncLibrary).toHaveBeenCalledWith({forceEnrich: true});
+    expect(mockOrchestrator.syncLibrary).toHaveBeenCalledWith({ forceEnrich: true });
     expect(store.syncErrors).toEqual(["epic: minor"]);
     expect(store.loading).toBe(false);
   });
@@ -213,5 +223,58 @@ describe("Library Store (real store)", () => {
 
     expect(store.selectedGame?.id).toBe("g2");
     expect(store.getGame("g1")?.id).toBe("g1");
+  });
+
+  it("applyAssetOverride updates the reactive game asset path", async () => {
+    const store = useLibraryStore();
+    await store.fetchGames();
+
+    store.applyAssetOverride("g1", "hero", "/new/hero.webp");
+    const game = store.games.find((g) => g.id === "g1")!;
+    expect(game.assets.heroPath).toBe("/new/hero.webp");
+  });
+
+  it("applyAssetOverride updates cover, grid, horizontal_grid, logo, icon", async () => {
+    const store = useLibraryStore();
+    await store.fetchGames();
+
+    store.applyAssetOverride("g1", "cover", "/new/cover.png");
+    store.applyAssetOverride("g1", "grid", "/new/grid.jpg");
+    store.applyAssetOverride("g1", "horizontal_grid", "/new/hgrid.jpg");
+    store.applyAssetOverride("g1", "logo", "/new/logo.png");
+    store.applyAssetOverride("g1", "icon", "/new/icon.png");
+
+    const game = store.games.find((g) => g.id === "g1")!;
+    expect(game.assets.coverPath).toBe("/new/cover.png");
+    expect(game.assets.gridPath).toBe("/new/grid.jpg");
+    expect(game.assets.horizontalGridPath).toBe("/new/hgrid.jpg");
+    expect(game.assets.logoPath).toBe("/new/logo.png");
+    expect(game.assets.iconPath).toBe("/new/icon.png");
+  });
+
+  it("applyAssetOverride ignores unknown game id", async () => {
+    const store = useLibraryStore();
+    await store.fetchGames();
+
+    // Should not throw
+    store.applyAssetOverride("unknown", "hero", "/new/hero.webp");
+    expect(store.games.find((g) => g.id === "unknown")).toBeUndefined();
+  });
+
+  it("revertAssetOverride restores original asset paths from DB", async () => {
+    const store = useLibraryStore();
+    await store.fetchGames();
+
+    // Override hero
+    store.applyAssetOverride("g1", "hero", "/override/hero.webp");
+    expect(store.games.find((g) => g.id === "g1")!.assets.heroPath).toBe("/override/hero.webp");
+
+    // getAllGames must return FRESH objects with original paths for revert to work
+    mockOrchestrator.getAllGames.mockResolvedValueOnce([makeGame("g1"), makeGame("g2")]);
+
+    await store.revertAssetOverride("g1");
+
+    const game = store.games.find((g) => g.id === "g1")!;
+    expect(game.assets.heroPath).toBe("/cache/g1/hero.jpg");
   });
 });

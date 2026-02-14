@@ -217,6 +217,28 @@ describe("SteamGridDbEnricher", () => {
       }
     });
 
+    it("should match titles with smart quotes (curly apostrophes)", async () => {
+      mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes("/search/autocomplete/")) {
+          return mockAutocompleteResponse([
+            { id: 99999, name: "Baldur's Gate 3 Toolkit" },
+            { id: 36189, name: "Baldur's Gate 3" },
+          ]);
+        }
+        return mockEmptyImagesResponse();
+      });
+
+      // Game title uses curly apostrophe (\u2019), SteamGridDB uses straight
+      await enricher.search("Baldur\u2019s Gate 3");
+
+      const imageCallUrls = getImageCallUrls();
+
+      // Should match "Baldur's Gate 3" despite different apostrophe chars
+      for (const url of imageCallUrls) {
+        expect(url).toContain("/game/36189");
+      }
+    });
+
     it("should prefer verified result when no exact match exists", async () => {
       mockFetch.mockImplementation(async (url: string) => {
         if (url.includes("/search/autocomplete/")) {

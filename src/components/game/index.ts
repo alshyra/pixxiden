@@ -13,3 +13,4 @@ export { default as GameActions } from "./GameActions.vue";
 export { default as GameStatsGrid } from "./GameStatsGrid.vue";
 export { default as GameHeroSection } from "./GameHeroSection.vue";
 export { default as DownloadCard } from "./DownloadCard.vue";
+export { default as ImageOverrideModal } from "./ImageOverrideModal.vue";

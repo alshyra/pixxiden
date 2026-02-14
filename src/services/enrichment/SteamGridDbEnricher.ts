@@ -11,14 +11,14 @@ interface SteamGridDbConfig {
   apiKey: string;
 }
 
-interface SteamGridDbSearchResult {
+export interface SteamGridDbSearchResult {
   id: number;
   name: string;
   types: string[];
   verified: boolean;
 }
 
-interface SteamGridDbImage {
+export interface SteamGridDbImage {
   id: number;
   url: string;
   thumb: string;
@@ -87,9 +87,10 @@ export class SteamGridDbEnricher {
   }
 
   /**
-   * Search for game ID by title
+   * Search for game ID by title.
+   * Public so the image override modal can resolve a game ID before browsing.
    */
-  private async searchGameId(title: string): Promise<number | null> {
+  async searchGameId(title: string): Promise<number | null> {
     if (!this.config) throw new Error("SteamGridDB not configured");
 
     const response = await fetch(
@@ -126,16 +127,21 @@ export class SteamGridDbEnricher {
    * 4. First result (fallback)
    */
   private pickBestMatch(results: SteamGridDbSearchResult[], title: string): number {
-    const normalizedTitle = title.toLowerCase().trim();
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .trim()
+        .replace(/[\u2018\u2019\u2032\u00B4]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"');
+
+    const normalizedTitle = normalize(title);
 
     // 1. Exact match + verified
-    const exactVerified = results.find(
-      (r) => r.name.toLowerCase().trim() === normalizedTitle && r.verified,
-    );
+    const exactVerified = results.find((r) => normalize(r.name) === normalizedTitle && r.verified);
     if (exactVerified) return exactVerified.id;
 
     // 2. Exact match (any)
-    const exactMatch = results.find((r) => r.name.toLowerCase().trim() === normalizedTitle);
+    const exactMatch = results.find((r) => normalize(r.name) === normalizedTitle);
     if (exactMatch) return exactMatch.id;
 
     // 3. First verified result
@@ -187,10 +193,11 @@ export class SteamGridDbEnricher {
   }
 
   /**
-   * Fetch images of a specific type for a game
+   * Fetch images of a specific type for a game.
+   * Public so the image override modal can display a gallery.
    * @param dimensions Optional SteamGridDB dimensions filter (e.g. "600x900" or "920x430,460x215")
    */
-  private async fetchImages(
+  async fetchImages(
     gameId: number,
     type: "heroes" | "grids" | "logos" | "icons",
     dimensions?: string,

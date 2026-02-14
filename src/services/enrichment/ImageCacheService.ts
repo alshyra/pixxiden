@@ -13,7 +13,7 @@
  * Uses @tauri-apps/plugin-fs for filesystem access and @tauri-apps/plugin-http for downloads.
  */
 
-import { exists, mkdir, writeFile, remove } from "@tauri-apps/plugin-fs";
+import { exists, mkdir, readFile, writeFile, remove } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import { appConfigDir, join } from "@tauri-apps/api/path";
 import { debug, warn, error as logError } from "@tauri-apps/plugin-log";
@@ -256,6 +256,42 @@ export class ImageCacheService {
     const dest = await join(gameDir, `${assetType}_override.${ext}`);
 
     return this.downloadImage(sourceUrl, dest);
+  }
+
+  /**
+   * Cache a local file as an override image (user picked from file dialog).
+   * Copies the file into: games/{gameId}/{assetType}_override.{ext}
+   *
+   * @param gameId - The game ID
+   * @param assetType - e.g. "hero", "grid", "logo"
+   * @param localPath - Absolute path to the local image file
+   * @returns The local file path of the cached override, or undefined on failure
+   */
+  async cacheOverrideFromLocal(
+    gameId: string,
+    assetType: string,
+    localPath: string,
+  ): Promise<string | undefined> {
+    try {
+      const gameDir = await this.getGameDir(gameId);
+      await this.ensureDir(gameDir);
+
+      const ext = this.getExtension(localPath);
+      const dest = await join(gameDir, `${assetType}_override.${ext}`);
+
+      const data = await readFile(localPath);
+      if (data.length === 0) {
+        await warn(`Empty image file: ${localPath}`);
+        return undefined;
+      }
+
+      await writeFile(dest, data);
+      await debug(`Cached override from local: ${localPath} → ${dest}`);
+      return dest;
+    } catch (err) {
+      await logError(`Failed to cache override from local ${localPath}: ${err}`);
+      return undefined;
+    }
   }
 
   /**
