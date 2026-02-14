@@ -11,7 +11,7 @@
       <div class="grid grid-cols-12 gap-6 h-full items-start">
         <!-- Left Column: Game Info Card (Smart Component) -->
         <div class="col-span-12 lg:col-span-4 space-y-4 h-full flex flex-col">
-          <GameInfoCard @customize="showImageOverride = true" />
+          <GameInfoCard @customize="navigateToCustomize()" />
         </div>
 
         <!-- Right Column: Stats & Synopsis -->
@@ -35,9 +35,6 @@
       </div>
     </div>
 
-    <!-- Image Override Modal -->
-    <ImageOverrideModal v-model="showImageOverride" />
-
     <!-- Launch Overlay -->
     <LaunchOverlay
       :is-visible="isLaunching"
@@ -58,13 +55,7 @@ import { useDownloadsStore } from "@/stores/downloads";
 import { useGamepad } from "@/composables/useGamepad";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 import { useSideNavStore } from "@/stores/sideNav";
-import {
-  GameHeroSection,
-  GameInfoCard,
-  GameStatsGrid,
-  LaunchOverlay,
-  ImageOverrideModal,
-} from "@/components/game";
+import { GameHeroSection, GameInfoCard, GameStatsGrid, LaunchOverlay } from "@/components/game";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 
 /**
@@ -100,9 +91,6 @@ const {
   setupEventListeners,
   cleanup,
 } = useCurrentGame();
-
-// === UI STATE ===
-const showImageOverride = ref(false);
 
 // === FOCUS STATE ===
 // Focus toujours sur le bouton d'action principal pour navigation gamepad
@@ -141,6 +129,12 @@ function handleConfirm() {
 
   // Si le jeu est installé: lancer
   playGame();
+}
+
+// Navigate to fullscreen image customization page
+function navigateToCustomize() {
+  if (!game.value) return;
+  router.push({ name: "game-customize", params: { id: game.value.id } });
 }
 
 // === LIFECYCLE ===

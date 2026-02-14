@@ -126,6 +126,26 @@ export class SteamGridDbEnricher {
    * 3. Verified result (first)
    * 4. First result (fallback)
    */
+  /**
+   * Roman numeral ↔ Arabic numeral mapping for title normalization.
+   * SteamGridDB often uses Roman numerals (e.g. "Baldur's Gate III")
+   * while game stores use Arabic (e.g. "Baldur's Gate 3").
+   */
+  private static readonly ROMAN_MAP: [RegExp, string][] = [
+    [/\bxiii\b/g, "13"],
+    [/\bxii\b/g, "12"],
+    [/\bxi\b/g, "11"],
+    [/\bviii\b/g, "8"],
+    [/\bvii\b/g, "7"],
+    [/\bvi\b/g, "6"],
+    [/\biv\b/g, "4"],
+    [/\bix\b/g, "9"],
+    [/\biii\b/g, "3"],
+    [/\bii\b/g, "2"],
+    [/\bv\b/g, "5"],
+    [/\bx\b/g, "10"],
+  ];
+
   private pickBestMatch(results: SteamGridDbSearchResult[], title: string): number {
     const normalize = (s: string) =>
       s
@@ -134,7 +154,17 @@ export class SteamGridDbEnricher {
         .replace(/[\u2018\u2019\u2032\u00B4]/g, "'")
         .replace(/[\u201C\u201D]/g, '"');
 
+    /** Deep normalize: also convert Roman numerals to Arabic */
+    const deepNormalize = (s: string) => {
+      let n = normalize(s);
+      for (const [roman, arabic] of SteamGridDbEnricher.ROMAN_MAP) {
+        n = n.replace(roman, arabic);
+      }
+      return n;
+    };
+
     const normalizedTitle = normalize(title);
+    const deepTitle = deepNormalize(title);
 
     // 1. Exact match + verified
     const exactVerified = results.find((r) => normalize(r.name) === normalizedTitle && r.verified);
@@ -144,11 +174,19 @@ export class SteamGridDbEnricher {
     const exactMatch = results.find((r) => normalize(r.name) === normalizedTitle);
     if (exactMatch) return exactMatch.id;
 
-    // 3. First verified result
+    // 3. Deep match (Roman ↔ Arabic) + verified
+    const deepVerified = results.find((r) => deepNormalize(r.name) === deepTitle && r.verified);
+    if (deepVerified) return deepVerified.id;
+
+    // 4. Deep match (any)
+    const deepMatch = results.find((r) => deepNormalize(r.name) === deepTitle);
+    if (deepMatch) return deepMatch.id;
+
+    // 5. First verified result
     const verified = results.find((r) => r.verified);
     if (verified) return verified.id;
 
-    // 4. Fallback to first result
+    // 6. Fallback to first result
     return results[0].id;
   }
 

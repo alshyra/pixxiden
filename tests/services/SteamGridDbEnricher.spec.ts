@@ -35,7 +35,7 @@ function createSteamGridDbEnricher(): SteamGridDbEnricher {
  * Build a mock SteamGridDB autocomplete response.
  * Each entry has { id, name, types, verified }.
  */
-function mockAutocompleteResponse(results: { id: number; name: string }[]) {
+function mockAutocompleteResponse(results: { id: number; name: string; verified?: boolean }[]) {
   return {
     ok: true,
     status: 200,
@@ -236,6 +236,49 @@ describe("SteamGridDbEnricher", () => {
       // Should match "Baldur's Gate 3" despite different apostrophe chars
       for (const url of imageCallUrls) {
         expect(url).toContain("/game/36189");
+      }
+    });
+
+    it("should match 'Baldur's Gate 3' to 'Baldur's Gate III' (Roman ↔ Arabic)", async () => {
+      // Real-world scenario: SteamGridDB lists the game as "Baldur's Gate III"
+      // but the game store uses "Baldur's Gate 3"
+      mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes("/search/autocomplete/")) {
+          return mockAutocompleteResponse([
+            { id: 5464113, name: "Baldur's Gate 3 Toolkit", verified: true },
+            { id: 5138060, name: "Baldur's Gate III", verified: true },
+          ]);
+        }
+        return mockEmptyImagesResponse();
+      });
+
+      await enricher.search("Baldur's Gate 3");
+
+      const imageCallUrls = getImageCallUrls();
+
+      // Should match "Baldur's Gate III" via Roman→Arabic normalization
+      for (const url of imageCallUrls) {
+        expect(url).toContain("/game/5138060");
+      }
+    });
+
+    it("should match 'Final Fantasy VII' when searching 'Final Fantasy 7'", async () => {
+      mockFetch.mockImplementation(async (url: string) => {
+        if (url.includes("/search/autocomplete/")) {
+          return mockAutocompleteResponse([
+            { id: 11111, name: "Final Fantasy VII Remake" },
+            { id: 22222, name: "Final Fantasy VII" },
+          ]);
+        }
+        return mockEmptyImagesResponse();
+      });
+
+      await enricher.search("Final Fantasy 7");
+
+      const imageCallUrls = getImageCallUrls();
+
+      for (const url of imageCallUrls) {
+        expect(url).toContain("/game/22222");
       }
     });
 

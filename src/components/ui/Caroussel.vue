@@ -24,6 +24,8 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
  * Pixxiden Carousel - Largeur fixe avec défilement interne
  * Carousel autonome pour afficher des captures d'écran de jeux
  * L'élément actif est centré et agrandi avec effet de glow
+ *
+ * Supporte v-model pour synchroniser l'index actif avec le parent
  */
 
 interface Props {
@@ -34,9 +36,13 @@ const props = withDefaults(defineProps<Props>(), {
   images: () => [],
 });
 
-const activeIndex = ref(0);
+const modelValue = defineModel<number>({ default: 0 });
+
 const containerRef = ref<HTMLElement | null>(null);
 const translateX = ref(0);
+
+// Use model value for active index (two-way binding)
+const activeIndex = modelValue;
 
 // Dimensions pour le calcul du décalage
 const CARD_WIDTH = 240;

@@ -1,4 +1,5 @@
 import GameDetails from "@/views/GameDetails.vue";
+import GameCustomize from "@/views/GameCustomize.vue";
 import GameOverlayWindow from "@/views/GameOverlayWindow.vue";
 import LibraryFullscreen from "@/views/LibraryFullscreen.vue";
 import SystemView from "@/views/SystemView.vue";
@@ -15,6 +16,11 @@ const routes = [
     path: "/game/:id",
     name: "game-detail",
     component: GameDetails,
+  },
+  {
+    path: "/game/:id/customize",
+    name: "game-customize",
+    component: GameCustomize,
   },
   {
     path: "/overlay",
