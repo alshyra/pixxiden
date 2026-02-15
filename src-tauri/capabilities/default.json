@@ -73,6 +73,12 @@
         },
         {
           "path": "$HOME/.var/**"
+        },
+        {
+          "path": "$HOME/.steam/**"
+        },
+        {
+          "path": "$HOME/.local/share/Steam/**"
         }
       ]
     },
@@ -87,12 +93,24 @@
         },
         {
           "path": "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/**"
+        },
+        {
+          "path": "$HOME/.steam/**"
+        },
+        {
+          "path": "$HOME/.local/share/Steam/**"
         }
       ]
     },
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [
+        {
+          "path": "$HOME/.steam/**"
+        },
+        {
+          "path": "$HOME/.local/share/Steam/**"
+        },
         {
           "path": "$HOME/.config/heroic/**"
         },

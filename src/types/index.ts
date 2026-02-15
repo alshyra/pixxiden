@@ -14,13 +14,11 @@ export interface GameInfo {
 
 export interface GameAssets {
   heroPath: string;
-  coverPath: string;
   gridPath: string;
   horizontalGridPath: string;
   logoPath: string;
   iconPath: string;
   screenshotPaths: string[];
-  backgroundUrl: string;
 }
 
 export interface InstallationData {
@@ -115,13 +113,11 @@ export function defaultGameInfo(title = ""): GameInfo {
 export function defaultGameAssets(): GameAssets {
   return {
     heroPath: "",
-    coverPath: "",
     gridPath: "",
     horizontalGridPath: "",
     logoPath: "",
     iconPath: "",
     screenshotPaths: [],
-    backgroundUrl: "",
   };
 }
 

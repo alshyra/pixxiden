@@ -9,7 +9,6 @@
  */
 
 import { waitForAppReady } from "../helpers/utils";
-import { Selectors } from "../helpers/selectors";
 import { LibraryPage } from "../page-objects/LibraryPage";
 import { SettingsPage } from "../page-objects/SettingsPage";
 import { DownloadsPage } from "../page-objects/DownloadsPage";

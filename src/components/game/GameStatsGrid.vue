@@ -1,6 +1,5 @@
 <template>
-  <Carousel :images="screenshots" />
-  <div class="grid grid-cols-4 gap-4">
+  <div class="grid grid-cols-2 gap-4">
     <StatCard label="Taille" :value="game?.installation.installSize" color="cyan" />
     <StatCard label="Durée" :value="gameDuration" color="pink" />
     <StatCard label="Note" :color="scoreColor">
@@ -14,7 +13,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { Carousel, StatCard } from "@/components/ui";
+import { StatCard } from "@/components/ui";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 
 /**
@@ -23,7 +22,7 @@ import { useCurrentGame } from "@/composables/useCurrentGame";
  * Récupère toutes ses données via useCurrentGame
  */
 
-const { game, screenshots, gameDuration, score } = useCurrentGame();
+const { game, gameDuration, score } = useCurrentGame();
 
 const scoreDisplay = computed(() => (score.value ? `${score.value}/100` : "--"));
 
@@ -44,6 +43,6 @@ const protonColor = computed(() => {
     pending: "gray",
     borked: "red",
   };
-  return colors[game.value?.protonTier || ""] || "gray";
+  return colors[game.value?.protonData.protonTier || ""] || "gray";
 });
 </script>

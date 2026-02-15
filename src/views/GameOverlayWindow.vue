@@ -2,12 +2,16 @@
   <div class="fixed inset-0 flex items-center justify-center bg-transparent">
     <!-- Overlay Content -->
     <div
-      class="bg-gray-900/95 rounded-2xl p-8 shadow-2xl max-w-2xl w-full mx-4 border border-white/10 backdrop-blur-xl">
+      class="bg-gray-900/95 rounded-2xl p-8 shadow-2xl max-w-2xl w-full mx-4 border border-white/10 backdrop-blur-xl"
+    >
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-4">
-          <img v-if="currentGame?.assets.backgroundUrl" :src="currentGame.assets.backgroundUrl"
-            class="w-16 h-16 rounded-lg object-cover" />
+          <img
+            v-if="currentGame?.assets.heroPath"
+            :src="convertFileSrc(currentGame.assets.heroPath)"
+            class="w-16 h-16 rounded-lg object-cover"
+          />
           <div v-else class="w-16 h-16 rounded-lg bg-gray-800 flex items-center justify-center">
             <span class="text-2xl">🎮</span>
           </div>
@@ -29,33 +33,54 @@
       <!-- Actions Grid -->
       <div class="grid grid-cols-2 gap-4 mb-6">
         <!-- Resume Game -->
-        <OverlayActionCard ref="resumeButton" variant="success" title="Resume Game" subtitle="Press B or Guide"
-          :class="{ 'ring-2 ring-yellow-400': focusIndex === 0 }" @click="resumeGame">
+        <OverlayActionCard
+          ref="resumeButton"
+          variant="success"
+          title="Resume Game"
+          subtitle="Press B or Guide"
+          :class="{ 'ring-2 ring-yellow-400': focusIndex === 0 }"
+          @click="resumeGame"
+        >
           <template #icon>
             <Play class="w-8 h-8" />
           </template>
         </OverlayActionCard>
 
         <!-- Achievements (placeholder) -->
-        <OverlayActionCard variant="ghost" title="Achievements" subtitle="Bientôt"
-          class="!bg-gray-800 hover:!bg-gray-700" :class="{ 'ring-2 ring-yellow-400': focusIndex === 1 }"
-          @click="showAchievements">
+        <OverlayActionCard
+          variant="ghost"
+          title="Achievements"
+          subtitle="Bientôt"
+          class="!bg-gray-800 hover:!bg-gray-700"
+          :class="{ 'ring-2 ring-yellow-400': focusIndex === 1 }"
+          @click="showAchievements"
+        >
           <template #icon>
             <Trophy class="w-8 h-8 text-yellow-500" />
           </template>
         </OverlayActionCard>
 
         <!-- Screenshot (placeholder) -->
-        <OverlayActionCard variant="ghost" title="Screenshot" subtitle="Bientôt" class="!bg-gray-800 hover:!bg-gray-700"
-          :class="{ 'ring-2 ring-yellow-400': focusIndex === 2 }" @click="takeScreenshot">
+        <OverlayActionCard
+          variant="ghost"
+          title="Screenshot"
+          subtitle="Bientôt"
+          class="!bg-gray-800 hover:!bg-gray-700"
+          :class="{ 'ring-2 ring-yellow-400': focusIndex === 2 }"
+          @click="takeScreenshot"
+        >
           <template #icon>
             <Camera class="w-8 h-8 text-blue-400" />
           </template>
         </OverlayActionCard>
 
         <!-- Quit Game -->
-        <OverlayActionCard variant="danger" title="Quit Game" :class="{ 'ring-2 ring-yellow-400': focusIndex === 3 }"
-          @click="quitGame">
+        <OverlayActionCard
+          variant="danger"
+          title="Quit Game"
+          :class="{ 'ring-2 ring-yellow-400': focusIndex === 3 }"
+          @click="closeOverlay"
+        >
           <template #icon>
             <XCircle class="w-8 h-8" />
           </template>
@@ -93,6 +118,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { onKeyDown } from "@vueuse/core";
 import { Button } from "@/components/ui";
 import { OverlayActionCard } from "@/components/game";
@@ -112,7 +138,7 @@ const actions = [
   { id: "resume", action: () => resumeGame() },
   { id: "achievements", action: () => showAchievements() },
   { id: "screenshot", action: () => takeScreenshot() },
-  { id: "quit", action: () => quitGame() },
+  { id: "quit", action: () => closeOverlay() },
 ];
 
 let sessionInterval: ReturnType<typeof setInterval> | undefined;
@@ -144,7 +170,8 @@ onGamepad("navigate", ({ direction }: { direction: string }) => {
   if (direction === "up" && focusIndex.value >= 2) focusIndex.value -= 2;
   else if (direction === "down" && focusIndex.value < 2) focusIndex.value += 2;
   else if (direction === "left" && focusIndex.value % 2 !== 0) focusIndex.value -= 1;
-  else if (direction === "right" && focusIndex.value % 2 === 0 && focusIndex.value < 3) focusIndex.value += 1;
+  else if (direction === "right" && focusIndex.value % 2 === 0 && focusIndex.value < 3)
+    focusIndex.value += 1;
 });
 onGamepad("confirm", () => {
   actions[focusIndex.value]?.action();
@@ -193,12 +220,6 @@ function showAchievements() {
 
 function takeScreenshot() {
   console.log("Take screenshot");
-}
-
-async function quitGame() {
-  // TODO: Confirm dialog
-  console.log("Quit game");
-  await closeOverlay();
 }
 
 onMounted(async () => {

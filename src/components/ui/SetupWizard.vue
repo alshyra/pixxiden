@@ -382,6 +382,7 @@
 import { ref, reactive } from "vue";
 import * as api from "@/services/api";
 import { PixxidenLogo, Button } from "@/components/ui";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 const emit = defineEmits<{
   complete: [];
@@ -441,7 +442,7 @@ async function testCurrentStep() {
     testResults.steamValid = results.steamValid;
     testResults.steamMessage = results.steamMessage;
   } catch (error) {
-    console.error("Test failed:", error);
+    await logError(`Test failed: ${error}`);
   } finally {
     testing.value = false;
   }
@@ -452,7 +453,7 @@ async function handleSkip() {
     await api.skipSetup();
     emit("skip");
   } catch (error) {
-    console.error("Failed to skip setup:", error);
+    await logError(`Failed to skip setup: ${error}`);
   }
 }
 
@@ -471,7 +472,7 @@ async function handleFinish() {
 
     emit("complete");
   } catch (error) {
-    console.error("Failed to save API keys:", error);
+    await logError(`Failed to save API keys: ${error}`);
   } finally {
     saving.value = false;
   }

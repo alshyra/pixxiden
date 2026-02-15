@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { Card, Button } from "@/components/ui";
 import { Info } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
@@ -114,6 +114,8 @@ const { on: onGamepad } = useGamepad();
 const focusedIndex = ref(0);
 const libraryStore = useLibraryStore();
 const loading = ref(false);
+
+const unsubscribeGamepad: Array<() => void> = [];
 
 // Modal states
 const showEpicModal = ref(false);
@@ -287,7 +289,11 @@ onMounted(async () => {
   // Charger les données au montage
   await loadStoreStatus();
 
-  onGamepad("navigate", navigateHandler);
-  onGamepad("confirm", confirmHandler);
+  unsubscribeGamepad.push(onGamepad("navigate", navigateHandler));
+  unsubscribeGamepad.push(onGamepad("confirm", confirmHandler));
+});
+
+onUnmounted(() => {
+  unsubscribeGamepad.forEach((unsub) => unsub());
 });
 </script>

@@ -49,7 +49,7 @@ describe("LegendaryService", () => {
   beforeEach(() => {
     mockSidecar = createMockSidecar();
     mockDb = createMockDb();
-    service = new LegendaryService(
+    service = LegendaryService.createWithDeps(
       mockSidecar as unknown as SidecarService,
       mockDb as unknown as DatabaseService,
     );
@@ -91,7 +91,7 @@ describe("LegendaryService", () => {
         .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))
         .mockResolvedValueOnce(createResult(JSON.stringify(mockInstalled)));
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      vi.mocked(mockDb.execute).mockResolvedValue({} as any);
 
       const games = await service.listGames();
 
@@ -137,7 +137,7 @@ describe("LegendaryService", () => {
         .mockResolvedValueOnce(createResult("[]"))
         .mockResolvedValueOnce(createResult("[]"));
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      vi.mocked(mockDb.execute).mockResolvedValue({} as any);
 
       const games = await service.listGames();
       expect(games).toHaveLength(0);
@@ -150,7 +150,7 @@ describe("LegendaryService", () => {
         .mockResolvedValueOnce(createResult(JSON.stringify(mockGames)))
         .mockResolvedValueOnce(createResult("", 1, "Not logged in"));
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      vi.mocked(mockDb.execute).mockResolvedValue({} as any);
 
       const games = await service.listGames();
       expect(games).toHaveLength(1);

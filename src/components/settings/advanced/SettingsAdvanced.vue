@@ -12,7 +12,10 @@
         <SettingsRow
           title="Version Proton Global"
           description="Compatibilité par défaut pour les titres Windows."
-          :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)] rounded-lg': focusedIndex === 0 }"
+          :class="{
+            'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)] rounded-lg':
+              focusedIndex === 0,
+          }"
         >
           <Select
             :model-value="protonVersion"
@@ -27,12 +30,12 @@
           title="MangoHud Overlay"
           description="Affiche FPS, températures et utilisation matérielle."
           :divider="false"
-          :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)] rounded-lg': focusedIndex === 1 }"
+          :class="{
+            'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)] rounded-lg':
+              focusedIndex === 1,
+          }"
         >
-          <Toggle
-            :model-value="mangoHudEnabled"
-            @update:model-value="updateMangoHud"
-          />
+          <Toggle :model-value="mangoHudEnabled" @update:model-value="updateMangoHud" />
         </SettingsRow>
       </Card>
 
@@ -54,6 +57,7 @@ import { AlertTriangle } from "lucide-vue-next";
 import { onMounted, ref } from "vue";
 import { useGamepad } from "@/composables/useGamepad";
 import * as api from "@/services/api";
+import { info, error as logError } from "@tauri-apps/plugin-log";
 
 // Proton versions options
 const protonVersions = [
@@ -78,7 +82,7 @@ async function loadSettings() {
     protonVersion.value = settings.protonVersion;
     mangoHudEnabled.value = settings.mangoHudEnabled;
   } catch (error) {
-    console.error("Failed to load settings:", error);
+    await logError(`Failed to load settings: ${error}`);
   }
 }
 
@@ -86,9 +90,9 @@ async function updateProtonVersion(version: string) {
   protonVersion.value = version;
   try {
     // TODO: Implement updateSettings API
-    console.log("Proton version updated to:", version);
+    await info(`Proton version updated to: ${version}`);
   } catch (error) {
-    console.error("Failed to update Proton version:", error);
+    await logError(`Failed to update Proton version: ${error}`);
   }
 }
 
@@ -96,9 +100,9 @@ async function updateMangoHud(enabled: boolean) {
   mangoHudEnabled.value = enabled;
   try {
     // TODO: Implement updateSettings API
-    console.log("MangoHud updated to:", enabled);
+    await info(`MangoHud updated to: ${enabled}`);
   } catch (error) {
-    console.error("Failed to update MangoHud setting:", error);
+    await logError(`Failed to update MangoHud setting: ${error}`);
   }
 }
 

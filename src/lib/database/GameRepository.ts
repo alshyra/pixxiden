@@ -8,6 +8,7 @@
 
 import type { Game, StoreType, ProtonTier } from "@/types";
 import { DatabaseService } from "@/services/base/DatabaseService";
+import type { OverridableAssetType } from "./ImageOverrideRepository";
 
 export class GameRepository {
   private static instance: GameRepository | null = null;
@@ -30,7 +31,8 @@ export class GameRepository {
     const rows = await this.db.select<Record<string, unknown>>(
       "SELECT * FROM games ORDER BY title ASC",
     );
-    return rows.map(this.rowToGame);
+    const games = rows.map(this.rowToGame);
+    return this.applyImageOverrides(games);
   }
 
   /**
@@ -41,7 +43,10 @@ export class GameRepository {
       "SELECT * FROM games WHERE id = ?",
       [id],
     );
-    return row ? this.rowToGame(row) : null;
+    if (!row) return null;
+    const game = this.rowToGame(row);
+    const [withOverrides] = await this.applyImageOverrides([game]);
+    return withOverrides;
   }
 
   /**
@@ -279,6 +284,59 @@ export class GameRepository {
     await this.db.execute("DELETE FROM games WHERE id = ?", [id]);
   }
 
+  // ===== Image Override Application =====
+
+  /**
+   * Apply image overrides from image_overrides table on top of game assets.
+   * Uses a batch query via this.db to avoid N+1 when loading the full library.
+   * Queries the table directly (instead of via ImageOverrideRepository) to use
+   * the same injected db instance — keeps tests simple with a single mock.
+   */
+  private async applyImageOverrides(games: Game[]): Promise<Game[]> {
+    if (games.length === 0) return games;
+
+    const gameIds = games.map((g) => g.id);
+    const placeholders = gameIds.map(() => "?").join(",");
+
+    const rows = await this.db.select<Record<string, unknown>>(
+      `SELECT game_id, asset_type, path FROM image_overrides WHERE game_id IN (${placeholders})`,
+      gameIds,
+    );
+
+    if (rows.length === 0) return games;
+
+    // Group overrides by game_id
+    const overridesMap = new Map<string, { assetType: OverridableAssetType; path: string }[]>();
+    for (const row of rows) {
+      const gameId = row.game_id as string;
+      const entry = { assetType: row.asset_type as OverridableAssetType, path: row.path as string };
+      const existing = overridesMap.get(gameId) || [];
+      existing.push(entry);
+      overridesMap.set(gameId, existing);
+    }
+
+    const assetMapping: Record<OverridableAssetType, keyof Game["assets"]> = {
+      hero: "heroPath",
+      grid: "gridPath",
+      horizontal_grid: "horizontalGridPath",
+      logo: "logoPath",
+      icon: "iconPath",
+    };
+
+    for (const game of games) {
+      const overrides = overridesMap.get(game.id);
+      if (!overrides) continue;
+      for (const ov of overrides) {
+        const key = assetMapping[ov.assetType];
+        if (key && typeof game.assets[key] === "string") {
+          (game.assets[key] as string) = ov.path;
+        }
+      }
+    }
+
+    return games;
+  }
+
   // ===== Row Mapping =====
 
   /**
@@ -300,13 +358,11 @@ export class GameRepository {
       },
       assets: {
         heroPath: (row.hero_path as string) || "",
-        coverPath: (row.cover_path as string) || "",
         gridPath: (row.grid_path as string) || "",
         horizontalGridPath: (row.horizontal_grid_path as string) || "",
         logoPath: (row.logo_path as string) || "",
         iconPath: (row.icon_path as string) || "",
         screenshotPaths: JSON.parse((row.screenshot_paths as string) || "[]"),
-        backgroundUrl: (row.background_url as string) || "",
       },
       installation: {
         installed: Boolean(row.installed),

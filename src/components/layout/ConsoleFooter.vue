@@ -66,7 +66,7 @@ const controllerLabel = computed(() => {
   height: 64px;
   background: #050505;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  z-index: 100;
+  z-index: 40;
   display: flex;
   align-items: center;
 }

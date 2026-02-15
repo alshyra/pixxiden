@@ -67,12 +67,12 @@ describe("InstallationService", () => {
 
       // LegendaryInstallation uses streaming spawn
       vi.spyOn(mockSidecar, "spawnLegendaryStreaming").mockImplementation(
-        (args: string[], _callbacks?: any) => {
+        (_args: string[], _callbacks?: any) => {
           return Promise.resolve(createMockStreamingHandle(0));
         },
       );
 
-      vi.spyOn(mockDb, "execute").mockResolvedValue();
+      vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       await installationService.installGame(gameId, store, { installPath });
 
@@ -99,7 +99,7 @@ describe("InstallationService", () => {
         stderr: "",
       });
 
-      vi.spyOn(mockDb, "execute").mockResolvedValue();
+      vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       await installationService.installGame(gameId, store, { installPath });
 
@@ -132,7 +132,7 @@ describe("InstallationService", () => {
         },
       );
 
-      vi.spyOn(mockDb, "execute").mockResolvedValue();
+      vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       await installationService.installGame(gameId, store, {
         onProgress: (progress) => progressEvents.push(progress),
@@ -177,7 +177,7 @@ describe("InstallationService", () => {
         stderr: "",
       });
 
-      vi.spyOn(mockDb, "execute").mockResolvedValue();
+      vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       await installationService.uninstallGame(gameId, store);
 
@@ -200,7 +200,7 @@ describe("InstallationService", () => {
         stderr: "",
       });
 
-      vi.spyOn(mockDb, "execute").mockResolvedValue();
+      vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       await installationService.uninstallGame(gameId, store, {
         onProgress: (progress) => progressEvents.push(progress),
@@ -236,7 +236,7 @@ describe("InstallationService", () => {
         });
       });
 
-      vi.spyOn(mockDb, "execute").mockResolvedValue();
+      vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       // Start installation (don't await)
       const installPromise = installationService.installGame(gameId, store);
@@ -248,8 +248,8 @@ describe("InstallationService", () => {
       expect(installationService.isInstalling(gameId)).toBe(true);
       expect(installationService.getActiveInstallations()).toContain(gameId);
 
-      // Resolve the completion
-      resolveCompletion?.({ code: 0 });
+      // Resolve the completion (non-null assertion - assigned in mock above)
+      resolveCompletion!({ code: 0 });
 
       // Wait for installation to complete
       await installPromise.catch(() => {});

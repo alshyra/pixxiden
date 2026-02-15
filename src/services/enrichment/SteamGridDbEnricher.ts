@@ -11,14 +11,14 @@ interface SteamGridDbConfig {
   apiKey: string;
 }
 
-interface SteamGridDbSearchResult {
+export interface SteamGridDbSearchResult {
   id: number;
   name: string;
   types: string[];
   verified: boolean;
 }
 
-interface SteamGridDbImage {
+export interface SteamGridDbImage {
   id: number;
   url: string;
   thumb: string;
@@ -87,9 +87,10 @@ export class SteamGridDbEnricher {
   }
 
   /**
-   * Search for game ID by title
+   * Search for game ID by title.
+   * Public so the image override modal can resolve a game ID before browsing.
    */
-  private async searchGameId(title: string): Promise<number | null> {
+  async searchGameId(title: string): Promise<number | null> {
     if (!this.config) throw new Error("SteamGridDB not configured");
 
     const response = await fetch(
@@ -112,8 +113,80 @@ export class SteamGridDbEnricher {
       return null;
     }
 
-    // Return first result (usually best match)
     const results: SteamGridDbSearchResult[] = data.data;
+    return this.pickBestMatch(results, title);
+  }
+
+  /**
+   * Pick the best match from autocomplete results.
+   *
+   * Priority:
+   * 1. Exact match (case-insensitive) + verified
+   * 2. Exact match (case-insensitive)
+   * 3. Verified result (first)
+   * 4. First result (fallback)
+   */
+  /**
+   * Roman numeral ↔ Arabic numeral mapping for title normalization.
+   * SteamGridDB often uses Roman numerals (e.g. "Baldur's Gate III")
+   * while game stores use Arabic (e.g. "Baldur's Gate 3").
+   */
+  private static readonly ROMAN_MAP: [RegExp, string][] = [
+    [/\bxiii\b/g, "13"],
+    [/\bxii\b/g, "12"],
+    [/\bxi\b/g, "11"],
+    [/\bviii\b/g, "8"],
+    [/\bvii\b/g, "7"],
+    [/\bvi\b/g, "6"],
+    [/\biv\b/g, "4"],
+    [/\bix\b/g, "9"],
+    [/\biii\b/g, "3"],
+    [/\bii\b/g, "2"],
+    [/\bv\b/g, "5"],
+    [/\bx\b/g, "10"],
+  ];
+
+  private pickBestMatch(results: SteamGridDbSearchResult[], title: string): number {
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .trim()
+        .replace(/[\u2018\u2019\u2032\u00B4]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"');
+
+    /** Deep normalize: also convert Roman numerals to Arabic */
+    const deepNormalize = (s: string) => {
+      let n = normalize(s);
+      for (const [roman, arabic] of SteamGridDbEnricher.ROMAN_MAP) {
+        n = n.replace(roman, arabic);
+      }
+      return n;
+    };
+
+    const normalizedTitle = normalize(title);
+    const deepTitle = deepNormalize(title);
+
+    // 1. Exact match + verified
+    const exactVerified = results.find((r) => normalize(r.name) === normalizedTitle && r.verified);
+    if (exactVerified) return exactVerified.id;
+
+    // 2. Exact match (any)
+    const exactMatch = results.find((r) => normalize(r.name) === normalizedTitle);
+    if (exactMatch) return exactMatch.id;
+
+    // 3. Deep match (Roman ↔ Arabic) + verified
+    const deepVerified = results.find((r) => deepNormalize(r.name) === deepTitle && r.verified);
+    if (deepVerified) return deepVerified.id;
+
+    // 4. Deep match (any)
+    const deepMatch = results.find((r) => deepNormalize(r.name) === deepTitle);
+    if (deepMatch) return deepMatch.id;
+
+    // 5. First verified result
+    const verified = results.find((r) => r.verified);
+    if (verified) return verified.id;
+
+    // 6. Fallback to first result
     return results[0].id;
   }
 
@@ -158,10 +231,11 @@ export class SteamGridDbEnricher {
   }
 
   /**
-   * Fetch images of a specific type for a game
+   * Fetch images of a specific type for a game.
+   * Public so the image override modal can display a gallery.
    * @param dimensions Optional SteamGridDB dimensions filter (e.g. "600x900" or "920x430,460x215")
    */
-  private async fetchImages(
+  async fetchImages(
     gameId: number,
     type: "heroes" | "grids" | "logos" | "icons",
     dimensions?: string,
@@ -193,11 +267,9 @@ export class SteamGridDbEnricher {
       return [];
     }
 
-    // Sort by score (community rating) descending
+    // Trust API's default ordering (factors in views + community score)
     const images: SteamGridDbImage[] = data.data;
-    return images
-      .filter((img) => !img.nsfw) // Filter out NSFW images
-      .sort((a, b) => (b.score || 0) - (a.score || 0));
+    return images.filter((img) => !img.nsfw); // Filter out NSFW images
   }
 
   /**

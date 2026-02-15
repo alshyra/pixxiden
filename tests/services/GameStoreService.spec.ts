@@ -94,7 +94,7 @@ describe("GameStoreService", () => {
         },
       ];
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      vi.mocked(mockDb.execute).mockResolvedValue({} as any);
 
       await service.persistGames(games);
 
@@ -139,7 +139,7 @@ describe("GameStoreService", () => {
         },
       ];
 
-      vi.mocked(mockDb.execute).mockResolvedValue(undefined);
+      vi.mocked(mockDb.execute).mockResolvedValue({} as any);
 
       await service.persistGames(games);
 

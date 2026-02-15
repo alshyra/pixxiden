@@ -1,10 +1,15 @@
 <template>
-  <div ref="containerRef" class="pixx-viewport">
+  <div ref="containerRef" class="pixx-viewport" :style="{ height: viewportHeight }">
     <div class="pixx-track" :style="{ transform: `translateX(${translateX}px)` }">
       <div
         v-for="(img, idx) in images"
         :key="idx"
         :class="['pixx-card', { active: activeIndex === idx }]"
+        :style="
+          activeIndex === idx
+            ? { width: `${ACTIVE_WIDTH}px`, height: `${ACTIVE_HEIGHT}px` }
+            : { width: `${CARD_WIDTH}px`, height: `${INACTIVE_HEIGHT}px` }
+        "
         @click="activeIndex = idx"
       >
         <div class="pixx-card-inner">
@@ -24,24 +29,47 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
  * Pixxiden Carousel - Largeur fixe avec défilement interne
  * Carousel autonome pour afficher des captures d'écran de jeux
  * L'élément actif est centré et agrandi avec effet de glow
+ *
+ * Supporte v-model pour synchroniser l'index actif avec le parent
+ * Supporte aspectRatio pour adapter les dimensions des cartes
  */
 
 interface Props {
   images?: string[];
+  /** CSS aspect-ratio string e.g. "2/3", "96/31". Defaults to "16/9" */
+  aspectRatio?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   images: () => [],
+  aspectRatio: "16/9",
 });
 
-const activeIndex = ref(0);
+const modelValue = defineModel<number>({ default: 0 });
+
 const containerRef = ref<HTMLElement | null>(null);
 const translateX = ref(0);
 
-// Dimensions pour le calcul du décalage
-const CARD_WIDTH = 240;
-const ACTIVE_WIDTH = 360;
+// Use model value for active index (two-way binding)
+const activeIndex = modelValue;
+
+// Parse aspect ratio to compute dimensions from a fixed height
+const ratio = computed(() => {
+  const [w, h] = props.aspectRatio.split("/").map(Number);
+  return w / h;
+});
+
+// Heights
+const INACTIVE_HEIGHT = 200;
+const ACTIVE_HEIGHT = 340;
 const GAP = 24;
+
+// Widths derived from aspect ratio
+const CARD_WIDTH = computed(() => Math.round(INACTIVE_HEIGHT * ratio.value));
+const ACTIVE_WIDTH = computed(() => Math.round(ACTIVE_HEIGHT * ratio.value));
+
+// Viewport height = active height + margin
+const viewportHeight = computed(() => `${ACTIVE_HEIGHT + 80}px`);
 
 // Calcul de la translation pour centrer l'élément actif
 const getTranslation = (): number => {
@@ -51,9 +79,9 @@ const getTranslation = (): number => {
   const center = containerWidth / 2;
 
   // Position de l'élément actif dans le rail (avant translation)
-  const activePosStart = activeIndex.value * (CARD_WIDTH + GAP);
+  const activePosStart = activeIndex.value * (CARD_WIDTH.value + GAP);
   // On veut que le milieu de l'élément actif soit au centre du conteneur
-  const offset = center - (activePosStart + ACTIVE_WIDTH / 2);
+  const offset = center - (activePosStart + ACTIVE_WIDTH.value / 2);
 
   return offset;
 };
@@ -89,9 +117,9 @@ onUnmounted(() => {
 /* Le conteneur fixe qui masque le débordement */
 .pixx-viewport {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  height: 300px;
+  /* height set dynamically via inline style */
   position: relative;
   overflow: hidden;
   display: flex;
@@ -114,21 +142,18 @@ onUnmounted(() => {
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
-  width: 240px;
-  height: 150px;
+  /* width and height set dynamically via inline style */
   transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
 /* État Inactif */
 .pixx-card:not(.active) {
-  opacity: 0.4;
+  opacity: 0.8;
   transform: scale(0.9);
 }
 
-/* État Actif - Hauteur 200px */
+/* État Actif */
 .pixx-card.active {
-  width: 360px;
-  height: 200px;
   opacity: 1;
   z-index: 10;
 }
@@ -158,7 +183,7 @@ onUnmounted(() => {
 .pixx-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), transparent);
 }
 
 .pixx-glow-bar {

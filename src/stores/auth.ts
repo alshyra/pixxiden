@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { AuthStatus, StoreType } from "@/types";
 import { getAuthService } from "@/services";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 /**
  * Helper function to format error messages with context
@@ -82,7 +83,7 @@ export const useAuthStore = defineStore("auth", () => {
       stores.value.steam = statuses.steam;
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to fetch auth status";
-      console.error("Error fetching auth status:", err);
+      await logError(`Error fetching auth status: ${err}`);
     } finally {
       loading.value = false;
     }
@@ -110,7 +111,7 @@ export const useAuthStore = defineStore("auth", () => {
       return authUrl;
     } catch (err) {
       error.value = formatAuthError("Epic Games", "authentication", err);
-      console.error("Epic auth failed:", err);
+      await logError(`Epic auth failed: ${err}`);
       throw err;
     } finally {
       loading.value = false;
@@ -127,7 +128,7 @@ export const useAuthStore = defineStore("auth", () => {
       await fetchAuthStatus();
     } catch (err) {
       error.value = formatAuthError("Epic Games", "logout", err);
-      console.error("Failed to logout from Epic:", err);
+      await logError(`Failed to logout from Epic: ${err}`);
       throw err;
     } finally {
       loading.value = false;
@@ -157,7 +158,7 @@ export const useAuthStore = defineStore("auth", () => {
       await fetchAuthStatus();
     } catch (err) {
       error.value = formatAuthError("GOG", "authentication", err);
-      console.error("Failed to login to GOG:", err);
+      await logError(`Failed to login to GOG: ${err}`);
       throw err;
     } finally {
       loading.value = false;
@@ -174,7 +175,7 @@ export const useAuthStore = defineStore("auth", () => {
       await fetchAuthStatus();
     } catch (err) {
       error.value = formatAuthError("GOG", "logout", err);
-      console.error("Failed to logout from GOG:", err);
+      await logError(`Failed to logout from GOG: ${err}`);
       throw err;
     } finally {
       loading.value = false;
@@ -204,7 +205,7 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       error.value = formatAuthError("Amazon Games", "authentication", err);
-      console.error("Failed to login to Amazon:", err);
+      await logError(`Failed to login to Amazon: ${err}`);
       throw err;
     } finally {
       loading.value = false;
@@ -221,7 +222,7 @@ export const useAuthStore = defineStore("auth", () => {
       await fetchAuthStatus();
     } catch (err: unknown) {
       error.value = formatAuthError("Amazon Games", "2FA verification", err);
-      console.error("Failed to complete Amazon 2FA:", err);
+      await logError(`Failed to complete Amazon 2FA: ${err}`);
       throw err;
     } finally {
       loading.value = false;
@@ -238,7 +239,7 @@ export const useAuthStore = defineStore("auth", () => {
       await fetchAuthStatus();
     } catch (err) {
       error.value = formatAuthError("Amazon Games", "logout", err);
-      console.error("Failed to logout from Amazon:", err);
+      await logError(`Failed to logout from Amazon: ${err}`);
       throw err;
     } finally {
       loading.value = false;

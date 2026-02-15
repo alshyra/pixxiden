@@ -157,65 +157,6 @@ export class SidecarService {
   }
 
   /**
-   * Spawn a system command (not a sidecar) with streaming output.
-   * Used for external tools like umu-run that are installed system-wide.
-   * 
-   * @param command - Command name or full path (e.g. "umu-run" or "/usr/bin/umu-run")
-   */
-  async spawnSystemCommand(
-    command: string,
-    args: string[],
-    callbacks: {
-      onStdout?: (line: string) => void;
-      onStderr?: (line: string) => void;
-    } = {},
-    options: { env?: Record<string, string> } = {},
-  ): Promise<StreamingHandle> {
-    // For umu-run, always use full path for Tauri permissions
-    let cmdPath = command;
-    if (command === "umu-run") {
-      cmdPath = "/usr/bin/umu-run";
-    }
-
-    await debug(`[SidecarService] Spawning system command: ${cmdPath} ${JSON.stringify(args)}`);
-    if (options.env && Object.keys(options.env).length > 0) {
-      await debug(`[SidecarService] With env: ${JSON.stringify(options.env)}`);
-    }
-
-    const cmd = Command.create(
-      cmdPath,
-      args,
-      options.env ? { env: options.env } : undefined,
-    );
-
-    cmd.stdout.on("data", (line) => {
-      callbacks.onStdout?.(line);
-    });
-
-    cmd.stderr.on("data", (line) => {
-      callbacks.onStderr?.(line);
-    });
-
-    const completion = new Promise<{ code: number }>((resolve, reject) => {
-      cmd.on("close", (data) => {
-        resolve({ code: data.code ?? 0 });
-      });
-      cmd.on("error", (error) => {
-        reject(new Error(error));
-      });
-    });
-
-    const child = await cmd.spawn();
-    await debug(`[SidecarService] Spawned system command ${command} PID=${child.pid}`);
-
-    return {
-      child,
-      completion,
-      kill: () => child.kill(),
-    };
-  }
-
-  /**
    * Spawn legendary CLI with real-time streaming (for install/download)
    */
   async spawnLegendaryStreaming(

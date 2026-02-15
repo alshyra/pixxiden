@@ -23,12 +23,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
-
-const props = defineProps<{ password: string; showPassword: boolean; error: string | null }>();
-const { password } = ref(props);
+const password = defineModel<string>("password", { required: true });
+defineProps<{ showPassword: boolean; error: string | null }>();
 defineEmits<{
-  "update:password": [value: string];
   "update:showPassword": [value: boolean];
   validate: [];
 }>();

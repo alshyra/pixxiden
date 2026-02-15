@@ -43,14 +43,15 @@
 </template>
 <script setup lang="ts">
 import type { UpdatePackage } from "@/services/api";
-import { computed } from "vue";
 
 defineProps<{
   groupedUpdates: Record<string, UpdatePackage[]>;
   expandedCategories: Set<string>;
 }>();
 
-defineEmits<["toggle-category", string]>();
+defineEmits<{
+  "toggle-category": [category: string];
+}>();
 
 function getCategoryLabel(category: string): string {
   const labels: Record<string, string> = {

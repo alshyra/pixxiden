@@ -7,7 +7,6 @@ export { default as SettingsRow } from "./layout/SettingsRow.vue";
 export { default as ApiKeyCard } from "./advanced/ApiKeyCard.vue";
 export { default as SystemUpdates } from "./system/system-updates/SystemUpdates.vue";
 export { default as SudoersConfigModal } from "./sudoers-config/SudoersConfigModal.vue";
-export { default as SettingsOverlay } from "./SettingsOverlay.vue";
 
 // Note: Type exports from .vue files require separate .d.ts files
 // For now, types are documented in the component files themselves

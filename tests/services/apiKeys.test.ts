@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as apiKeysService from "../../src/services/api/apiKeys";
 import * as fs from "@tauri-apps/plugin-fs";
-import * as path from "@tauri-apps/api/path";
 
 // Mock the Tauri API
 vi.mock("@tauri-apps/plugin-fs");

@@ -102,25 +102,26 @@ onMounted(async () => {
     const gameRepo = GameRepository.getInstance();
     const gamesCount = await gameRepo.getGamesCount();
 
-    // Step 3: Only sync if no games exist (first run or empty library)
-    // Users can manually sync from settings if they want to update
-    if (gamesCount === 0) {
-      try {
-        await info("No games found, starting initial sync...");
-        statusMessage.value = "Synchronisation des jeux...";
-        progress.value = 40;
+    // Step 3: Always sync store libraries (new games can appear anytime)
+    // When DB already has games, skip enrichment for faster startup
+    try {
+      const skipEnrichment = gamesCount > 0;
+      await info(
+        skipEnrichment
+          ? `Found ${gamesCount} games in database, starting fast sync (skip enrichment)`
+          : "No games found, starting initial sync...",
+      );
+      statusMessage.value = "Synchronisation des jeux...";
+      progress.value = 40;
 
-        // GameSyncService handles everything: fetch → enrich → persist
-        // Progress events are emitted automatically
-        const syncService = GameSyncService.getInstance();
-        await syncService.sync();
-      } catch (error) {
-        await warn(`Sync failed (may need authentication or stores not configured): ${error}`);
-        // Don't block — continue with empty library
-      }
-    } else {
-      await info(`Found ${gamesCount} games in database, skipping sync`);
-      progress.value = 60; // Skip to enrichment phase progress
+      // GameSyncService handles everything: fetch → enrich → persist
+      // Progress events are emitted automatically
+      const syncService = GameSyncService.getInstance();
+      await syncService.sync({ skipEnrichment:false });
+    } catch (error) {
+      await warn(`Sync failed (may need authentication or stores not configured): ${error}`);
+      // Don't block — continue with current local library
+      progress.value = 60;
     }
 
     currentGame.value = "";

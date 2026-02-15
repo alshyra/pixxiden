@@ -17,25 +17,36 @@ export interface AuthStatusMap {
 export class AuthService {
   private static instance: AuthService | null = null;
 
-  constructor(
-    private legendary: LegendaryService,
-    private gogdl: GogdlService,
-    private nile: NileService,
-  ) {}
+  private legendary: LegendaryService;
+  private gogdl: GogdlService;
+  private nile: NileService;
 
-  static getInstance(
+  private constructor(legendary: LegendaryService, gogdl: GogdlService, nile: NileService) {
+    this.legendary = legendary;
+    this.gogdl = gogdl;
+    this.nile = nile;
+  }
+
+  static getInstance(): AuthService {
+    if (!AuthService.instance) {
+      AuthService.instance = new AuthService(
+        LegendaryService.getInstance(),
+        GogdlService.getInstance(),
+        NileService.getInstance(),
+      );
+    }
+    return AuthService.instance;
+  }
+
+  /**
+   * Create an instance with custom dependencies (for testing).
+   */
+  static createWithDeps(
     legendary: LegendaryService,
     gogdl: GogdlService,
     nile: NileService,
   ): AuthService {
-    if (!AuthService.instance) {
-      AuthService.instance = new AuthService(
-        legendary,
-        gogdl,
-        nile,
-      );
-    }
-    return AuthService.instance;
+    return new AuthService(legendary, gogdl, nile);
   }
 
   /**

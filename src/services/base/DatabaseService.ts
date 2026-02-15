@@ -106,48 +106,6 @@ export class DatabaseService {
   }
 
   /**
-   * Begin a transaction
-   */
-  async beginTransaction(): Promise<void> {
-    await this.execute("BEGIN TRANSACTION");
-  }
-
-  /**
-   * Commit a transaction
-   */
-  async commit(): Promise<void> {
-    await this.execute("COMMIT");
-  }
-
-  /**
-   * Rollback a transaction
-   */
-  async rollback(): Promise<void> {
-    await this.execute("ROLLBACK");
-  }
-
-  /**
-   * Execute operations within a transaction.
-   *
-   * ⚠️  DEPRECATED — DO NOT USE for multi-statement writes.
-   * @tauri-apps/plugin-sql uses sqlx::SqlitePool. Each execute() call may
-   * use a different pooled connection, so BEGIN TRANSACTION on connection A
-   * + INSERT on connection B leaves A locked → SQLITE_BUSY (code 5).
-   * Use sequential individual writes with WAL mode + busy_timeout instead.
-   */
-  async transaction<T>(fn: () => Promise<T>): Promise<T> {
-    await this.beginTransaction();
-    try {
-      const result = await fn();
-      await this.commit();
-      return result;
-    } catch (error) {
-      await this.rollback();
-      throw error;
-    }
-  }
-
-  /**
    * Close database connection
    */
   async close(): Promise<void> {

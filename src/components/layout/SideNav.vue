@@ -66,10 +66,7 @@
               {{ item.description }}
             </div>
           </div>
-          <ChevronRight
-            v-if="focusedIndex === index"
-            class="w-5 h-5 text-white"
-          />
+          <ChevronRight v-if="focusedIndex === index" class="w-5 h-5 text-white" />
         </button>
       </div>
 
@@ -118,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useSideNavStore } from "@/stores/sideNav";
 import { useGamepad } from "@/composables/useGamepad";
@@ -140,7 +137,7 @@ const emit = defineEmits<{
 const router = useRouter();
 const route = useRoute();
 const sideNavStore = useSideNavStore();
-const { on: onGamepad } = useGamepad();
+const { on } = useGamepad();
 
 const menuItems: MenuItem[] = [
   {
@@ -175,54 +172,59 @@ const menuItems: MenuItem[] = [
 
 const focusedIndex = ref(0);
 
+const resetFocus = (open: boolean) => {
+  if (!open) return;
+  const currentIndex = menuItems.findIndex((item) => isActive(item.route));
+  focusedIndex.value = currentIndex >= 0 ? currentIndex : 0;
+};
 // Reset focus when side nav opens
-watch(() => sideNavStore.isOpen, (open) => {
-  if (open) {
-    // Focus current route or first item
-    const currentIndex = menuItems.findIndex((item) => isActive(item.route));
-    focusedIndex.value = currentIndex >= 0 ? currentIndex : 0;
-  }
-});
+watch(() => sideNavStore.isOpen, resetFocus);
 
-function isActive(routePath: string): boolean {
-  return route.path === routePath;
-}
+const isActive = (routePath: string): boolean => route.path === routePath;
 
 function navigateTo(routePath: string) {
   router.push(routePath);
   sideNavStore.close();
 }
 
-// Gamepad navigation
-onGamepad("navigate", ({ direction }: { direction: string }) => {
+// Gamepad navigation - stocker les fonctions de cleanup
+const unsubNavigate = on("navigate", ({ direction }: { direction: string }) => {
   if (!sideNavStore.isOpen) return;
 
   const maxIndex = menuItems.length; // +1 for power button
 
   if (direction === "up" && focusedIndex.value > 0) {
     focusedIndex.value--;
-  } else if (direction === "down" && focusedIndex.value < maxIndex) {
+    return;
+  }
+  if (direction === "down" && focusedIndex.value < maxIndex) {
     focusedIndex.value++;
   }
 });
 
-onGamepad("confirm", () => {
+const unsubConfirm = on("confirm", () => {
   if (!sideNavStore.isOpen) return;
 
   if (focusedIndex.value === menuItems.length) {
     // Power button
     emit("openPowerMenu");
-  } else {
-    // Navigate to selected route
-    const item = menuItems[focusedIndex.value];
-    navigateTo(item.route);
+    return;
   }
+  // Navigate to selected route
+  const item = menuItems[focusedIndex.value];
+  navigateTo(item.route);
 });
 
-onGamepad("back", () => {
-  if (sideNavStore.isOpen) {
-    sideNavStore.close();
-  }
+const unsubBack = on("back", () => {
+  if (!sideNavStore.isOpen) return;
+  sideNavStore.close();
+});
+
+// Cleanup à la destruction du composant
+onUnmounted(() => {
+  unsubNavigate();
+  unsubConfirm();
+  unsubBack();
 });
 </script>
 

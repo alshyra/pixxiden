@@ -1,5 +1,14 @@
-import { ref, onMounted, onUnmounted, readonly } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
+import { info } from "@tauri-apps/plugin-log";
+import {
+  useGamepad as useVueUseGamepad,
+  useEventBus,
+  useRafFn,
+  useThrottleFn,
+  whenever,
+  onKeyStroke,
+} from "@vueuse/core";
 
 export type ControllerType = "keyboard" | "ps" | "xbox";
 
@@ -11,37 +20,25 @@ export interface GamepadState {
 
 // Standard button indices (matches Web Gamepad API)
 export const GAMEPAD_BUTTONS = {
-  // Face buttons
-  A: 0, // Cross (PS) / A (Xbox) - Confirm/Select
-  B: 1, // Circle (PS) / B (Xbox) - Back/Cancel
-  X: 2, // Square (PS) / X (Xbox) - Options
-  Y: 3, // Triangle (PS) / Y (Xbox) - Info
-
-  // Shoulder buttons
-  LB: 4, // L1 (PS) / LB (Xbox)
-  RB: 5, // R1 (PS) / RB (Xbox)
-  LT: 6, // L2 (PS) / LT (Xbox)
-  RT: 7, // R2 (PS) / RT (Xbox)
-
-  // Center buttons
-  SELECT: 8, // Share/Select (PS) / Back (Xbox)
-  START: 9, // Options/Start (PS) / Start (Xbox)
-
-  // Stick buttons
-  L3: 10, // L3 (PS) / LS (Xbox)
-  R3: 11, // R3 (PS) / RS (Xbox)
-
-  // D-Pad
+  A: 0,
+  B: 1,
+  X: 2,
+  Y: 3,
+  LB: 4,
+  RB: 5,
+  LT: 6,
+  RT: 7,
+  SELECT: 8,
+  START: 9,
+  L3: 10,
+  R3: 11,
   DPAD_UP: 12,
   DPAD_DOWN: 13,
   DPAD_LEFT: 14,
   DPAD_RIGHT: 15,
-
-  // Guide button
-  GUIDE: 16, // PS Button / Xbox Button
+  GUIDE: 16,
 } as const;
 
-// Axis indices
 export const GAMEPAD_AXES = {
   LEFT_X: 0,
   LEFT_Y: 1,
@@ -49,22 +46,8 @@ export const GAMEPAD_AXES = {
   RIGHT_Y: 3,
 } as const;
 
-// Global state (shared between all composable instances)
-const globalState = ref<GamepadState>({
-  connected: false,
-  type: "keyboard",
-  name: "",
-});
-
-// Track if global listener is already registered
-let isGlobalListenerRegistered = false;
-let previousButtonStates: boolean[] = [];
-let previousAxes: number[] = [0, 0, 0, 0];
-let lastNavigationTime = 0;
-const navigationThreshold = 150; // ms between navigations
-
-// Event handlers registry
-type GamepadEventType =
+// Utiliser useEventBus de VueUse pour la gestion des événements
+export type GamepadEventType =
   | "navigate"
   | "confirm"
   | "back"
@@ -77,39 +60,44 @@ type GamepadEventType =
   | "start"
   | "select"
   | "guide";
-const eventHandlers = new Map<GamepadEventType, Set<(data?: any) => void>>();
 
-function emit(event: GamepadEventType, data?: any) {
-  const handlers = eventHandlers.get(event);
-  if (handlers) {
-    handlers.forEach((handler) => handler(data));
-  }
-}
+// Event bus global
+const gamepadBus = useEventBus<{ type: GamepadEventType; data?: any }>("gamepad");
 
-function detectControllerType(gamepad: Gamepad): ControllerType {
+// Track si quelqu'un écoute l'événement 'back' pour désactiver le comportement par défaut
+const hasBackHandler = ref(false);
+
+// Compteur d'instances pour débugger
+let instanceCount = 0;
+
+// État global avec computed pour la réactivité
+const globalGamepad = ref<Gamepad | null>(null);
+const globalState = computed<GamepadState>(() => {
+  const gamepad = globalGamepad.value;
+  return {
+    connected: !!gamepad,
+    type: detectControllerType(gamepad),
+    name: gamepad?.id || "",
+  };
+});
+
+function detectControllerType(gamepad: Gamepad | null): ControllerType {
+  if (!gamepad) return "keyboard";
   const id = gamepad.id.toLowerCase();
 
-  // PlayStation controllers - check first as they're more specific
-  // DualSense (PS5): "DualSense Wireless Controller"
-  // DualShock 4 (PS4): "Wireless Controller" or "DUALSHOCK 4"
-  // Vendor ID 054c = Sony
   if (
     id.includes("playstation") ||
     id.includes("dualshock") ||
     id.includes("dualsense") ||
-    id.includes("dual sense") ||
     id.includes("sony") ||
     id.includes("ps4") ||
     id.includes("ps5") ||
     id.includes("054c") ||
-    // Linux often reports PS controllers as "Wireless Controller" with vendor 054c
     (id.includes("wireless controller") && !id.includes("xbox"))
   ) {
     return "ps";
   }
 
-  // Xbox controllers
-  // Vendor ID 045e = Microsoft
   if (
     id.includes("xbox") ||
     id.includes("microsoft") ||
@@ -119,289 +107,258 @@ function detectControllerType(gamepad: Gamepad): ControllerType {
     return "xbox";
   }
 
-  // Default to Xbox layout for unknown controllers
   return "xbox";
 }
 
-// Check if Gamepad API is available
-function isGamepadApiAvailable(): boolean {
-  return typeof navigator !== "undefined" && typeof navigator.getGamepads === "function";
-}
+// Utiliser ref pour l'état précédent
+const previousButtonStates = ref<boolean[]>([]);
+const previousAxes = ref<number[]>([0, 0, 0, 0]);
 
-function updateGamepadState() {
-  if (!isGamepadApiAvailable()) return;
+// Throttle pour la navigation avec useThrottleFn
+const emitNavigation = useThrottleFn((direction: string) => {
+  gamepadBus.emit({ type: "navigate", data: { direction } });
+}, 150);
 
-  try {
-    const gamepads = navigator.getGamepads();
+// ⚠️ IMPORTANT: onKeyStroke doit être au niveau global, pas dans useGamepad()
+// Sinon chaque instance de useGamepad() créera des listeners en double !
+let keyboardInitialized = false;
 
-    for (const gamepad of gamepads) {
-      if (!gamepad) continue;
-
-      globalState.value = {
-        connected: true,
-        type: detectControllerType(gamepad),
-        name: gamepad.id,
-      };
-      return;
-    }
-  } catch {
-    // Ignore errors (e.g., in test environment)
+function initializeKeyboard(router: ReturnType<typeof useRouter>) {
+  if (keyboardInitialized) {
+    info("⌨️ [KEYBOARD] Already initialized, skipping");
+    return;
   }
 
-  // No gamepad connected
-  globalState.value = {
-    connected: false,
-    type: "keyboard",
-    name: "",
-  };
+  info("⌨️ [KEYBOARD] Initializing keyboard listeners (ONCE)");
+  keyboardInitialized = true;
+
+  const throttledNavigate = useThrottleFn((direction: string) => {
+    if (globalState.value.connected) {
+      info("🎮 [KEYBOARD] Ignoring - gamepad connected");
+      return;
+    }
+    info(`⌨️ [KEYBOARD] Navigate: ${direction}`);
+    gamepadBus.emit({ type: "navigate", data: { direction } });
+  }, 150);
+
+  // Navigation
+  onKeyStroke("ArrowUp", (e) => {
+    info("⬆️ [KEY] ArrowUp");
+    e.preventDefault();
+    throttledNavigate("up");
+  });
+
+  onKeyStroke("ArrowDown", (e) => {
+    info("⬇️ [KEY] ArrowDown");
+    e.preventDefault();
+    throttledNavigate("down");
+  });
+
+  onKeyStroke("ArrowLeft", (e) => {
+    info("⬅️ [KEY] ArrowLeft");
+    e.preventDefault();
+    throttledNavigate("left");
+  });
+
+  onKeyStroke("ArrowRight", (e) => {
+    info("➡️ [KEY] ArrowRight");
+    e.preventDefault();
+    throttledNavigate("right");
+  });
+
+  // Autres touches
+  onKeyStroke(["Enter", " "], (e) => {
+    info("✅ [KEY] Confirm");
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "confirm" });
+  });
+
+  onKeyStroke(["Escape", "Backspace"], (e) => {
+    info("🔙 [KEY] Back");
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "back" });
+    if (!hasBackHandler.value) {
+      router.back();
+    }
+  });
+
+  onKeyStroke("x", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "options" });
+  });
+
+  onKeyStroke("i", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "info" });
+  });
+
+  onKeyStroke("q", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "lb" });
+  });
+
+  onKeyStroke("e", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "rb" });
+  });
+
+  onKeyStroke("z", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "lt" });
+  });
+
+  onKeyStroke("c", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "rt" });
+  });
+
+  onKeyStroke("Tab", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "select" });
+  });
+
+  onKeyStroke("m", (e) => {
+    e.preventDefault();
+    if (globalState.value.connected) return;
+    gamepadBus.emit({ type: "start" });
+  });
 }
 
-function processGamepadInput(router: ReturnType<typeof useRouter>) {
-  if (!isGamepadApiAvailable()) return;
+function processGamepadInput(gamepad: Gamepad | null, router: ReturnType<typeof useRouter>) {
+  if (!gamepad) return;
 
   try {
-    const now = Date.now();
-    const gamepads = navigator.getGamepads();
-    const gamepad = gamepads[0];
-
-    if (!gamepad) return;
-
     const threshold = 0.5;
-    const canNavigate = now - lastNavigationTime > navigationThreshold;
 
-    // Get current axes
+    // Gestion du stick gauche
     const leftX = gamepad.axes[GAMEPAD_AXES.LEFT_X] || 0;
     const leftY = gamepad.axes[GAMEPAD_AXES.LEFT_Y] || 0;
 
-    // Detect stick movement (only on initial threshold crossing)
-    const moveLeft = leftX < -threshold && Math.abs(previousAxes[0]) < threshold;
-    const moveRight = leftX > threshold && Math.abs(previousAxes[0]) < threshold;
-    const moveUp = leftY < -threshold && Math.abs(previousAxes[1]) < threshold;
-    const moveDown = leftY > threshold && Math.abs(previousAxes[1]) < threshold;
+    const moveLeft = leftX < -threshold && Math.abs(previousAxes.value[0]) < threshold;
+    const moveRight = leftX > threshold && Math.abs(previousAxes.value[0]) < threshold;
+    const moveUp = leftY < -threshold && Math.abs(previousAxes.value[1]) < threshold;
+    const moveDown = leftY > threshold && Math.abs(previousAxes.value[1]) < threshold;
 
-    // D-pad states
-    const dpadUp =
-      gamepad.buttons[GAMEPAD_BUTTONS.DPAD_UP]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.DPAD_UP];
-    const dpadDown =
-      gamepad.buttons[GAMEPAD_BUTTONS.DPAD_DOWN]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.DPAD_DOWN];
-    const dpadLeft =
-      gamepad.buttons[GAMEPAD_BUTTONS.DPAD_LEFT]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.DPAD_LEFT];
-    const dpadRight =
-      gamepad.buttons[GAMEPAD_BUTTONS.DPAD_RIGHT]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.DPAD_RIGHT];
+    // D-pad avec helper pour détecter les pressions
+    const isPressed = (btnIdx: number) =>
+      gamepad.buttons[btnIdx]?.pressed && !previousButtonStates.value[btnIdx];
 
-    // Handle navigation
-    if (canNavigate) {
-      if (moveLeft || dpadLeft) {
-        emit("navigate", { direction: "left" });
-        lastNavigationTime = now;
-      } else if (moveRight || dpadRight) {
-        emit("navigate", { direction: "right" });
-        lastNavigationTime = now;
-      } else if (moveUp || dpadUp) {
-        emit("navigate", { direction: "up" });
-        lastNavigationTime = now;
-      } else if (moveDown || dpadDown) {
-        emit("navigate", { direction: "down" });
-        lastNavigationTime = now;
-      }
-    }
+    const dpadUp = isPressed(GAMEPAD_BUTTONS.DPAD_UP);
+    const dpadDown = isPressed(GAMEPAD_BUTTONS.DPAD_DOWN);
+    const dpadLeft = isPressed(GAMEPAD_BUTTONS.DPAD_LEFT);
+    const dpadRight = isPressed(GAMEPAD_BUTTONS.DPAD_RIGHT);
 
-    // Face buttons (detect press, not hold)
-    const aPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.A]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.A];
-    const bPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.B]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.B];
-    const xPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.X]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.X];
-    const yPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.Y]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.Y];
+    // Navigation (throttled automatiquement)
+    if (moveLeft || dpadLeft) emitNavigation("left");
+    else if (moveRight || dpadRight) emitNavigation("right");
+    else if (moveUp || dpadUp) emitNavigation("up");
+    else if (moveDown || dpadDown) emitNavigation("down");
 
-    // Shoulder buttons
-    const lbPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.LB]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.LB];
-    const rbPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.RB]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.RB];
-    const ltPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.LT]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.LT];
-    const rtPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.RT]?.pressed && !previousButtonStates[GAMEPAD_BUTTONS.RT];
+    // Boutons de face
+    if (isPressed(GAMEPAD_BUTTONS.A)) gamepadBus.emit({ type: "confirm" });
 
-    // Center buttons
-    const startPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.START]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.START];
-    const selectPressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.SELECT]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.SELECT];
-    const guidePressed =
-      gamepad.buttons[GAMEPAD_BUTTONS.GUIDE]?.pressed &&
-      !previousButtonStates[GAMEPAD_BUTTONS.GUIDE];
-
-    // Emit button events
-    if (aPressed) {
-      emit("confirm");
-    }
-
-    if (bPressed) {
-      emit("back");
-      // Default behavior: go back in router
-      if (!eventHandlers.get("back")?.size) {
+    if (isPressed(GAMEPAD_BUTTONS.B)) {
+      gamepadBus.emit({ type: "back" });
+      // Comportement par défaut si personne n'écoute
+      if (!hasBackHandler.value) {
         router.back();
       }
     }
 
-    if (xPressed) {
-      emit("options");
-    }
+    if (isPressed(GAMEPAD_BUTTONS.X)) gamepadBus.emit({ type: "options" });
+    if (isPressed(GAMEPAD_BUTTONS.Y)) gamepadBus.emit({ type: "info" });
 
-    if (yPressed) {
-      emit("info");
-    }
+    // Boutons d'épaule
+    if (isPressed(GAMEPAD_BUTTONS.LB)) gamepadBus.emit({ type: "lb" });
+    if (isPressed(GAMEPAD_BUTTONS.RB)) gamepadBus.emit({ type: "rb" });
+    if (isPressed(GAMEPAD_BUTTONS.LT)) gamepadBus.emit({ type: "lt" });
+    if (isPressed(GAMEPAD_BUTTONS.RT)) gamepadBus.emit({ type: "rt" });
 
-    if (lbPressed) emit("lb");
-    if (rbPressed) emit("rb");
-    if (ltPressed) emit("lt");
-    if (rtPressed) emit("rt");
-    if (startPressed) emit("start");
-    if (selectPressed) emit("select");
-    if (guidePressed) emit("guide");
+    // Boutons centraux
+    if (isPressed(GAMEPAD_BUTTONS.START)) gamepadBus.emit({ type: "start" });
+    if (isPressed(GAMEPAD_BUTTONS.SELECT)) gamepadBus.emit({ type: "select" });
+    if (isPressed(GAMEPAD_BUTTONS.GUIDE)) gamepadBus.emit({ type: "guide" });
 
-    // Store previous states
-    previousAxes = [...gamepad.axes];
-    previousButtonStates = gamepad.buttons.map((b) => b.pressed);
+    // Mise à jour des états précédents
+    previousAxes.value = [...gamepad.axes];
+    previousButtonStates.value = gamepad.buttons.map((b) => b.pressed);
   } catch {
     // Ignore errors in test environment
   }
 }
 
-function startGlobalListener(router: ReturnType<typeof useRouter>) {
-  if (isGlobalListenerRegistered) return;
-  if (!isGamepadApiAvailable()) return;
-
-  isGlobalListenerRegistered = true;
-
-  try {
-    // Initial detection
-    updateGamepadState();
-
-    // Event listeners
-    window.addEventListener("gamepadconnected", (e) => {
-      console.log("🎮 Gamepad connected:", e.gamepad.id);
-      updateGamepadState();
-    });
-
-    window.addEventListener("gamepaddisconnected", () => {
-      console.log("🎮 Gamepad disconnected");
-      updateGamepadState();
-    });
-
-    // Polling loop at ~60fps
-    setInterval(() => {
-      processGamepadInput(router);
-    }, 16);
-  } catch {
-    console.warn("Failed to setup gamepad listener");
-    isGlobalListenerRegistered = false;
-  }
-}
-
-// Note: Cleanup function intentionally removed to prevent unused variable warnings
-// If needed in the future, can be re-added with proper usage
-
 export function useGamepad() {
+  instanceCount++;
+  const currentInstance = instanceCount;
+  info(`🎮 [GAMEPAD] Instance #${currentInstance} created (total instances: ${instanceCount})`);
+
   const router = useRouter();
+  const { gamepads } = useVueUseGamepad();
 
-  // Local event handler references for cleanup
-  const localHandlers: Array<{ event: GamepadEventType; handler: (data?: any) => void }> = [];
+  // Initialiser le clavier une seule fois (globalement)
+  initializeKeyboard(router);
 
+  // Watcher pour la connexion/déconnexion
+  watch(
+    () => gamepads.value?.[0],
+    (gamepad) => {
+      globalGamepad.value = (gamepad || null) as Gamepad | null;
+
+      if (gamepad) {
+        info(`🎮 Gamepad connected: ${gamepad.id}`);
+      }
+    },
+    { immediate: true },
+  );
+
+  // useRafFn pour la boucle de traitement des inputs (RequestAnimationFrame)
+  const { pause, resume } = useRafFn(() => {
+    processGamepadInput(globalGamepad.value, router);
+  });
+
+  // Démarrer/arrêter selon la connexion
+  whenever(() => globalState.value.connected, resume, { immediate: true });
+  whenever(() => !globalState.value.connected, pause);
+
+  // Helper pour écouter des événements spécifiques
   function on(event: GamepadEventType, handler: (data?: any) => void) {
-    if (!eventHandlers.has(event)) {
-      eventHandlers.set(event, new Set());
+    info(`🎧 [LISTENER] Registering listener for event: ${event}`);
+
+    // Tracker si quelqu'un écoute 'back'
+    if (event === "back") {
+      hasBackHandler.value = true;
     }
-    eventHandlers.get(event)!.add(handler);
-    localHandlers.push({ event, handler });
-  }
 
-  function off(event: GamepadEventType, handler: (data?: any) => void) {
-    eventHandlers.get(event)?.delete(handler);
-  }
-
-  onMounted(() => {
-    startGlobalListener(router);
-  });
-
-  onUnmounted(() => {
-    // Remove only local handlers
-    localHandlers.forEach(({ event, handler }) => {
-      off(event, handler);
+    const unsubscribe = gamepadBus.on((payload) => {
+      if (payload.type === event) {
+        info(`✅ [EXECUTE] Handler for '${event}'`);
+        handler(payload.data);
+      }
     });
-  });
+
+    // Retourner une fonction de cleanup
+    return () => {
+      info(`🗑️ [CLEANUP] Unsubscribing from event: ${event}`);
+      unsubscribe();
+      if (event === "back") {
+        hasBackHandler.value = false;
+      }
+    };
+  }
 
   return {
-    state: readonly(globalState),
+    state: globalState,
     on,
-    off,
     BUTTONS: GAMEPAD_BUTTONS,
     AXES: GAMEPAD_AXES,
   };
-}
-
-// Export button mapping utilities
-export const buttonIcons: Record<ControllerType, Record<string, string>> = {
-  keyboard: {
-    A: "A",
-    B: "B",
-    X: "X",
-    Y: "Y",
-    LB: "Q",
-    RB: "E",
-    LT: "Z",
-    RT: "C",
-    START: "ESC",
-    SELECT: "TAB",
-    UP: "↑",
-    DOWN: "↓",
-    LEFT: "←",
-    RIGHT: "→",
-  },
-  ps: {
-    A: "✕",
-    B: "○",
-    X: "□",
-    Y: "△",
-    LB: "L1",
-    RB: "R1",
-    LT: "L2",
-    RT: "R2",
-    START: "OPTIONS",
-    SELECT: "SHARE",
-    UP: "↑",
-    DOWN: "↓",
-    LEFT: "←",
-    RIGHT: "→",
-  },
-  xbox: {
-    A: "A",
-    B: "B",
-    X: "X",
-    Y: "Y",
-    LB: "LB",
-    RB: "RB",
-    LT: "LT",
-    RT: "RT",
-    START: "☰",
-    SELECT: "⧉",
-    UP: "↑",
-    DOWN: "↓",
-    LEFT: "←",
-    RIGHT: "→",
-  },
-};
-
-export function getButtonIcon(type: ControllerType, button: string): string {
-  return buttonIcons[type]?.[button] || button;
 }

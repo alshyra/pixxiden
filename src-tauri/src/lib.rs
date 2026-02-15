@@ -34,7 +34,7 @@ use commands::{
 };
 use gamepad::GamepadMonitor;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::Manager;
 use tauri_plugin_autostart::ManagerExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -52,6 +52,7 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("pixxiden.log".into()),
@@ -74,6 +75,18 @@ pub fn run() {
                         true
                     }
                 })
+                .format(|out, message, record| {
+                    out.finish(format_args!(
+                        "[{} {}] {}",
+                        record.level(),
+                        record
+                            .file()
+                            .and_then(|f| std::path::Path::new(f).file_name())
+                            .and_then(|f| f.to_str())
+                            .unwrap_or("js"),
+                        message
+                    ))
+                })
                 .build(),
         )
         .plugin(tauri_plugin_sql::Builder::default().build())
@@ -84,9 +97,11 @@ pub fn run() {
             // Initialize database and adapters in a blocking context
             let _rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
-            // Initialize gamepad monitor
+            // Initialize gamepad monitor and start it automatically
             let gamepad_monitor = Arc::new(GamepadMonitor::new());
+            gamepad_monitor.start(app.handle().clone());
             app.manage(gamepad_monitor);
+            log::info!("Gamepad monitoring started automatically");
 
             // Enable autostart on first launch
             let handle = app.handle().clone();
@@ -106,8 +121,6 @@ pub fn run() {
         })
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
-            start_gamepad_monitoring,
-            stop_gamepad_monitoring,
             check_paths_exist,
             get_system_info,
             get_disk_info,
@@ -133,28 +146,4 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-/// Start gamepad monitoring for overlay toggle
-#[tauri::command]
-fn start_gamepad_monitoring(
-    app: AppHandle,
-    monitor: tauri::State<'_, Arc<GamepadMonitor>>,
-) -> Result<(), String> {
-    if monitor.is_running() {
-        log::info!("Gamepad monitor already running");
-        return Ok(());
-    }
-
-    monitor.start(app);
-    log::info!("Gamepad monitoring started");
-    Ok(())
-}
-
-/// Stop gamepad monitoring
-#[tauri::command]
-fn stop_gamepad_monitoring(monitor: tauri::State<'_, Arc<GamepadMonitor>>) -> Result<(), String> {
-    monitor.stop();
-    log::info!("Gamepad monitoring stopped");
-    Ok(())
 }

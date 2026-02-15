@@ -31,9 +31,9 @@ describe("Heroic Configuration Reading", () => {
       mockInvoke.mockResolvedValue(mockConfig);
 
       const { invoke } = await import("@tauri-apps/api/core");
-      const config = await invoke("get_game_config", {
+      const config = (await invoke("get_game_config", {
         id: "epic_02fac38ee2614c8ba276b1ea7c1acd7c",
-      });
+      })) as Record<string, any>;
 
       // BUG: store_id should NOT be empty
       expect(config.store_id).toBeTruthy();
@@ -54,9 +54,9 @@ describe("Heroic Configuration Reading", () => {
       mockInvoke.mockResolvedValue(mockConfig);
 
       const { invoke } = await import("@tauri-apps/api/core");
-      const config = await invoke("get_game_config", {
+      const config = (await invoke("get_game_config", {
         id: "epic_02fac38ee2614c8ba276b1ea7c1acd7c",
-      });
+      })) as Record<string, any>;
 
       // BUG: wine_prefix and wine_version should NOT be null/empty
       expect(config.wine_prefix).toBeTruthy();
@@ -78,9 +78,9 @@ describe("Heroic Configuration Reading", () => {
       mockInvoke.mockResolvedValue(mockConfig);
 
       const { invoke } = await import("@tauri-apps/api/core");
-      const config = await invoke("get_game_config", {
+      const config = (await invoke("get_game_config", {
         id: "epic_02fac38ee2614c8ba276b1ea7c1acd7c",
-      });
+      })) as Record<string, any>;
 
       // BUG: install_path should NOT be null for installed games
       expect(config.install_path).toBeTruthy();
@@ -171,7 +171,10 @@ describe("Heroic Configuration Reading", () => {
       mockInvoke.mockResolvedValue(mockConfig);
 
       const { invoke } = await import("@tauri-apps/api/core");
-      const config = await invoke("get_game_config", { id: "gog_1456460669" });
+      const config = (await invoke("get_game_config", { id: "gog_1456460669" })) as Record<
+        string,
+        any
+      >;
 
       expect(config.storeId).toBe("1456460669");
       expect(config.winePrefix).toBeTruthy();

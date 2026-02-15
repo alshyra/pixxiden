@@ -5,7 +5,8 @@
       selected: selected,
       'border-remix-accent shadow-[0_0_40px_rgba(94,92,230,0.6)]': selected,
       'aspect-[2/3]': !selected,
-      'aspect-[92/43] !w-[500px] scale-105 border-remix-accent shadow-[0_0_30px_rgba(94,92,230,0.4)] z-10': selected,
+      'aspect-[92/43] !w-[500px] scale-105 border-remix-accent shadow-[0_0_30px_rgba(94,92,230,0.4)] z-10':
+        selected,
     }"
     :style="cardStyle"
     :data-id="game.id"
@@ -85,21 +86,18 @@ const props = defineProps<Props>();
 
 /**
  * Resolve the best available image for the card background.
- * When selected: horizontalGridPath → heroPath → gridPath → coverPath
- * When not selected: gridPath → coverPath → heroPath
+ * When selected: horizontalGridPath → gridPath (landscape format)
+ * When not selected: gridPath (portrait 2:3 format)
  */
 const cardStyle = computed(() => {
   let localPath;
 
   if (props.selected) {
     // Selected: prefer horizontalGridPath (landscape 92:43 format)
-    localPath =
-      props.game.assets.horizontalGridPath ||
-      props.game.assets.gridPath;
+    localPath = props.game.assets.horizontalGridPath || props.game.assets.gridPath;
   } else {
     // Not selected: prefer gridPath (portrait 2:3 format)
-    localPath =
-      props.game.assets.gridPath;
+    localPath = props.game.assets.gridPath;
   }
 
   const src = convertFileSrc(localPath);
@@ -110,9 +108,7 @@ const hasImage = computed(() => {
   return !!(
     props.game.assets.gridPath ||
     props.game.assets.horizontalGridPath ||
-    props.game.assets.coverPath ||
-    props.game.assets.heroPath ||
-    props.game.assets.backgroundUrl
+    props.game.assets.heroPath
   );
 });
 

@@ -58,7 +58,6 @@ function createMockDb() {
       }),
 
       select: vi.fn(async () => []),
-      transaction: vi.fn(async (fn: () => Promise<void>) => fn()),
     } as unknown as DatabaseService,
   };
 }
@@ -118,13 +117,51 @@ function makeTestGame(overrides: Partial<Parameters<typeof createGame>[0]> = {})
 
 // ===== Tests =====
 
+// Mock DatabaseService at module level
+vi.mock("@/services/base/DatabaseService", () => {
+  const mockDbInstance = {
+    queryOne: vi.fn(),
+    execute: vi.fn(),
+    select: vi.fn(),
+    init: vi.fn(),
+  };
+  
+  return {
+    DatabaseService: {
+      getInstance: () => mockDbInstance,
+    },
+  };
+});
+
+// Mock ImageCacheService
+vi.mock("@/services/enrichment/ImageCacheService", () => ({
+  ImageCacheService: {
+    getInstance: () => ({
+      cacheGameImages: vi.fn().mockResolvedValue({}),
+      clearGameCache: vi.fn(),
+      clearAllCache: vi.fn(),
+    }),
+  },
+}));
+
 describe("Enrichment Pipeline Integration", () => {
   let service: EnrichmentService;
   let mockDb: ReturnType<typeof createMockDb>;
+  let mockDbInstance: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Import fresh to get mocked dependencies
+    const { EnrichmentService: ES } = await import("@/services/enrichment/EnrichmentService");
+    const { DatabaseService: DS } = await import("@/services/base/DatabaseService");
+    
     mockDb = createMockDb();
-    service = new EnrichmentService(mockDb.db);
+    mockDbInstance = DS.getInstance();
+    
+    // Configure mock behavior
+    mockDbInstance.queryOne.mockImplementation(mockDb.db.queryOne);
+    mockDbInstance.execute.mockImplementation(mockDb.db.execute);
+    
+    service = ES.getInstance();
   });
 
   /**
@@ -312,7 +349,7 @@ describe("Enrichment Pipeline Integration", () => {
 
       const cached = mockDb.cache.get("epic-witcher3")!;
       const data = JSON.parse(cached.data);
-      expect(data._cacheVersion).toBe(2);
+      expect(data._cacheVersion).toBe(3);
     });
 
     it("should serve from cache on second call", async () => {

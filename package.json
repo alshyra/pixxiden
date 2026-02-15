@@ -24,6 +24,9 @@
     "test:build": "npm run tauri:build && npm run test:e2e",
     "type-check": "tsc --noEmit",
     "type-check:fix": "tsc",
+    "deadcode:prune": "npx -y ts-prune --ignore 'src/index.ts|src/types.ts|src/services/igdb/generated/.*|src/services/igdb/client/.*|src/services/igdb/core/.*' | grep -Ev '/index.ts:|\\(used in module\\)$' || true",
+    "deadcode:unused": "npx -y ts-unused-exports tsconfig.json | grep -Ev 'src/services/igdb/generated/|/index.ts:' || true",
+    "deadcode:check": "npm run deadcode:prune && npm run deadcode:unused",
     "validate": "npm run type-check && npm run lint:check && npm run test:run"
   },
   "dependencies": {
@@ -46,10 +49,12 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@volar/typescript": "^2.4.28",
     "@hey-api/openapi-ts": "^0.92.3",
     "@tauri-apps/cli": "^2.9.6",
     "@types/mocha": "^10.0.10",
     "@vitejs/plugin-vue": "^5.0.3",
+    "@vitest/coverage-v8": "^4.0.17",
     "@vue/eslint-config-typescript": "^12.0.0",
     "@vue/test-utils": "^2.4.6",
     "@wdio/cli": "^9.23.2",
@@ -67,8 +72,9 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "^5.0.11",
+    "vite-plugin-checker": "^0.12.0",
     "vitest": "^4.0.17",
-    "vue-tsc": "^1.8.27",
+    "vue-tsc": "^3.2.4",
     "webdriverio": "^9.23.2"
   }
 }

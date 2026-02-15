@@ -15,9 +15,12 @@
   </div>
 </template>
 <script setup lang="ts">
-defineProps<{
+import { computed } from "vue";
+
+const props = defineProps<{
   progress: { stage: string; packageName: string; progress: number };
 }>();
+
 const stageLabel = computed(() => {
   if (props.progress.stage === "downloading") return "Téléchargement en cours...";
   if (props.progress.stage === "installing") return "Installation en cours...";

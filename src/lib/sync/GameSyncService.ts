@@ -1,17 +1,19 @@
 /**
- * GameSyncService - Main game synchronization orchestrator
+ * GameSyncService - Game synchronization pipeline
  *
- * This is the heart of the JS-first sync architecture.
+ * Pure pipeline service — no store-specific logic, no concrete service imports.
+ * All dependencies are injected via interfaces:
+ * - SyncStrategy[] for store fetch/auth
+ * - EnrichmentPipeline for metadata enrichment
+ * - HeroicMerger for Heroic launcher integration
+ * - GameRepository for persistence
  *
  * Responsibilities:
- * - Detects available/authenticated stores
- * - Fetches game libraries from each store via CLI sidecars
- * - Enriches games with metadata (IGDB, SteamGridDB, HLTB, ProtonDB)
- * - Persists everything to SQLite (pure TypeScript via plugin-sql)
+ * - Runs the sync pipeline: fetch → persist → heroic merge → enrich
  * - Reports progress via Tauri events for the splash screen
  *
  * Flow:
- *   Store CLIs → StoreGame[] → SQLite (base data) → EnrichmentService → SQLite (enriched data)
+ *   SyncStrategy.fetchGames() → SQLite (base data) → EnrichmentPipeline → SQLite (enriched data)
  *   ↳ emit('splash-progress') at each step
  */
 
@@ -19,8 +21,14 @@ import { emit } from "@tauri-apps/api/event";
 import { debug, info, warn } from "@tauri-apps/plugin-log";
 import type { Game, StoreType } from "@/types";
 import { GameRepository } from "../database";
-import { DatabaseService, SidecarService } from "@/services/base";
-import { LegendaryService, GogdlService, NileService, SteamService } from "@/services/stores";
+import type { SyncStrategy } from "./strategies/SyncStrategy";
+import { EpicSyncStrategy } from "./strategies/EpicSyncStrategy";
+import { GogSyncStrategy } from "./strategies/GogSyncStrategy";
+import { AmazonSyncStrategy } from "./strategies/AmazonSyncStrategy";
+import { SteamSyncStrategy } from "./strategies/SteamSyncStrategy";
+
+// Concrete imports — used ONLY in getInstance() for default wiring.
+// For testing, use createWithDeps() to inject mocks instead.
 import { EnrichmentService } from "@/services/enrichment";
 import { HeroicImportService } from "@/services/heroic";
 import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
@@ -61,37 +69,104 @@ export interface SyncProgressEvent {
   message: string;
 }
 
+// ===== Dependency Interfaces =====
+
+/**
+ * Interface for the enrichment pipeline.
+ * Decouples GameSyncService from the concrete EnrichmentService.
+ */
+export interface EnrichmentPipeline {
+  /** Configure API keys for enrichment providers */
+  configureApis(config: {
+    igdb?: { clientId: string; accessToken: string };
+    steamGridDb?: { apiKey: string };
+  }): void;
+  /** Invalidate outdated cache entries, returns count of invalidated */
+  invalidateOutdatedCache(): Promise<number>;
+  /** Enrich a single game with metadata from external APIs */
+  enrichGame(game: Game): Promise<Game>;
+}
+
+/**
+ * Interface for external launcher merge (Heroic, Lutris, etc.).
+ * External launchers install games independently — this interface
+ * discovers those installations and updates Pixxiden's DB.
+ */
+export interface ExternalLauncherMerger {
+  /** Human-readable name for progress display (e.g. "heroic", "lutris") */
+  readonly name: string;
+  /** Discover and merge installations into DB. Returns scan/merge counts. */
+  mergeInstallations(): Promise<{ scanned: number; merged: number }>;
+}
+
+/**
+ * Interface for API key resolution.
+ * Decouples GameSyncService from the concrete apiKeys module.
+ */
+export interface ApiKeyProvider {
+  getApiKeys(): Promise<{
+    hasIgdb: boolean;
+    igdbClientId: string | null;
+    hasSteamgriddb: boolean;
+    steamgriddbApiKey: string | null;
+  }>;
+  getIGDBAccessToken(): Promise<string | null>;
+}
+
 // ===== Service =====
 
 export class GameSyncService {
   private static instance: GameSyncService | null = null;
 
   private gameRepo: GameRepository;
-  private enrichment: EnrichmentService;
-  private legendary: LegendaryService;
-  private gogdl: GogdlService;
-  private nile: NileService;
-  private steam: SteamService;
-  private heroicImport: HeroicImportService;
+  private enrichment: EnrichmentPipeline;
+  private externalMergers: ExternalLauncherMerger[];
+  private apiKeyProvider: ApiKeyProvider;
+  private strategies: Map<StoreType, SyncStrategy>;
 
-  private constructor() {
-    const db = DatabaseService.getInstance();
-    const sidecar = SidecarService.getInstance();
-
+  private constructor(
+    enrichment: EnrichmentPipeline,
+    externalMergers: ExternalLauncherMerger[],
+    apiKeyProvider: ApiKeyProvider,
+  ) {
     this.gameRepo = GameRepository.getInstance();
-    this.enrichment = new EnrichmentService(db);
-    this.legendary = new LegendaryService(sidecar, db);
-    this.gogdl = new GogdlService(sidecar, db);
-    this.nile = new NileService(sidecar, db);
-    this.steam = new SteamService(sidecar, db);
-    this.heroicImport = HeroicImportService.getInstance();
+    this.enrichment = enrichment;
+    this.externalMergers = externalMergers;
+    this.apiKeyProvider = apiKeyProvider;
+
+    // Register one strategy per store
+    this.strategies = new Map<StoreType, SyncStrategy>([
+      ["epic", new EpicSyncStrategy()],
+      ["gog", new GogSyncStrategy()],
+      ["amazon", new AmazonSyncStrategy()],
+      ["steam", new SteamSyncStrategy()],
+    ]);
   }
 
+  /**
+   * Get or create the singleton instance.
+   * On first call, wires the concrete implementations.
+   */
   static getInstance(): GameSyncService {
     if (!GameSyncService.instance) {
-      GameSyncService.instance = new GameSyncService();
+      GameSyncService.instance = new GameSyncService(
+        EnrichmentService.getInstance(),
+        [HeroicImportService.getInstance()],
+        { getApiKeys, getIGDBAccessToken },
+      );
     }
     return GameSyncService.instance;
+  }
+
+  /**
+   * Create an instance with custom dependencies (for testing).
+   */
+  static createWithDeps(
+    enrichment: EnrichmentPipeline,
+    externalMergers: ExternalLauncherMerger[],
+    apiKeyProvider: ApiKeyProvider,
+  ): GameSyncService {
+    return new GameSyncService(enrichment, externalMergers, apiKeyProvider);
   }
 
   /**
@@ -130,7 +205,7 @@ export class GameSyncService {
           message: `Détection des jeux ${this.getStoreName(store)}...`,
         });
 
-        const games = await this.fetchStoreGames(store);
+        const games = await this.fetchViaStrategy(store);
 
         if (games.length > 0) {
           // Persist base game data to SQLite
@@ -169,10 +244,41 @@ export class GameSyncService {
 
     result.total = allFetchedGames.length;
 
-    // ===== Phase 1.5: Merge Heroic installation data =====
-    // Heroic is a launcher (not a store) that uses the same CLIs.
+    // ===== Phase 1.5: Merge external launcher installations =====
+    // External launchers (Heroic, etc.) install games independently.
     // We match installed games by storeId and update their install_path.
-    await this.mergeHeroicInstallations(result);
+    for (const merger of this.externalMergers) {
+      try {
+        const { scanned, merged } = await merger.mergeInstallations();
+        if (scanned > 0) {
+          await this.emitProgress({
+            store: merger.name,
+            gameTitle: "",
+            current: 0,
+            total: scanned,
+            phase: "fetching",
+            message: `Détection des jeux ${merger.name}...`,
+          });
+
+          if (merged > 0) {
+            result.updated += merged;
+          }
+
+          await this.emitProgress({
+            store: merger.name,
+            gameTitle: "",
+            current: scanned,
+            total: scanned,
+            phase: "fetching",
+            message: `${merger.name}: ${merged} jeux mis à jour`,
+          });
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        await warn(`[${merger.name}] Failed to merge installations: ${msg}`);
+        result.errors.push({ store: undefined, phase: "fetch", message: `${merger.name}: ${msg}` });
+      }
+    }
 
     // ===== Phase 2: Enrich games with metadata =====
     if (!options.skipEnrichment && allFetchedGames.length > 0) {
@@ -203,106 +309,25 @@ export class GameSyncService {
     return result;
   }
 
-  // ===== Heroic Merge =====
+  // ===== Store Fetching (via strategies) =====
 
   /**
-   * Merge installation data from Heroic Games Launcher.
-   * Reads Heroic's installed.json and updates install_path for matching games.
+   * Fetch games from a specific store using its SyncStrategy.
+   * Checks authentication before attempting to fetch.
    */
-  private async mergeHeroicInstallations(result: SyncResult): Promise<void> {
-    try {
-      const heroicGames = await this.heroicImport.getInstalledGames();
-      if (heroicGames.length === 0) return;
-
-      await this.emitProgress({
-        store: "heroic",
-        gameTitle: "",
-        current: 0,
-        total: heroicGames.length,
-        phase: "fetching",
-        message: `Détection des jeux Heroic...`,
-      });
-
-      let merged = 0;
-      for (const heroicGame of heroicGames) {
-        const existing = await this.gameRepo.getGameById(heroicGame.gameId);
-        if (existing) {
-          await this.gameRepo.updateInstallation(heroicGame.gameId, {
-            installed: true,
-            installPath: heroicGame.installPath,
-            installSize: heroicGame.installSize,
-            winePrefix: heroicGame.winePrefix,
-            wineVersion: heroicGame.wineVersion,
-            runner: heroicGame.runner,
-            runnerPath: heroicGame.wineBin,
-            executablePath: heroicGame.targetExe,
-          });
-          merged++;
-          await debug(`[Heroic] Merged ${existing.info.title}: prefix=${heroicGame.winePrefix || '(none)'}, runner=${heroicGame.runner || '(none)'}`);
-        }
-      }
-
-      if (merged > 0) {
-        result.updated += merged;
-        await info(`[Heroic] Merged installation data for ${merged} games`);
-      }
-
-      await this.emitProgress({
-        store: "heroic",
-        gameTitle: "",
-        current: heroicGames.length,
-        total: heroicGames.length,
-        phase: "fetching",
-        message: `Heroic: ${merged} jeux mis à jour`,
-      });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      await warn(`[Heroic] Failed to merge installations: ${msg}`);
-      result.errors.push({ store: undefined, phase: "fetch", message: `Heroic: ${msg}` });
+  private async fetchViaStrategy(store: StoreType): Promise<Game[]> {
+    const strategy = this.strategies.get(store);
+    if (!strategy) {
+      await warn(`No sync strategy registered for store: ${store}`);
+      return [];
     }
-  }
 
-  // ===== Store Fetching =====
-
-  /**
-   * Fetch games from a specific store
-   * Checks authentication before attempting to fetch
-   */
-  private async fetchStoreGames(store: StoreType): Promise<Game[]> {
-    switch (store) {
-      case "epic": {
-        const isAuth = await this.legendary.isAuthenticated();
-        if (!isAuth) {
-          await debug("Epic Games: not authenticated, skipping");
-          return [];
-        }
-        return await this.legendary.listGames();
-      }
-      case "gog": {
-        const isAuth = await this.gogdl.isAuthenticated();
-        await info(`GOG: isAuthenticated=${isAuth}`);
-        if (!isAuth) {
-          await warn("GOG: not authenticated, skipping");
-          return [];
-        }
-        const gogGames = await this.gogdl.listGames();
-        await info(`GOG: listGames returned ${gogGames.length} games`);
-        return gogGames;
-      }
-      case "amazon": {
-        const isAuth = await this.nile.isAuthenticated();
-        if (!isAuth) {
-          await debug("Amazon: not authenticated, skipping");
-          return [];
-        }
-        return await this.nile.listGames();
-      }
-      case "steam": {
-        return await this.steam.listGames();
-      }
-      default:
-        return [];
+    const isAuth = await strategy.isAuthenticated();
+    if (!isAuth) {
+      return [];
     }
+
+    return strategy.fetchGames();
   }
 
   // ===== Enrichment =====
@@ -375,7 +400,6 @@ export class GameSyncService {
           proton_trending_tier: enriched.protonData.protonTrendingTier,
           steam_app_id: enriched.protonData.steamAppId || null,
           hero_path: enriched.assets.heroPath || null,
-          cover_path: enriched.assets.coverPath || null,
           grid_path: enriched.assets.gridPath || null,
           horizontal_grid_path: enriched.assets.horizontalGridPath || null,
           logo_path: enriched.assets.logoPath || null,
@@ -397,13 +421,13 @@ export class GameSyncService {
   }
 
   /**
-   * Configure enrichment service with API keys from config file
-   * Uses getIGDBAccessToken() which handles OAuth token refresh
+   * Configure enrichment service with API keys
+   * Uses the injected ApiKeyProvider for key resolution
    */
   private async configureEnrichment(): Promise<void> {
     try {
-      const apiKeys = await getApiKeys();
-      const igdbToken = await getIGDBAccessToken();
+      const apiKeys = await this.apiKeyProvider.getApiKeys();
+      const igdbToken = await this.apiKeyProvider.getIGDBAccessToken();
 
       this.enrichment.configureApis({
         igdb:
@@ -440,9 +464,12 @@ export class GameSyncService {
   // ===== Helpers =====
 
   /**
-   * Get human-readable store name
+   * Get human-readable store name (from strategy or fallback)
    */
   private getStoreName(store: StoreType | string): string {
+    const strategy = this.strategies.get(store as StoreType);
+    if (strategy) return strategy.displayName;
+
     const names: Record<string, string> = {
       epic: "Epic Games",
       gog: "GOG",

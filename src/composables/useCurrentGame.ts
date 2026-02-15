@@ -54,23 +54,23 @@ export function useCurrentGame() {
       try {
         return convertFileSrc(game.value.assets.heroPath);
       } catch {
-        return game.value.assets.backgroundUrl || "";
+        return "";
       }
     }
-    return game.value.assets.backgroundUrl || "";
+    return "";
   });
 
   const coverImage = computed(() => {
     if (!game.value) return "";
-    const localPath = game.value.assets.coverPath || game.value.assets.gridPath;
+    const localPath = game.value.assets.gridPath;
     if (localPath) {
       try {
         return convertFileSrc(localPath);
       } catch {
-        return game.value.assets.backgroundUrl || "";
+        return "";
       }
     }
-    return game.value.assets.backgroundUrl || "";
+    return "";
   });
 
   const screenshots = computed(() => {

@@ -1,17 +1,21 @@
 <template>
-  <Modal
-    v-model="isOpen"
-    title="Éteindre"
-    size="sm"
-    :close-on-backdrop="false"
-  >
+  <Modal v-model="isOpen" title="Éteindre" size="sm" :close-on-backdrop="true">
     <div class="space-y-4">
-      <p class="text-white/60 text-sm mb-6">
-        Que voulez-vous faire ?
-      </p>
+      <p class="text-white/60 text-sm mb-6">Que voulez-vous faire ?</p>
 
       <!-- Options -->
       <div class="space-y-3">
+        <Button
+          size="lg"
+          class="w-full justify-start"
+          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
+          @click="handleQuit"
+        >
+          <template #icon>
+            <LogOut class="w-5 h-5" />
+          </template>
+          Quitter l'application
+        </Button>
         <Button
           variant="danger"
           size="lg"
@@ -25,17 +29,8 @@
           Éteindre le système
         </Button>
 
-        <Button
-          variant="outline"
-          size="lg"
-          class="w-full justify-start"
-          :class="{ 'ring-2 ring-[#5e5ce6]': focusedIndex === 1 }"
-          @click="handleQuit"
-        >
-          <template #icon>
-            <LogOut class="w-5 h-5" />
-          </template>
-          Quitter l'application
+        <Button variant="outline" size="lg" class="w-full justify-start" @click="cancel">
+          Annuler
         </Button>
       </div>
     </div>
@@ -49,6 +44,7 @@ import { Power, LogOut } from "lucide-vue-next";
 import { useGamepad } from "@/composables/useGamepad";
 import { shutdownSystem } from "@/services/api";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 const props = defineProps<{
   show: boolean;
@@ -71,11 +67,14 @@ const isOpen = computed({
 const focusedIndex = ref(0);
 
 // Reset focus when modal opens
-watch(() => props.show, (show) => {
-  if (show) {
-    focusedIndex.value = 0;
-  }
-});
+watch(
+  () => props.show,
+  (show) => {
+    if (show) {
+      focusedIndex.value = 0;
+    }
+  },
+);
 
 // Gamepad navigation
 const { on: onGamepad } = useGamepad();
@@ -100,10 +99,9 @@ onGamepad("confirm", () => {
   }
 });
 
-onGamepad("back", () => {
-  if (!props.show) return;
-  emit("close");
-});
+const cancel = () => isOpen.value = false
+
+onGamepad("back", cancel);
 
 // Actions
 async function handleShutdown() {
@@ -111,7 +109,7 @@ async function handleShutdown() {
   try {
     await shutdownSystem();
   } catch (error) {
-    console.error("Failed to shutdown system:", error);
+    await logError(`Failed to shutdown system: ${error}`);
   }
 }
 
@@ -121,7 +119,8 @@ async function handleQuit() {
     const window = getCurrentWindow();
     await window.close();
   } catch (error) {
-    console.error("Failed to quit application:", error);
+    await logError(`Failed to quit application: ${error}`);
   }
 }
+
 </script>

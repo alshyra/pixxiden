@@ -30,9 +30,9 @@
 
         <!-- Meta Info -->
         <div v-if="game" class="flex items-center gap-3 text-sm">
-          <Badge variant="outline">PC (Windows)</Badge>
+          <Badge variant="default">PC (Windows)</Badge>
           <img v-if="storeIcon" :src="storeIcon" class="w-5 h-5" :alt="game.storeData.storeId" />
-          <Badge v-if="releaseYear" variant="outline">{{ releaseYear }}</Badge>
+          <Badge v-if="releaseYear" variant="default">{{ releaseYear }}</Badge>
           <Badge v-if="score" variant="success">{{ score }}</Badge>
         </div>
 
@@ -61,15 +61,15 @@ const emit = defineEmits<{
 
 const heroImageSrc = computed(() => {
   if (!props.game) return "";
-  // Prefer local heroPath, then fallback to backgroundUrl
+  // Use local heroPath
   if (props.game.assets.heroPath) {
     try {
       return convertFileSrc(props.game.assets.heroPath);
     } catch {
-      return props.game.assets.backgroundUrl || "";
+      return "";
     }
   }
-  return props.game.assets.backgroundUrl || "";
+  return "";
 });
 
 const releaseYear = computed(() => {

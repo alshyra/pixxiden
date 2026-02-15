@@ -52,7 +52,7 @@ describe("NileService", () => {
   beforeEach(() => {
     mockSidecar = createMockSidecar();
     mockDb = createMockDb();
-    service = new NileService(
+    service = NileService.createWithDeps(
       mockSidecar as unknown as SidecarService,
       mockDb as unknown as DatabaseService,
     );

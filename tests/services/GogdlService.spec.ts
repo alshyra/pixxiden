@@ -99,7 +99,7 @@ describe("GogdlService", () => {
     vi.clearAllMocks();
     mockSidecar = createMockSidecar();
     mockDb = createMockDb();
-    service = new GogdlService(
+    service = GogdlService.createWithDeps(
       mockSidecar as unknown as SidecarService,
       mockDb as unknown as DatabaseService,
     );
