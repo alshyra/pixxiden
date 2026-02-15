@@ -5,9 +5,11 @@
         v-for="(img, idx) in images"
         :key="idx"
         :class="['pixx-card', { active: activeIndex === idx }]"
-        :style="activeIndex === idx
-          ? { width: `${ACTIVE_WIDTH}px`, height: `${ACTIVE_HEIGHT}px` }
-          : { width: `${CARD_WIDTH}px`, height: `${INACTIVE_HEIGHT}px` }"
+        :style="
+          activeIndex === idx
+            ? { width: `${ACTIVE_WIDTH}px`, height: `${ACTIVE_HEIGHT}px` }
+            : { width: `${CARD_WIDTH}px`, height: `${INACTIVE_HEIGHT}px` }
+        "
         @click="activeIndex = idx"
       >
         <div class="pixx-card-inner">
@@ -146,7 +148,7 @@ onUnmounted(() => {
 
 /* État Inactif */
 .pixx-card:not(.active) {
-  opacity: 0.4;
+  opacity: 0.8;
   transform: scale(0.9);
 }
 
@@ -181,7 +183,7 @@ onUnmounted(() => {
 .pixx-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), transparent);
 }
 
 .pixx-glow-bar {

@@ -7,17 +7,18 @@
     <GameHeroSection />
 
     <!-- Main Content -->
-    <div class="flex-1 max-w-[1500px] mx-auto px-10 -mt-2 relative z-20 w-full mb-6">
+    <div class="flex-1 mx-auto px-10 mt-[15%] relative z-20 w-full mb-6">
       <div class="grid grid-cols-12 gap-6 h-full items-start">
         <!-- Left Column: Game Info Card (Smart Component) -->
         <div class="col-span-12 lg:col-span-4 space-y-4 h-full flex flex-col">
           <GameInfoCard @customize="navigateToCustomize()" />
+          <GameStatsGrid />
         </div>
-
         <!-- Right Column: Stats & Synopsis -->
         <div class="col-span-12 lg:col-span-8 space-y-6 h-full flex flex-col">
+          <Caroussel :images="screenshots" />
+
           <!-- Stats Grid (Smart Component) -->
-          <GameStatsGrid />
 
           <!-- Synopsis -->
           <section data-testid="game-synopsis" class="px-2 overflow-hidden flex-shrink">
@@ -57,6 +58,7 @@ import { useCurrentGame } from "@/composables/useCurrentGame";
 import { useSideNavStore } from "@/stores/sideNav";
 import { GameHeroSection, GameInfoCard, GameStatsGrid, LaunchOverlay } from "@/components/game";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
+import Caroussel from "@/components/ui/Caroussel.vue";
 
 /**
  * GameDetails - Page détail d'un jeu
@@ -83,6 +85,7 @@ const sideNavStore = useSideNavStore();
 // useCurrentGame centralise l'accès aux données du jeu courant
 const {
   game,
+  screenshots,
   isLaunching,
   launchError,
   launchRunner,
