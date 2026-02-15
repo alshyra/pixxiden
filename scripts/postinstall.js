@@ -322,10 +322,17 @@ async function main() {
   // Ensure binaries directory exists
   await fs.mkdir(BINARIES_DIR, { recursive: true });
 
+  // Install local umu-run wrapper if present
+  const umuInstalled = await installUmuWrapper(rustTarget);
+
   // Download binaries
   const binaries = ["legendary", "gogdl", "nile"];
   let successCount = 0;
   let failedCount = 0;
+
+  if (umuInstalled) {
+    successCount++;
+  }
 
   for (const binary of binaries) {
     const success = await downloadBinary(binary, config, platform, rustTarget);
@@ -367,6 +374,48 @@ async function main() {
   }
 
   log("green", "🎉 All sidecars configured successfully!");
+}
+
+async function installUmuWrapper(rustTarget) {
+  const src = path.join(SCRIPT_DIR, "umu-run-wrapper.sh");
+  const dest = path.join(BINARIES_DIR, `umu-run-wrapper-${rustTarget}`);
+
+  const srcExists = await fs
+    .access(src)
+    .then(() => true)
+    .catch(() => false);
+
+  if (!srcExists) {
+    log("yellow", "⏭️  umu-run wrapper not found in scripts/, skipping");
+    return false;
+  }
+
+  const destExists = await fs
+    .access(dest)
+    .then(() => true)
+    .catch(() => false);
+
+  if (destExists) {
+    try {
+      const [srcStat, destStat] = await Promise.all([fs.stat(src), fs.stat(dest)]);
+      if (srcStat.mtimeMs <= destStat.mtimeMs) {
+        log("green", `✅ ${path.basename(dest)} up to date`);
+        return true;
+      }
+    } catch {
+      // continue to overwrite if stats fail
+    }
+  }
+
+  try {
+    await fs.copyFile(src, dest);
+    await fs.chmod(dest, 0o755);
+    log("green", `✅ umu-run wrapper installed to ${dest}`);
+    return true;
+  } catch (err) {
+    log("red", `❌ Failed to install umu-run wrapper: ${err.message}`);
+    return false;
+  }
 }
 
 main().catch((err) => {
