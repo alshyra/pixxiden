@@ -36,7 +36,11 @@
           ← {{ browsingSlot?.label }} →
         </p>
 
-        <Carousel v-model="carouselIndex" :images="carouselThumbs" />
+        <Carousel
+          v-model="carouselIndex"
+          :images="carouselThumbs"
+          :aspect-ratio="browsingSlot?.aspectRatio ?? '16/9'"
+        />
 
         <div class="mt-6 flex items-center gap-4">
           <Button
