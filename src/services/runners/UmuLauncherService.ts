@@ -1,36 +1,50 @@
 /**
- * UmuLauncherService - Wraps umu-run for proper Steam Input support
+ * UmuLauncherService - Wraps umu-run pour les jeux non-Steam
  *
- * umu-run is a unified launcher for Windows games that provides:
- * - Steam Runtime container (same as native Steam games)
- * - Proper Steam Input configuration for controller support
- * - Automatic Proton download and management
+ * umu-run est installé comme dépendance système (pas un sidecar bundlé).
+ * Il fournit :
+ * - Steam Runtime container (Steam Input pour les manettes)
  * - protonfixes database integration
+ * - Gestion Proton automatique (pas besoin de PROTONPATH)
  *
- * This service detects if umu-run is available and provides the correct
- * launch command structure for games using Proton.
+ * Commande générée :
+ *   GAMEID=<umu_id> STORE=<store> WINEPREFIX=<prefix> umu-run /path/game.exe
  *
  * @see https://github.com/Open-Wine-Components/umu-launcher
+ * @see https://umu.openwinecomponents.org/umu_api.php?codename=<storeId>
  */
 
-import { info } from "@tauri-apps/plugin-log";
+import { Game } from "@/types";
+import { fetch } from "@tauri-apps/plugin-http";
+import { info, warn } from "@tauri-apps/plugin-log";
 
+/** Configuration pour construire une commande umu-run */
 export interface UmuLaunchConfig {
-  /** Wine prefix path */
+  /** Chemin du Wine prefix */
   winePrefix: string;
-  /** Proton installation path (or "GE-Proton" for auto-download) */
-  protonPath: string;
-  /** Store type (epic, gog, steam, etc.) */
+  /** Nom du store (epic, gog, amazon…) */
   store: string;
-  /** Store-specific game ID */
-  storeId: string;
-  /** Windows executable path (.exe) for direct umu-run launch */
+  /** ID umu canonique retourné par l'API (ex: "umu-1086940") */
+  umuId: string;
+  /** Chemin vers l'exécutable Windows (.exe) */
   executablePath: string;
 }
 
+/** Réponse de l'API umu */
+export interface UmuEntry {
+  title: string;
+  umu_id: string;
+  acronym: string;
+  codename: string;
+  store: string;
+  exe_string: string | null;
+  notes: string | null;
+}
+
+const UMU_API_BASE = "https://umu.openwinecomponents.org/umu_api.php";
+
 export class UmuLauncherService {
   private static instance: UmuLauncherService | null = null;
-  private umuAvailable: boolean | null = null;
 
   private constructor() {}
 
@@ -42,97 +56,125 @@ export class UmuLauncherService {
   }
 
   /**
-   * Check if umu-run is installed on the system
-   * 
-   * Note: Due to Tauri security restrictions, we can't reliably check if umu-run
-   * exists from the frontend. Instead, we assume it's available and let the actual
-   * launch command fail gracefully if it's not.
-   */
-  async isAvailable(): Promise<boolean> {
-    if (this.umuAvailable !== null) {
-      await info(`[UMU] Using cached availability: ${this.umuAvailable}`);
-      return this.umuAvailable;
-    }
-
-    // Assume umu-run is available at /usr/bin/umu-run
-    // We'll let the actual spawn fail and fallback if needed
-    await info("[UMU] Assuming umu-run is available at /usr/bin/umu-run");
-    this.umuAvailable = true;
-    return true;
-  }
-
-  /**
-   * Generate GAMEID for umu-run based on store and game ID
-   * Format: umu-{store}-{storeId}
-   */
-  generateGameId(store: string, storeId: string): string {
-    return `umu-${store}-${storeId}`;
-  }
-
-  /**
-   * Generate store identifier for umu-run
-   * Maps Pixxiden store names to umu STORE values
+   * Mappe le nom interne du store vers la valeur attendue par umu.
+   * epic → egs, les autres restent identiques.
    */
   mapStoreToUmu(store: string): string {
-    const storeMap: Record<string, string> = {
-      epic: "egs",
-      gog: "gog",
-      amazon: "amazon",
-      steam: "steam",
-    };
-    return storeMap[store] || store;
+    const map: Record<string, string> = { epic: "egs" };
+    return map[store] ?? store;
   }
 
   /**
-   * Build environment variables for umu-run
+   * Construit la commande umu-run et les variables d'environnement.
+   *
+   * Résultat :
+   *   command : ["umu-run", "/path/to/game.exe"]
+   *   env     : { GAMEID, STORE, WINEPREFIX }
+   *
+   * Pas de PROTONPATH — umu-run gère Proton lui-même.
    */
-  buildUmuEnv(config: UmuLaunchConfig): Record<string, string> {
-    // umu-run expects PROTONPATH to be the directory containing toolmanifest.vdf,
-    // not the proton binary itself. Remove "/proton" suffix if present.
-    let protonDir = config.protonPath;
-    if (protonDir.endsWith("/proton")) {
-      protonDir = protonDir.slice(0, -7); // Remove "/proton"
-    }
-
-    return {
-      WINEPREFIX: config.winePrefix,
-      GAMEID: this.generateGameId(config.store, config.storeId),
+  buildDirectLaunch(config: UmuLaunchConfig): [string[], Record<string, string>] {
+    const command = ["umu-run", config.executablePath];
+    const env: Record<string, string> = {
+      GAMEID: config.umuId,
       STORE: this.mapStoreToUmu(config.store),
-      PROTONPATH: protonDir,
+      WINEPREFIX: config.winePrefix,
     };
+
+    info(`[UMU] Launch: ${command.join(" ")} GAMEID=${env.GAMEID} STORE=${env.STORE}`);
+
+    return [command, env];
+  }
+
+  async fetchBySteamId(umuId: string): Promise<UmuEntry | null> {
+    const url = `${UMU_API_BASE}?umu_id=umu-${umuId}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        await warn(`[UMU] API responded ${response.status} for umu_id=${umuId}`);
+        return null;
+      }
+      const data: UmuEntry[] = await response.json();
+      if (!data || data.length === 0) {
+        await info(`[UMU] No entry found for umu_id=${umuId}`);
+        return null;
+      }
+      await info(`[UMU] Found umu_id=${umuId} title=${data[0].title}`);
+      return data[0];
+    } catch (error) {
+      await warn(`[UMU] Fetch by umu_id failed for umu_id=${umuId}: ${error}`);
+      return null;
+    }
+  }
+
+  async fetchByTitle(title: string): Promise<UmuEntry | null> {
+    const url = `${UMU_API_BASE}?title=${encodeURIComponent(title)}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        await warn(`[UMU] API responded ${response.status} for title=${title}`);
+        return null;
+      }
+      const data: UmuEntry[] = await response.json();
+      if (!data || data.length === 0) {
+        await info(`[UMU] No entry found for title=${title}`);
+        return null;
+      }
+      await info(`[UMU] Found title=${title} umu_id=${data[0].umu_id}`);
+      return data[0];
+    } catch (error) {
+      await warn(`[UMU] Fetch by title failed for title=${title}: ${error}`);
+      return null;
+    }
+  }
+
+  async fetchByCodename(codename: string): Promise<UmuEntry | null> {
+    const url = `${UMU_API_BASE}?codename=${encodeURIComponent(codename)}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        await warn(`[UMU] API responded ${response.status} for codename=${codename}`);
+        return null;
+      }
+      const data: UmuEntry[] = await response.json();
+      if (!data || data.length === 0) {
+        await info(`[UMU] No entry found for codename=${codename}`);
+        return null;
+      }
+      await info(`[UMU] Found codename=${codename} umu_id=${data[0].umu_id}`);
+      return data[0];
+    } catch (error) {
+      await warn(`[UMU] Fetch by codename failed for codename=${codename}: ${error}`);
+      return null;
+    }
   }
 
   /**
-   * Build umu-run command array for direct .exe launch
+   * Interroge l'API umu pour récupérer l'entrée correspondant à un storeId (codename).
    *
-   * @param config - UMU launch configuration (must include executablePath)
-   * @returns Command array: ["umu-run-wrapper", "/path/to/game.exe"]
+   * URL : https://umu.openwinecomponents.org/umu_api.php?codename=<storeId>
+   * Retourne le premier résultat ou null si absent/erreur.
    */
-  buildUmuCommand(config: UmuLaunchConfig): string[] {
-    return ["umu-run-wrapper", config.executablePath];
-  }
-
-  /**
-   * Build a direct umu-run launch command from game configuration.
-   *
-   * Unlike the old approach that tried to wrap CLI tools (gogdl, legendary),
-   * umu-run only works with Windows .exe files. This method builds:
-   *   ["umu-run-wrapper", "/path/to/game.exe"]
-   * with the proper environment variables (GAMEID, STORE, PROTONPATH, WINEPREFIX).
-   *
-   * @param config - UMU configuration including the .exe path
-   * @returns Tuple of [command array, environment variables]
-   */
-  buildDirectLaunch(
-    config: UmuLaunchConfig,
-  ): [string[], Record<string, string>] {
-    const umuCommand = this.buildUmuCommand(config);
-    const umuEnv = this.buildUmuEnv(config);
-
-    info(
-      `[UMU] Direct launch: ${umuCommand.join(" ")} with env GAMEID=${umuEnv.GAMEID} STORE=${umuEnv.STORE} PROTONPATH=${umuEnv.PROTONPATH}`,
-    );
-
-    return [umuCommand, umuEnv];
+  async fetchUmuEntry(game: Game): Promise<UmuEntry | null> {
+    if (!game.storeData.storeId) {
+      await warn(`[UMU] No storeId for game ${game.info.title}, skipping umu fetch`);
+      return null;
+    }
+    try {      
+      return await this.fetchByCodename(game.storeData.storeId);
+    } catch (error) {
+      info(`[UMU] Fetch by codename failed for storeId=${game.storeData.storeId}: ${error}`);
+    }
+    try {
+      return await this.fetchBySteamId(game.storeData.storeId);
+    } catch (error) {
+      info(`[UMU] Fetch by umu_id failed for storeId=${game.storeData.storeId}: ${error}`);
+    }
+    try {
+      return await this.fetchByTitle(game.info.title);
+    } catch (error) {
+      info(`[UMU] Fetch by title failed for title=${game.info.title}: ${error}`);
+    }
+    return null;
   }
 }

@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS games (
   hltb_complete REAL,
   hltb_speedrun REAL,
   
+  -- umu-launcher ID (from https://umu.openwinecomponents.org)
+  umu_id TEXT,
+
   -- Compatibility (from ProtonDB)
   proton_tier TEXT,
   proton_confidence TEXT,

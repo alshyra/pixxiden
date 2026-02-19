@@ -64,62 +64,6 @@ export abstract class GameStoreService {
   }
 
   /**
-   * Save games to database (upsert) - internal use
-   */
-  protected async saveGames(games: Game[]): Promise<void> {
-    const sql = `
-      INSERT INTO games (
-        id, store_id, store, title, installed, install_path, install_size,
-        executable_path, genres, play_time_minutes, cloud_save_support, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        title = excluded.title,
-        installed = excluded.installed,
-        install_path = excluded.install_path,
-        install_size = excluded.install_size,
-        executable_path = excluded.executable_path,
-        cloud_save_support = excluded.cloud_save_support,
-        updated_at = excluded.updated_at
-    `;
-
-    for (const game of games) {
-      await this.db.execute(sql, [
-        game.id,
-        game.storeData.storeId,
-        game.storeData.store,
-        game.info.title,
-        game.installation.installed ? 1 : 0,
-        game.installation.installPath || null,
-        game.installation.installSize || null,
-        game.installation.executablePath || null,
-        JSON.stringify(game.info.genres),
-        game.gameCompletion.playTimeMinutes,
-        game.installation.cloudSaveSupport ? 1 : 0,
-        game.createdAt,
-        game.updatedAt,
-      ]);
-    }
-  }
-
-  /**
-   * Persist games to database - public API for orchestrator
-   */
-  async persistGames(games: Game[]): Promise<void> {
-    return this.saveGames(games);
-  }
-
-  /**
-   * Get games from database for this store
-   */
-  async getStoredGames(): Promise<Game[]> {
-    const rows = await this.db.select<Record<string, unknown>>(
-      "SELECT * FROM games WHERE store = ?",
-      [this.storeName],
-    );
-    return rows.map(this.rowToGame);
-  }
-
-  /**
    * Convert a database row to a nested Game object
    */
   protected rowToGame(row: Record<string, unknown>): Game {
@@ -178,6 +122,7 @@ export abstract class GameStoreService {
       storeData: {
         store: row.store as Game["storeData"]["store"],
         storeId: (row.store_id as string) || "",
+        umuId: (row.umu_id as string) || undefined,
       },
       createdAt: (row.created_at as string) || new Date().toISOString(),
       updatedAt: (row.updated_at as string) || new Date().toISOString(),

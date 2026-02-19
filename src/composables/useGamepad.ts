@@ -312,7 +312,6 @@ export function useGamepad() {
     () => gamepads.value?.[0],
     (gamepad) => {
       globalGamepad.value = (gamepad || null) as Gamepad | null;
-
       if (gamepad) {
         info(`🎮 Gamepad connected: ${gamepad.id}`);
       }

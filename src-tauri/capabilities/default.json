@@ -41,8 +41,8 @@
           "args": true
         },
         {
-          "name": "binaries/umu-run-wrapper",
-          "sidecar": true,
+          "name": "umu-run",
+          "cmd": "umu-run",
           "args": true
         }
       ]

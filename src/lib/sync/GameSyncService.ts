@@ -32,6 +32,7 @@ import { SteamSyncStrategy } from "./strategies/SteamSyncStrategy";
 import { EnrichmentService } from "@/services/enrichment";
 import { HeroicImportService } from "@/services/heroic";
 import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
+import { UmuLauncherService } from "@/services/runners/UmuLauncherService";
 
 // ===== Types =====
 
@@ -205,8 +206,19 @@ export class GameSyncService {
           message: `Détection des jeux ${this.getStoreName(store)}...`,
         });
 
-        const games = await this.fetchViaStrategy(store);
-
+        const fetchedGames = await this.fetchViaStrategy(store);
+        const games = await Promise.all(fetchedGames.map(async (game) => {
+          if (!game.storeData.storeId && game.storeData.storeId != 'steam') return game;
+          const umuEntry = await UmuLauncherService.getInstance().fetchUmuEntry(game);
+          if (!umuEntry) return game;
+            return {
+              ...game,
+              storeData: {
+                ...game.storeData,
+                umuId: umuEntry.umu_id,
+              },
+            };
+        }));
         if (games.length > 0) {
           // Persist base game data to SQLite
           await this.gameRepo.upsertGames(games);

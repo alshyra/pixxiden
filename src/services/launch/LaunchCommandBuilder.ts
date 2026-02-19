@@ -66,11 +66,11 @@ export class LaunchCommandBuilder {
   /**
    * Prepare game launch data (command + env vars).
    *
-   * 1. Ensures Proton is installed
-   * 2. Checks system prerequisites (32-bit libs)
-   * 3. Builds launch context (Proton paths, Wine prefix)
-   * 4. Delegates to store-specific strategy
-   * 5. Applies umu-run override if available
+   * Décision de lancement (priorité décroissante) :
+   * 1. umu-run  : non-steam + umuId connu + executablePath présent
+   *              → UmuLauncherService.buildDirectLaunch, pas de ProtonService
+   * 2. Fallback : stratégie par store (legendary/gogdl/nile/steam)
+   *              → ProtonService + LaunchStrategy
    */
   async prepareLaunch(gameId: string): Promise<PreparedLaunch> {
     const game = await this.gameRepo.getGameById(gameId);
@@ -78,11 +78,34 @@ export class LaunchCommandBuilder {
       throw new Error(`Game not found: ${gameId}`);
     }
 
-    // Ensure Proton is installed before building launch command
+    // --- Voie umu-run ---
+    if (
+      game.storeData.store !== "steam" &&
+      game.storeData.umuId &&
+      game.installation.executablePath
+    ) {
+      const [launchCommand, env] = this.umuLauncher.buildDirectLaunch({
+        winePrefix: game.installation.winePrefix,
+        store: game.storeData.store,
+        umuId: game.storeData.umuId,
+        executablePath: game.installation.executablePath,
+      });
+
+      await info(
+        `[LaunchBuilder] umu-run path for ${game.info.title} (GAMEID=${game.storeData.umuId})`,
+      );
+
+      return { game, launchCommand, env };
+    }
+
+    // --- Voie fallback : stratégie par store ---
+    await info(
+      `[LaunchBuilder] Fallback to store strategy for ${game.info.title} (no umuId or exe)`,
+    );
+
     const protonService = ProtonService.getInstance();
     const protonConfig = await protonService.ensureProtonInstalled();
 
-    // Check 32-bit prerequisites for Proton-based launches (Epic, GOG)
     if (protonConfig && (game.storeData.store === "epic" || game.storeData.store === "gog")) {
       const prereqs = await protonService.checkSystemPrerequisites();
       if (!prereqs.ok) {
@@ -90,23 +113,15 @@ export class LaunchCommandBuilder {
       }
     }
 
-    // Build launch context with Proton paths and Wine prefix
     const context = await this.buildLaunchContext(game, protonConfig);
 
-    // Delegate to store-specific strategy
     const strategy = this.strategies[game.storeData.store];
     if (!strategy) {
       throw new Error(`No launch strategy for store: ${game.storeData.store}`);
     }
 
-    let launchCommand = await strategy.buildCommand(game, context);
-    let env = await strategy.buildEnv(game, context);
-
-    // If umu-run is available with a .exe path and Proton, bypass the CLI
-    // and launch directly via umu-run for Steam Runtime + Steam Input support
-    const result = await this.tryUmuRunOverride(game, context, launchCommand, env);
-    launchCommand = result.command;
-    env = result.env;
+    const launchCommand = await strategy.buildCommand(game, context);
+    const env = await strategy.buildEnv(game, context);
 
     return { game, launchCommand, env };
   }
@@ -186,42 +201,5 @@ export class LaunchCommandBuilder {
     }
     return protonConfig?.protonPath ?? null;
   }
-
-  /**
-   * If umu-run is available, the game has an executablePath (.exe), and we're using Proton,
-   * bypass the CLI command entirely and launch the .exe directly via umu-run-wrapper.
-   * This provides Steam Runtime + Steam Input for proper controller support.
-   */
-  private async tryUmuRunOverride(
-    game: Game,
-    context: LaunchContext,
-    command: string[],
-    env: Record<string, string>,
-  ): Promise<{ command: string[]; env: Record<string, string> }> {
-    const executablePath = game.installation.executablePath;
-
-    if (!context.protonPath || !executablePath || !(await this.umuLauncher.isAvailable())) {
-      return { command, env };
-    }
-
-    const winePrefix = game.installation.winePrefix || context.compatDataPath || "";
-
-    const [umuCommand, umuEnv] = this.umuLauncher.buildDirectLaunch({
-      winePrefix,
-      protonPath: context.protonPath,
-      store: game.storeData.store,
-      storeId: game.storeData.storeId,
-      executablePath,
-    });
-
-    await info(
-      `[LaunchBuilder] Using umu-run for ${game.info.title}: exe=${executablePath} (GAMEID=${umuEnv.GAMEID})`,
-    );
-
-    // UMU env vars take precedence
-    return {
-      command: umuCommand,
-      env: { ...env, ...umuEnv },
-    };
-  }
 }
+

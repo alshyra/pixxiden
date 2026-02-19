@@ -85,28 +85,51 @@ export class GameLaunchService {
     const windowService = WindowService.getInstance();
     await windowService.hideForGame();
 
-    // Spawn the sidecar (all commands are now sidecars, including umu-run-wrapper)
-    const handle = await this.sidecar.spawnStreaming(
-      firstArg as SidecarName,
-      args,
-      {
-        onStdout: (line) => {
-          const trimmed = line.trim();
-          if (trimmed) {
-            callbacks.onOutput?.(trimmed);
-            debug(`[${game.info.title}] ${trimmed}`);
-          }
-        },
-        onStderr: (line) => {
-          const trimmed = line.trim();
-          if (trimmed) {
-            callbacks.onOutput?.(trimmed);
-            debug(`[${game.info.title}] ${trimmed}`);
-          }
-        },
-      },
-      { env: launchEnv },
-    );
+    // umu-run est une dépendance système (pas un sidecar bundlé) → spawn système
+    const handle =
+      firstArg === "umu-run"
+        ? await this.sidecar.spawnSystemStreaming(
+            "umu-run",
+            args,
+            {
+              onStdout: (line) => {
+                const trimmed = line.trim();
+                if (trimmed) {
+                  callbacks.onOutput?.(trimmed);
+                  debug(`[${game.info.title}] ${trimmed}`);
+                }
+              },
+              onStderr: (line) => {
+                const trimmed = line.trim();
+                if (trimmed) {
+                  callbacks.onOutput?.(trimmed);
+                  debug(`[${game.info.title}] ${trimmed}`);
+                }
+              },
+            },
+            { env: launchEnv },
+          )
+        : await this.sidecar.spawnStreaming(
+            firstArg as SidecarName,
+            args,
+            {
+              onStdout: (line) => {
+                const trimmed = line.trim();
+                if (trimmed) {
+                  callbacks.onOutput?.(trimmed);
+                  debug(`[${game.info.title}] ${trimmed}`);
+                }
+              },
+              onStderr: (line) => {
+                const trimmed = line.trim();
+                if (trimmed) {
+                  callbacks.onOutput?.(trimmed);
+                  debug(`[${game.info.title}] ${trimmed}`);
+                }
+              },
+            },
+            { env: launchEnv },
+          );
 
     this.activeGames.set(game.id, handle);
 

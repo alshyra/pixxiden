@@ -67,6 +67,8 @@ export interface GameProtonData {
 export interface GameStoreData {
   store: StoreType;
   storeId: string;
+  /** ID canonique umu (ex: "umu-1086940"), null si non résolu */
+  umuId?: string;
 }
 
 /**
@@ -156,8 +158,12 @@ export function defaultGameProtonData(): GameProtonData {
   };
 }
 
-export function defaultGameStoreData(store: StoreType = "epic", storeId = ""): GameStoreData {
-  return { store, storeId };
+export function defaultGameStoreData(
+  store: StoreType = "epic",
+  storeId = "",
+  umuId?: string,
+): GameStoreData {
+  return { store, storeId, umuId };
 }
 
 /** Create a Game with all defaults — convenience for store services */
@@ -170,10 +176,12 @@ export function createGame(overrides: {
   installPath?: string;
   installSize?: string;
   executablePath?: string;
+  winePrefix?: string;
   developer?: string;
   genres?: string[];
   playTimeMinutes?: number;
   cloudSaveSupport?: boolean;
+  umuId?: string;
 }): Game {
   const now = new Date().toISOString();
   return {
@@ -190,6 +198,7 @@ export function createGame(overrides: {
       installPath: overrides.installPath ?? "",
       installSize: overrides.installSize ?? "",
       executablePath: overrides.executablePath ?? "",
+      winePrefix: overrides.winePrefix ?? "",
       cloudSaveSupport: overrides.cloudSaveSupport ?? false,
     },
     gameCompletion: {
@@ -197,7 +206,7 @@ export function createGame(overrides: {
       playTimeMinutes: overrides.playTimeMinutes ?? 0,
     },
     protonData: defaultGameProtonData(),
-    storeData: defaultGameStoreData(overrides.store, overrides.storeId),
+    storeData: defaultGameStoreData(overrides.store, overrides.storeId, overrides.umuId),
     createdAt: now,
     updatedAt: now,
   };

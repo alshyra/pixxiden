@@ -122,8 +122,8 @@ export class GameRepository {
       `INSERT INTO games (
         id, store_id, store, title, installed, install_path, install_size,
         executable_path, developer, genres, play_time_minutes, cloud_save_support,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_at, updated_at, umu_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         installed = excluded.installed,
@@ -132,7 +132,8 @@ export class GameRepository {
         executable_path = excluded.executable_path,
         developer = COALESCE(games.developer, excluded.developer),
         cloud_save_support = excluded.cloud_save_support,
-        updated_at = excluded.updated_at`,
+        updated_at = excluded.updated_at,
+        umu_id = COALESCE(games.umu_id, excluded.umu_id)`,
       [
         game.id,
         game.storeData.storeId,
@@ -148,6 +149,7 @@ export class GameRepository {
         game.installation.cloudSaveSupport ? 1 : 0,
         game.createdAt || new Date().toISOString(),
         game.updatedAt || new Date().toISOString(),
+        game.storeData.umuId || null,
       ],
     );
   }
@@ -398,6 +400,7 @@ export class GameRepository {
       storeData: {
         store: row.store as Game["storeData"]["store"],
         storeId: (row.store_id as string) || "",
+        umuId: (row.umu_id as string) || undefined,
       },
       createdAt: (row.created_at as string) || new Date().toISOString(),
       updatedAt: (row.updated_at as string) || new Date().toISOString(),

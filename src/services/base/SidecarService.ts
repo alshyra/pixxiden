@@ -24,7 +24,7 @@ export interface StreamingHandle {
   kill: () => Promise<void>;
 }
 
-export type SidecarName = "legendary" | "gogdl" | "nile" | "steam" | "umu-run-wrapper";
+export type SidecarName = "legendary" | "gogdl" | "nile" | "steam";
 
 export class SidecarService {
   private static instance: SidecarService | null = null;
@@ -194,6 +194,58 @@ export class SidecarService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Spawn a system binary (not a bundled sidecar) with real-time streaming.
+   * Utilise Command.create() au lieu de Command.sidecar().
+   * Usage principal : umu-run, installé comme dépendance système.
+   */
+  async spawnSystemStreaming(
+    command: string,
+    args: string[],
+    callbacks: {
+      onStdout?: (line: string) => void;
+      onStderr?: (line: string) => void;
+    } = {},
+    options: { env?: Record<string, string> } = {},
+  ): Promise<StreamingHandle> {
+    await debug(`[SidecarService] Spawning system command: ${command} ${JSON.stringify(args)}`);
+    if (options.env && Object.keys(options.env).length > 0) {
+      await debug(`[SidecarService] With env: ${JSON.stringify(options.env)}`);
+    }
+
+    const cmd = Command.create(
+      command,
+      args,
+      options.env ? { env: options.env } : undefined,
+    );
+
+    cmd.stdout.on("data", (line) => {
+      callbacks.onStdout?.(line);
+    });
+
+    cmd.stderr.on("data", (line) => {
+      callbacks.onStderr?.(line);
+    });
+
+    const completion = new Promise<{ code: number }>((resolve, reject) => {
+      cmd.on("close", (data) => {
+        resolve({ code: data.code ?? 0 });
+      });
+      cmd.on("error", (error) => {
+        reject(new Error(error));
+      });
+    });
+
+    const child = await cmd.spawn();
+    await debug(`[SidecarService] Spawned system command ${command} PID=${child.pid}`);
+
+    return {
+      child,
+      completion,
+      kill: () => child.kill(),
+    };
   }
 
   /**
