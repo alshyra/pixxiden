@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { debug, info, warn, error as logError } from "@tauri-apps/plugin-log";
 import { PixxidenLogo } from "@/components/ui";
@@ -53,7 +53,7 @@ const emit = defineEmits<{ ready: [] }>();
 const statusMessage = ref("Initialisation...");
 const currentGame = ref("");
 const progress = ref(0);
-const MINIMAL_DISPLAY_TIME = 2000; // 2 seconds minimum
+const MINIMAL_DISPLAY_TIME = 1200; // 1.2 seconds minimum (background tasks visible in Downloads)
 
 let unlistenProgress: UnlistenFn | null = null;
 
@@ -70,26 +70,8 @@ interface SyncProgressPayload {
 onMounted(async () => {
   const startTime = Date.now();
 
-  // Listen for progress events from GameSyncService (used only during first-run blocking sync)
-  try {
-    unlistenProgress = await listen<SyncProgressPayload>("splash-progress", (event) => {
-      debug(`Splash progress: ${event.payload.phase} - ${event.payload.message}`);
-      const { gameTitle, current, total, phase, message } = event.payload;
-
-      statusMessage.value = message || "Synchronisation...";
-      currentGame.value = gameTitle || "";
-
-      if (phase === "fetching" && total > 0) {
-        progress.value = Math.min(40 + (current / total) * 20, 60);
-      } else if (phase === "enriching" && total > 0) {
-        progress.value = Math.min(60 + (current / total) * 30, 90);
-      } else if (phase === "complete") {
-        progress.value = 95;
-      }
-    });
-  } catch (e) {
-    warn(`Failed to setup splash progress listener: ${e}`);
-  }
+  // Ensure the splash DOM is painted before any blocking async work
+  await nextTick();
 
   try {
     // Step 1: Initialize services (DB, sidecar, etc.)
@@ -174,6 +156,27 @@ onMounted(async () => {
     await info("No games found, starting initial sync...");
     statusMessage.value = "Synchronisation des jeux...";
     progress.value = 40;
+
+    // Set up progress listener only for first-run (not needed on fast path)
+    try {
+      unlistenProgress = await listen<SyncProgressPayload>("splash-progress", (event) => {
+        debug(`Splash progress: ${event.payload.phase} - ${event.payload.message}`);
+        const { gameTitle, current, total, phase, message } = event.payload;
+
+        statusMessage.value = message || "Synchronisation...";
+        currentGame.value = gameTitle || "";
+
+        if (phase === "fetching" && total > 0) {
+          progress.value = Math.min(40 + (current / total) * 20, 60);
+        } else if (phase === "enriching" && total > 0) {
+          progress.value = Math.min(60 + (current / total) * 30, 90);
+        } else if (phase === "complete") {
+          progress.value = 95;
+        }
+      });
+    } catch (e) {
+      warn(`Failed to setup splash progress listener: ${e}`);
+    }
 
     try {
       const syncService = GameSyncService.getInstance();

@@ -70,10 +70,61 @@ export const useLibraryStore = defineStore("library", () => {
 
   /**
    * Sync library with all authenticated stores
-   * Delegates to GameSyncService via the orchestrator
+   * Delegates to GameSyncService via the orchestrator.
+   *
+   * @param forceEnrich  Force re-enrichment even for already-enriched games.
+   * @param asBackgroundTask  When true, runs as a background task visible in the Downloads
+   *                          view (fire-and-forget). When false (default), runs inline and
+   *                          blocks the caller (used by SplashScreen).
    */
-  async function syncLibrary(forceEnrich: boolean = false) {
+  async function syncLibrary(forceEnrich: boolean = false, asBackgroundTask: boolean = false) {
     await debug("syncLibrary()");
+
+    if (asBackgroundTask) {
+      // ── Background mode: register as a Downloads task with progress bar ──
+      syncing.value = true;
+
+      const { useDownloadsStore } = await import("./downloads");
+      const downloadsStore = useDownloadsStore();
+
+      await downloadsStore.startBackgroundTask(
+        "sync",
+        "Synchronisation bibliothèque",
+        async (task) => {
+          try {
+            if (!initialized.value) await initialize();
+
+            const orchestrator = getOrchestrator();
+            const result: SyncResult = await orchestrator.syncLibrary({
+              forceEnrich,
+              onProgress: (event) => {
+                if (event.total > 0) {
+                  task.progress = Math.round((event.current / event.total) * 100);
+                }
+                task.detail = event.message;
+              },
+            });
+
+            syncErrors.value = result.errors.map(
+              (e) => `${e.store || e.gameTitle || "unknown"}: ${e.message}`,
+            );
+            hasSynced.value = true;
+
+            // Refresh games from DB after sync
+            games.value = await orchestrator.getAllGames();
+            await info(
+              `Sync (background) result: ${result.total} total, ${result.errors.length} errors`,
+            );
+          } finally {
+            syncing.value = false;
+            loading.value = false;
+          }
+        },
+      );
+      return;
+    }
+
+    // ── Inline mode (SplashScreen / SettingsSystem) ──
     syncing.value = true;
     loading.value = true;
     error.value = null;

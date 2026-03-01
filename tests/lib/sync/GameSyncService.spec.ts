@@ -11,6 +11,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 // Mock GameRepository
 const mockGetAllGames = vi.fn();
+const mockGetUnenrichedGames = vi.fn();
 const mockUpsertGames = vi.fn();
 const mockUpdateEnrichment = vi.fn();
 
@@ -18,6 +19,7 @@ vi.mock("@/lib/database", () => ({
   GameRepository: {
     getInstance: vi.fn(() => ({
       getAllGames: mockGetAllGames,
+      getUnenrichedGames: mockGetUnenrichedGames,
       upsertGames: mockUpsertGames,
       updateEnrichment: mockUpdateEnrichment,
     })),
@@ -106,6 +108,7 @@ describe("GameSyncService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAllGames.mockResolvedValue([]);
+    mockGetUnenrichedGames.mockResolvedValue([]);
     mockUpsertGames.mockResolvedValue(undefined);
     mockMergeInstallations.mockResolvedValue({ scanned: 0, merged: 0 });
     mockInvalidateOutdatedCache.mockResolvedValue(0);

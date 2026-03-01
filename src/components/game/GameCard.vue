@@ -100,6 +100,7 @@ const cardStyle = computed(() => {
     localPath = props.game.assets.gridPath;
   }
 
+  if (!localPath) return {};
   const src = convertFileSrc(localPath);
   return { backgroundImage: `url(${src})` };
 });

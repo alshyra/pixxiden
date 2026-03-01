@@ -406,6 +406,21 @@ export class GameSyncService {
     if (invalidated > 0) {
       await info(`Re-enriching ${invalidated} games after cache version upgrade`);
       currentGames = await this.gameRepo.getAllGames();
+    } else {
+      // Also pick up DB games with enriched_at = NULL that weren't fetched in this run.
+      // This handles cases where a previous sync was interrupted (e.g. app closed mid-enrichment)
+      // or where a store returned 0 games this run (token expired, client offline, etc.).
+      const dbUnenriched = await this.gameRepo.getUnenrichedGames();
+      if (dbUnenriched.length > 0) {
+        const fetchedIds = new Set(currentGames.map((g) => g.id));
+        const orphaned = dbUnenriched.filter((g) => !fetchedIds.has(g.id));
+        if (orphaned.length > 0) {
+          await info(
+            `Found ${orphaned.length} unenriched DB game(s) not in this sync run — queuing for enrichment`,
+          );
+          currentGames = [...currentGames, ...orphaned];
+        }
+      }
     }
 
     // Filter to only games that need enrichment (unless forced)
@@ -419,54 +434,69 @@ export class GameSyncService {
     await info(`Enriching ${gamesToEnrich.length} games...`);
     let enrichedCount = 0;
 
-    for (let i = 0; i < gamesToEnrich.length; i++) {
-      const game = gamesToEnrich[i];
+    // Process games in parallel batches to speed up enrichment significantly.
+    // Each batch fires ENRICHMENT_BATCH_SIZE API requests concurrently.
+    // SQLite writes are safe because tauri-plugin-sql uses WAL mode.
+    const ENRICHMENT_BATCH_SIZE = 15;
 
-      try {
-        await this.emitProgress({
-          store: game.storeData.store,
-          gameTitle: game.info.title,
-          current: i + 1,
-          total: gamesToEnrich.length,
-          phase: "enriching",
-          message: `Enrichissement: ${game.info.title}`,
-        });
+    for (let batchStart = 0; batchStart < gamesToEnrich.length; batchStart += ENRICHMENT_BATCH_SIZE) {
+      const batch = gamesToEnrich.slice(batchStart, batchStart + ENRICHMENT_BATCH_SIZE);
 
-        // EnrichmentService handles caching internally (enrichment_cache table)
-        const enriched = await this.enrichment.enrichGame(game);
+      // Emit progress for the batch start
+      await this.emitProgress({
+        store: batch[0].storeData.store,
+        gameTitle: batch[0].info.title,
+        current: batchStart + batch.length,
+        total: gamesToEnrich.length,
+        phase: "enriching",
+        message: `Enrichissement: ${batchStart + 1}–${batchStart + batch.length} / ${gamesToEnrich.length}`,
+      });
 
-        // Persist enrichment data to the games table (flat DB columns)
-        await this.gameRepo.updateEnrichment(game.id, {
-          description: enriched.info.description,
-          summary: enriched.info.summary,
-          metacritic_score: enriched.info.metacriticScore,
-          igdb_rating: enriched.info.igdbRating,
-          developer: enriched.info.developer,
-          publisher: enriched.info.publisher,
-          genres: enriched.info.genres,
-          release_date: enriched.info.releaseDate,
-          hltb_main: enriched.gameCompletion.timeToBeatHastily,
-          hltb_main_extra: enriched.gameCompletion.timeToBeatNormally,
-          hltb_complete: enriched.gameCompletion.timeToBeatCompletely,
-          proton_tier: enriched.protonData.protonTier,
-          proton_confidence: enriched.protonData.protonConfidence,
-          proton_trending_tier: enriched.protonData.protonTrendingTier,
-          steam_app_id: enriched.protonData.steamAppId || null,
-          hero_path: enriched.assets.heroPath || null,
-          grid_path: enriched.assets.gridPath || null,
-          horizontal_grid_path: enriched.assets.horizontalGridPath || null,
-          logo_path: enriched.assets.logoPath || null,
-          icon_path: enriched.assets.iconPath || null,
-          screenshot_paths: enriched.assets.screenshotPaths,
-          enriched_at: enriched.enrichedAt,
-        });
+      const results = await Promise.allSettled(
+        batch.map(async (game) => {
+          // EnrichmentService handles caching internally (enrichment_cache table)
+          const enriched = await this.enrichment.enrichGame(game);
 
-        enrichedCount++;
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        await warn(`Failed to enrich "${game.info.title}": ${msg}`);
-        errors.push({ gameTitle: game.info.title, phase: "enrich", message: msg });
-        // Continue with next game — don't stop on enrichment failure
+          // Persist enrichment data to the games table (flat DB columns)
+          await this.gameRepo.updateEnrichment(game.id, {
+            description: enriched.info.description,
+            summary: enriched.info.summary,
+            metacritic_score: enriched.info.metacriticScore,
+            igdb_rating: enriched.info.igdbRating,
+            developer: enriched.info.developer,
+            publisher: enriched.info.publisher,
+            genres: enriched.info.genres,
+            release_date: enriched.info.releaseDate,
+            hltb_main: enriched.gameCompletion.timeToBeatHastily,
+            hltb_main_extra: enriched.gameCompletion.timeToBeatNormally,
+            hltb_complete: enriched.gameCompletion.timeToBeatCompletely,
+            proton_tier: enriched.protonData.protonTier,
+            proton_confidence: enriched.protonData.protonConfidence,
+            proton_trending_tier: enriched.protonData.protonTrendingTier,
+            steam_app_id: enriched.protonData.steamAppId || null,
+            hero_path: enriched.assets.heroPath || null,
+            grid_path: enriched.assets.gridPath || null,
+            horizontal_grid_path: enriched.assets.horizontalGridPath || null,
+            logo_path: enriched.assets.logoPath || null,
+            icon_path: enriched.assets.iconPath || null,
+            screenshot_paths: enriched.assets.screenshotPaths,
+            enriched_at: enriched.enrichedAt,
+          });
+
+          return game;
+        }),
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        if (result.status === "fulfilled") {
+          enrichedCount++;
+        } else {
+          const game = batch[j];
+          const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          await warn(`Failed to enrich "${game.info.title}": ${msg}`);
+          errors.push({ gameTitle: game.info.title, phase: "enrich", message: msg });
+        }
       }
     }
 

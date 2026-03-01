@@ -61,39 +61,41 @@ let unsubscribeGamepad: Array<() => void> = [];
 
 // Check if setup wizard is needed on mount
 onMounted(async () => {
+  // Parallelize setup check + event listeners setup for faster startup
   try {
-    const needsSetup = await api.needsSetup();
-    showSetupWizard.value = needsSetup;
-  } catch (error) {
-    await logError(`Failed to check setup status: ${error}`);
-    // Don't show wizard on error - user can configure later in settings
-  }
+    const [needsSetup, gameLaunchedUnlisten, gameErrorUnlisten, gameExitedUnlisten] =
+      await Promise.all([
+        api.needsSetup().catch(async (err) => {
+          await logError(`Failed to check setup status: ${err}`);
+          return false;
+        }),
+        listen("game-launched", (event: any) => {
+          debug("Game launched - PS button now controls game overlay");
+          isGameRunning.value = true;
 
-  // Listen for game launch events
-  try {
-    unlistenGameLaunched = await listen("game-launched", (event: any) => {
-      debug("Game launched - PS button now controls game overlay");
-      isGameRunning.value = true;
+          // Notify the GameOverlay about the current game
+          if (event.payload?.game) {
+            gameOverlay.value?.setCurrentGame(event.payload.game);
+          }
+        }),
+        listen("game-launch-error", () => {
+          debug("Game launch failed - resetting game state");
+          isGameRunning.value = false;
+          gameOverlay.value?.setCurrentGame(null);
+        }),
+        listen("game-exited", () => {
+          debug("Game exited - cleaning up overlay");
+          isGameRunning.value = false;
+          gameOverlay.value?.setCurrentGame(null);
+        }),
+      ]);
 
-      // Notify the GameOverlay about the current game
-      if (event.payload?.game) {
-        gameOverlay.value?.setCurrentGame(event.payload.game);
-      }
-    });
-
-    unlistenGameError = await listen("game-launch-error", () => {
-      debug("Game launch failed - resetting game state");
-      isGameRunning.value = false;
-      gameOverlay.value?.setCurrentGame(null);
-    });
-
-    unlistenGameExited = await listen("game-exited", () => {
-      debug("Game exited - cleaning up overlay");
-      isGameRunning.value = false;
-      gameOverlay.value?.setCurrentGame(null);
-    });
+    showSetupWizard.value = needsSetup as boolean;
+    unlistenGameLaunched = gameLaunchedUnlisten as UnlistenFn;
+    unlistenGameError = gameErrorUnlisten as UnlistenFn;
+    unlistenGameExited = gameExitedUnlisten as UnlistenFn;
   } catch (e) {
-    await warn(`Failed to setup game event listeners: ${e}`);
+    await warn(`Failed to setup app event listeners: ${e}`);
   }
 
   // Handle PS/Guide button: toggle SideNav (or bring Pixxiden to front during gameplay)
@@ -143,8 +145,6 @@ provide("gameOverlay", gameOverlay);
 </script>
 
 <style>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap");
-
 * {
   box-sizing: border-box;
   margin: 0;
