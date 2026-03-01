@@ -86,67 +86,40 @@ export class UmuLauncherService {
     return [command, env];
   }
 
-  async fetchBySteamId(umuId: string): Promise<UmuEntry | null> {
-    const url = `${UMU_API_BASE}?umu_id=umu-${umuId}`;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        await warn(`[UMU] API responded ${response.status} for umu_id=${umuId}`);
-        return null;
-      }
-      const data: UmuEntry[] = await response.json();
-      if (!data || data.length === 0) {
-        await info(`[UMU] No entry found for umu_id=${umuId}`);
-        return null;
-      }
-      await info(`[UMU] Found umu_id=${umuId} title=${data[0].title}`);
-      return data[0];
-    } catch (error) {
-      await warn(`[UMU] Fetch by umu_id failed for umu_id=${umuId}: ${error}`);
+  async fetchBySteamId(steamId: string): Promise<UmuEntry | null> {
+    const url = `${UMU_API_BASE}?umu_id=umu-${steamId}`;
+    const response = await fetch(url);
+    if (!response.ok) {
       return null;
     }
+    const data: UmuEntry[] = await response.json();
+    if (!response.ok || (!data || data.length === 0)) {
+      throw new Error(`No umu entry found for steamid=${steamId}`);
+    }
+    await info(`[UMU] Found umu_id=${steamId} title=${data[0].title}`);
+    return data[0];
   }
 
   async fetchByTitle(title: string): Promise<UmuEntry | null> {
     const url = `${UMU_API_BASE}?title=${encodeURIComponent(title)}`;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        await warn(`[UMU] API responded ${response.status} for title=${title}`);
-        return null;
-      }
-      const data: UmuEntry[] = await response.json();
-      if (!data || data.length === 0) {
-        await info(`[UMU] No entry found for title=${title}`);
-        return null;
-      }
-      await info(`[UMU] Found title=${title} umu_id=${data[0].umu_id}`);
-      return data[0];
-    } catch (error) {
-      await warn(`[UMU] Fetch by title failed for title=${title}: ${error}`);
-      return null;
+    const response = await fetch(url);
+    const data: UmuEntry[] = await response.json();
+    if (!response.ok || (!data || data.length === 0)) {
+      throw new Error(`No umu entry found for title=${title}`);
     }
+    await info(`[UMU] Found title=${title} umu_id=${data[0].umu_id}`);
+    return data[0];
   }
 
   async fetchByCodename(codename: string): Promise<UmuEntry | null> {
     const url = `${UMU_API_BASE}?codename=${encodeURIComponent(codename)}`;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        await warn(`[UMU] API responded ${response.status} for codename=${codename}`);
-        return null;
-      }
-      const data: UmuEntry[] = await response.json();
-      if (!data || data.length === 0) {
-        await info(`[UMU] No entry found for codename=${codename}`);
-        return null;
-      }
-      await info(`[UMU] Found codename=${codename} umu_id=${data[0].umu_id}`);
-      return data[0];
-    } catch (error) {
-      await warn(`[UMU] Fetch by codename failed for codename=${codename}: ${error}`);
-      return null;
+    const response = await fetch(url);
+    const data: UmuEntry[] = await response.json();
+    if (!response.ok || (!data || data.length === 0)) {
+      throw new Error(`No umu entry found for codename=${codename}`);
     }
+    await info(`[UMU] Found codename=${codename} umu_id=${codename}`);
+    return data[0];
   }
 
   /**
@@ -156,25 +129,30 @@ export class UmuLauncherService {
    * Retourne le premier résultat ou null si absent/erreur.
    */
   async fetchUmuEntry(game: Game): Promise<UmuEntry | null> {
+    if (game.storeData.umuId) return null; // déjà associé à une entrée umu, pas besoin de fetch
+
     if (!game.storeData.storeId) {
       await warn(`[UMU] No storeId for game ${game.info.title}, skipping umu fetch`);
       return null;
     }
-    try {      
+    try {
       return await this.fetchByCodename(game.storeData.storeId);
     } catch (error) {
-      info(`[UMU] Fetch by codename failed for storeId=${game.storeData.storeId}: ${error}`);
+      info(`[UMU] Fetch by codename failed for ${game.info.title} (codename=${game.storeData.storeId})`);
     }
     try {
       return await this.fetchBySteamId(game.storeData.storeId);
     } catch (error) {
-      info(`[UMU] Fetch by umu_id failed for storeId=${game.storeData.storeId}: ${error}`);
+      info(`[UMU] Fetch by steamId failed for ${game.info.title} (steamId=${game.storeData.storeId})`);
     }
     try {
       return await this.fetchByTitle(game.info.title);
     } catch (error) {
-      info(`[UMU] Fetch by title failed for title=${game.info.title}: ${error}`);
+      info(`[UMU] Fetch by title failed for ${game.info.title} by title search`);
     }
+    warn(
+      `[UMU] No umu entry found for game ${game.info.title} (storeId=${game.storeData.storeId})`,
+    );
     return null;
   }
 }
