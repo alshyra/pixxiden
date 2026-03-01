@@ -9,7 +9,7 @@
       >
         {{ label }}
       </span>
-      <span v-if="showValue" class="text-[10px] font-bold text-white">
+      <span v-if="showValue && !indeterminate" class="text-[10px] font-bold text-white">
         {{ displayValue }}
       </span>
     </div>
@@ -18,11 +18,19 @@
     <div
       class="w-full bg-white/5 rounded-full overflow-hidden"
       :class="[
-        size === 'sm' ? 'h-1' : size === 'md' ? 'h-2' : 'h-3',
+        size === 'sm' ? 'h-2' : size === 'md' ? 'h-2' : 'h-3',
         bordered && 'p-[1px] border border-white/5',
       ]"
     >
+      <!-- Indeterminate: shimmer slide animation -->
       <div
+        v-if="indeterminate"
+        class="h-full w-1/3 rounded-full shimmer-bar"
+        :class="barColorClass"
+      />
+      <!-- Determinate: progress fill -->
+      <div
+        v-else
         class="h-full rounded-full transition-all duration-300"
         :class="[barColorClass, glow && 'shadow-[0_0_15px_currentColor]']"
         :style="{ width: `${clampedValue}%` }"
@@ -72,6 +80,8 @@ const props = withDefaults(
     glow?: boolean;
     bordered?: boolean;
     valueFormat?: "percent" | "fraction";
+    /** When true, shows an animated shimmer instead of a % fill bar */
+    indeterminate?: boolean;
   }>(),
   {
     max: 100,
@@ -82,6 +92,7 @@ const props = withDefaults(
     glow: false,
     bordered: false,
     valueFormat: "percent",
+    indeterminate: false,
   },
 );
 

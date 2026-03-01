@@ -140,7 +140,24 @@ onMounted(async () => {
       downloadsStore.startBackgroundTask("sync", "Synchronisation des bibliothèques", async (task) => {
         try {
           const syncService = GameSyncService.getInstance();
-          const result = await syncService.sync({ skipEnrichment: true });
+          let storesCompleted = 0;
+          const totalStores = 4;
+          const result = await syncService.sync({
+            skipEnrichment: true,
+            onProgress: (event) => {
+              task.detail = event.message;
+              if (event.phase === "complete") {
+                task.progress = 100;
+              } else if (event.store && event.store !== "" && event.phase === "fetching" && event.current > 0) {
+                // A store finished fetching
+                storesCompleted++;
+                task.progress = Math.round((storesCompleted / totalStores) * 75);
+              } else if (task.progress === 0) {
+                // First event — show a bit of progress so the bar is visible
+                task.progress = 5;
+              }
+            },
+          });
           // Refresh library after sync
           await libraryStore.fetchGames();
           task.detail = `${result.total} jeux synchronisés`;

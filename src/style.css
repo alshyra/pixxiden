@@ -50,6 +50,15 @@ body {
   outline-offset: 2px;
 }
 
+/* Shimmer animation for indeterminate progress bars */
+@keyframes shimmer-slide {
+  0% { transform: translateX(-200%); }
+  100% { transform: translateX(400%); }
+}
+.shimmer-bar {
+  animation: shimmer-slide 1.5s ease-in-out infinite;
+}
+
 /* Smooth transitions */
 a,
 button {

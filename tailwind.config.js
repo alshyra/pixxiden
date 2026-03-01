@@ -46,6 +46,7 @@ export default {
         "slide-up": "slideUp 0.3s ease-out",
         "scale-in": "scaleIn 0.2s ease-out",
         "glow-pulse": "glowPulse 2s ease-in-out infinite", // AJOUTÉ : Pour les glows animés
+        shimmer: "shimmer 1.5s ease-in-out infinite", // barre de progression indéterminée
       },
       keyframes: {
         fadeIn: {
@@ -63,6 +64,10 @@ export default {
         glowPulse: {
           "0%, 100%": { opacity: "0.25" },
           "50%": { opacity: "0.4" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(300%)" },
         },
       },
       backdropBlur: {

@@ -17,6 +17,7 @@
       <div v-if="isActive" class="mt-2">
         <ProgressBar
           :value="task.progress"
+          :indeterminate="task.progress === 0"
           variant="gradient"
           size="sm"
           bordered
@@ -93,3 +94,4 @@ const formattedDuration = computed(() => {
   return `${min}m ${sec}s`;
 });
 </script>
+

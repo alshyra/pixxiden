@@ -44,6 +44,8 @@ export interface SyncOptions {
   forceEnrich?: boolean;
   /** Skip enrichment entirely (faster sync) */
   skipEnrichment?: boolean;
+  /** Optional progress callback — called on each sync step */
+  onProgress?: (event: SyncProgressEvent) => void;
 }
 
 export interface SyncResult {
@@ -125,6 +127,7 @@ export class GameSyncService {
   private externalMergers: ExternalLauncherMerger[];
   private apiKeyProvider: ApiKeyProvider;
   private strategies: Map<StoreType, SyncStrategy>;
+  private progressCallback: ((event: SyncProgressEvent) => void) | null = null;
 
   private constructor(
     enrichment: EnrichmentPipeline,
@@ -178,6 +181,7 @@ export class GameSyncService {
   async sync(options: SyncOptions = {}): Promise<SyncResult> {
     const startTime = Date.now();
     const storesToSync = options.stores ?? ["epic", "gog", "amazon", "steam"];
+    this.progressCallback = options.onProgress ?? null;
 
     const result: SyncResult = {
       total: 0,
@@ -508,6 +512,8 @@ export class GameSyncService {
     } catch {
       // Don't fail sync if event emission fails
     }
+    // Also call the in-process callback if provided (e.g. background task progress)
+    this.progressCallback?.(event);
   }
 
   // ===== Helpers =====
