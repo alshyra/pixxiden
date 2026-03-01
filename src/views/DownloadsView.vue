@@ -10,19 +10,19 @@
         <div class="flex items-center gap-4">
           <h1 class="text-5xl font-black italic tracking-tight">Téléchargements</h1>
           <span
-            v-if="downloadsStore.hasActiveDownloads"
+            v-if="downloadsStore.hasActiveActivity"
             class="px-3 py-1 text-sm font-bold bg-remix-accent/20 text-remix-accent rounded-full"
           >
-            {{ downloadsStore.totalActiveCount }} en cours
+            {{ downloadsStore.totalActiveCount + downloadsStore.activeBackgroundTasks.length }} en cours
           </span>
         </div>
 
         <Button
           v-if="
-            downloadsStore.completedDownloads.length > 0 || downloadsStore.failedDownloads.length > 0
+            downloadsStore.completedDownloads.length > 0 || downloadsStore.failedDownloads.length > 0 || downloadsStore.completedBackgroundTasks.length > 0
           "
           variant="ghost"
-          @click="downloadsStore.clearCompleted()"
+          @click="clearAllHistory()"
         >
           Effacer l'historique
         </Button>
@@ -30,6 +30,20 @@
 
       <!-- Content -->
       <div class="space-y-8">
+        <!-- Background Tasks (sync, enrichment, umu-sync) -->
+        <section v-if="downloadsStore.activeBackgroundTasks.length > 0">
+          <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">
+            Tâches en cours ({{ downloadsStore.activeBackgroundTasks.length }})
+          </h2>
+          <div class="space-y-3">
+            <BackgroundTaskCard
+              v-for="task in downloadsStore.activeBackgroundTasks"
+              :key="task.id"
+              :task="task"
+            />
+          </div>
+        </section>
+
         <!-- Active Downloads -->
         <section v-if="downloadsStore.activeDownloads.length > 0">
           <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">
@@ -60,6 +74,21 @@
           </div>
         </section>
 
+        <!-- Completed Background Tasks -->
+        <section v-if="downloadsStore.completedBackgroundTasks.length > 0">
+          <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">
+            Tâches terminées ({{ downloadsStore.completedBackgroundTasks.length }})
+          </h2>
+          <div class="space-y-3">
+            <BackgroundTaskCard
+              v-for="task in downloadsStore.completedBackgroundTasks"
+              :key="task.id"
+              :task="task"
+              @dismiss="downloadsStore.dismissBackgroundTask(task.id)"
+            />
+          </div>
+        </section>
+
         <!-- Failed Downloads -->
         <section v-if="downloadsStore.failedDownloads.length > 0">
           <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">
@@ -78,9 +107,10 @@
         <!-- Empty State -->
         <div
           v-if="
-            !downloadsStore.hasActiveDownloads &&
+            !downloadsStore.hasActiveActivity &&
             downloadsStore.completedDownloads.length === 0 &&
-            downloadsStore.failedDownloads.length === 0
+            downloadsStore.failedDownloads.length === 0 &&
+            downloadsStore.completedBackgroundTasks.length === 0
           "
           class="flex flex-col items-center justify-center py-32 text-center"
         >
@@ -107,6 +137,7 @@ import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 import { Button } from "@/components/ui";
 import { DownloadCloud } from "lucide-vue-next";
 import DownloadCard from "@/components/game/DownloadCard.vue";
+import BackgroundTaskCard from "@/components/game/BackgroundTaskCard.vue";
 
 const router = useRouter();
 const downloadsStore = useDownloadsStore();
@@ -120,6 +151,11 @@ useGamepadScroll(scrollContainer);
 function goBack() {
   if (sideNavStore.isOpen) return;
   router.back();
+}
+
+function clearAllHistory() {
+  downloadsStore.clearCompleted();
+  downloadsStore.clearCompletedBackgroundTasks();
 }
 
 onKeyStroke(KEYBOARD_SHORTCUTS.BACK, goBack);

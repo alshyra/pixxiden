@@ -129,4 +129,20 @@ export const MIGRATIONS: string[] = [
     PRIMARY KEY (game_id, asset_type),
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
   )`,
+  // Migration 8: UMU database table — local cache of the umu-launcher API
+  // Replaces hundreds of individual HTTP requests with a single bulk fetch
+  `CREATE TABLE IF NOT EXISTS umu_database (
+    umu_id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    codename TEXT,
+    store TEXT,
+    acronym TEXT,
+    exe_string TEXT,
+    notes TEXT,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // Migration 9: Indexes for fast UMU lookups by codename, title, and store
+  `CREATE INDEX IF NOT EXISTS idx_umu_codename ON umu_database(codename)`,
+  `CREATE INDEX IF NOT EXISTS idx_umu_title ON umu_database(title)`,
+  `CREATE INDEX IF NOT EXISTS idx_umu_store ON umu_database(store)`,
 ];

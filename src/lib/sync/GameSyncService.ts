@@ -33,6 +33,7 @@ import { EnrichmentService } from "@/services/enrichment";
 import { HeroicImportService } from "@/services/heroic";
 import { getApiKeys, getIGDBAccessToken } from "@/services/api/apiKeys";
 import { UmuLauncherService } from "@/services/runners/UmuLauncherService";
+import { UmuRepository } from "@/lib/database/UmuRepository";
 
 // ===== Types =====
 
@@ -189,68 +190,104 @@ export class GameSyncService {
 
     await info(`Starting sync for stores: ${storesToSync.join(", ")}`);
 
-    // Get existing game IDs to track new vs updated
-    const existingIds = new Set((await this.gameRepo.getAllGames()).map((g) => g.id));
-
-    // ===== Phase 1: Fetch games from each store =====
-    const allFetchedGames: Game[] = [];
-
-    for (const store of storesToSync) {
-      try {
+    // ===== Phase 0: Ensure UMU local database is populated =====
+    // This replaces hundreds of individual HTTP requests with instant SQLite lookups.
+    try {
+      const umuRepo = UmuRepository.getInstance();
+      if (await umuRepo.needsRefresh()) {
         await this.emitProgress({
-          store,
+          store: "",
           gameTitle: "",
           current: 0,
           total: 0,
           phase: "fetching",
-          message: `Détection des jeux ${this.getStoreName(store)}...`,
+          message: "Mise à jour de la base UMU...",
         });
+        const count = await umuRepo.syncFromApi();
+        await info(`[UMU-DB] Synced ${count} entries`);
+      } else {
+        const count = await umuRepo.getCount();
+        await debug(`[UMU-DB] Local database up-to-date (${count} entries)`);
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      await warn(`[UMU-DB] Failed to sync UMU database: ${msg} — will use existing data`);
+    }
 
-        const fetchedGames = await this.fetchViaStrategy(store);
-        const games = await Promise.all(fetchedGames.map(async (game) => {
-          if (!game.storeData.storeId && game.storeData.storeId != 'steam') return game;
-          const umuEntry = await UmuLauncherService.getInstance().fetchUmuEntry(game);
-          if (!umuEntry) return game;
-            return {
-              ...game,
-              storeData: {
-                ...game.storeData,
-                umuId: umuEntry.umu_id,
-              },
-            };
-        }));
-        if (games.length > 0) {
-          // Persist base game data to SQLite
-          await this.gameRepo.upsertGames(games);
+    // Get existing game IDs to track new vs updated
+    const existingIds = new Set((await this.gameRepo.getAllGames()).map((g) => g.id));
 
-          for (const game of games) {
-            if (existingIds.has(game.id)) {
-              result.updated++;
-            } else {
-              result.added++;
-            }
+    // ===== Phase 1: Fetch games from all stores IN PARALLEL =====
+    const allFetchedGames: Game[] = [];
+
+    await this.emitProgress({
+      store: "",
+      gameTitle: "",
+      current: 0,
+      total: storesToSync.length,
+      phase: "fetching",
+      message: `Détection des jeux (${storesToSync.length} stores)...`,
+    });
+
+    const storeResults = await Promise.allSettled(
+      storesToSync.map(async (store) => {
+        try {
+          const fetchedGames = await this.fetchViaStrategy(store);
+          const games = await Promise.all(fetchedGames.map(async (game) => {
+            if (!game.storeData.storeId && game.storeData.storeId !== 'steam') return game;
+            const umuEntry = await UmuLauncherService.getInstance().fetchUmuEntry(game);
+            if (!umuEntry) return game;
+              return {
+                ...game,
+                storeData: {
+                  ...game.storeData,
+                  umuId: umuEntry.umu_id,
+                },
+              };
+          }));
+
+          if (games.length > 0) {
+            await info(`${this.getStoreName(store)}: ${games.length} games`);
+          } else {
+            await warn(
+              `${this.getStoreName(store)}: 0 games returned (not authenticated or fetch failed)`,
+            );
           }
 
-          allFetchedGames.push(...games);
-          await info(`${this.getStoreName(store)}: ${games.length} games`);
-        } else {
-          await warn(
-            `${this.getStoreName(store)}: 0 games returned (not authenticated or fetch failed)`,
-          );
-        }
+          await this.emitProgress({
+            store,
+            gameTitle: "",
+            current: games.length,
+            total: games.length,
+            phase: "fetching",
+            message: `${this.getStoreName(store)}: ${games.length} jeux trouvés`,
+          });
 
-        await this.emitProgress({
-          store,
-          gameTitle: "",
-          current: games.length,
-          total: games.length,
-          phase: "fetching",
-          message: `${this.getStoreName(store)}: ${games.length} jeux trouvés`,
-        });
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        await warn(`Failed to sync ${store}: ${msg}`);
-        result.errors.push({ store, phase: "fetch", message: msg });
+          return { store, games };
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          await warn(`Failed to sync ${store}: ${msg}`);
+          result.errors.push({ store, phase: "fetch", message: msg });
+          return { store, games: [] as Game[] };
+        }
+      }),
+    );
+
+    // Collect results from parallel fetches and persist
+    for (const settled of storeResults) {
+      if (settled.status === "fulfilled" && settled.value.games.length > 0) {
+        const { games } = settled.value;
+        // Persist base game data to SQLite
+        await this.gameRepo.upsertGames(games);
+
+        for (const game of games) {
+          if (existingIds.has(game.id)) {
+            result.updated++;
+          } else {
+            result.added++;
+          }
+        }
+        allFetchedGames.push(...games);
       }
     }
 

@@ -44,14 +44,16 @@ import { debug, info, warn, error as logError } from "@tauri-apps/plugin-log";
 import { PixxidenLogo } from "@/components/ui";
 import { initializeServices } from "@/services";
 import { GameSyncService } from "@/lib/sync";
-import { GameRepository } from "@/lib/database";
+import { GameRepository, UmuRepository } from "@/lib/database";
+import { useLibraryStore } from "@/stores/library";
+import { useDownloadsStore } from "@/stores/downloads";
 
 const emit = defineEmits<{ ready: [] }>();
 
 const statusMessage = ref("Initialisation...");
 const currentGame = ref("");
 const progress = ref(0);
-const MINIMAL_DISPLAY_TIME = 3000; // 3 seconds minimum
+const MINIMAL_DISPLAY_TIME = 2000; // 2 seconds minimum
 
 let unlistenProgress: UnlistenFn | null = null;
 
@@ -68,7 +70,7 @@ interface SyncProgressPayload {
 onMounted(async () => {
   const startTime = Date.now();
 
-  // Listen for progress events from GameSyncService
+  // Listen for progress events from GameSyncService (used only during first-run blocking sync)
   try {
     unlistenProgress = await listen<SyncProgressPayload>("splash-progress", (event) => {
       debug(`Splash progress: ${event.payload.phase} - ${event.payload.message}`);
@@ -77,7 +79,6 @@ onMounted(async () => {
       statusMessage.value = message || "Synchronisation...";
       currentGame.value = gameTitle || "";
 
-      // Calculate progress based on phase
       if (phase === "fetching" && total > 0) {
         progress.value = Math.min(40 + (current / total) * 20, 60);
       } else if (phase === "enriching" && total > 0) {
@@ -102,27 +103,73 @@ onMounted(async () => {
     const gameRepo = GameRepository.getInstance();
     const gamesCount = await gameRepo.getGamesCount();
 
-    // Step 3: Always sync store libraries (new games can appear anytime)
-    // When DB already has games, skip enrichment for faster startup
-    try {
-      const skipEnrichment = gamesCount > 0;
-      await info(
-        skipEnrichment
-          ? `Found ${gamesCount} games in database, starting fast sync (skip enrichment)`
-          : "No games found, starting initial sync...",
-      );
-      statusMessage.value = "Synchronisation des jeux...";
-      progress.value = 40;
+    if (gamesCount > 0) {
+      // ===== FAST PATH: Games exist → load from DB and show UI immediately =====
+      await info(`Found ${gamesCount} games in database — instant startup`);
+      statusMessage.value = "Chargement de la bibliothèque...";
+      progress.value = 80;
 
-      // GameSyncService handles everything: fetch → enrich → persist
-      // Progress events are emitted automatically
+      // Load games into Pinia store from SQLite (instant)
+      const libraryStore = useLibraryStore();
+      libraryStore.initialized = true;
+      await libraryStore.fetchGames();
+
+      currentGame.value = "";
+      statusMessage.value = "Lancement...";
+      progress.value = 100;
+
+      // Emit ready ASAP — user sees the UI
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(0, MINIMAL_DISPLAY_TIME - elapsed);
+      await new Promise((resolve) => setTimeout(resolve, remainingTime));
+      emit("ready");
+
+      // ===== BACKGROUND: Trigger UMU DB sync + library sync as background tasks =====
+      const downloadsStore = useDownloadsStore();
+
+      // Background task 1: Sync UMU database (if stale)
+      const umuRepo = UmuRepository.getInstance();
+      if (await umuRepo.needsRefresh()) {
+        downloadsStore.startBackgroundTask("umu-sync", "Mise à jour base UMU", async (task) => {
+          const count = await umuRepo.syncFromApi();
+          task.detail = `${count} entrées synchronisées`;
+        });
+      }
+
+      // Background task 2: Sync game libraries from stores
+      downloadsStore.startBackgroundTask("sync", "Synchronisation des bibliothèques", async (task) => {
+        try {
+          const syncService = GameSyncService.getInstance();
+          const result = await syncService.sync({ skipEnrichment: true });
+          // Refresh library after sync
+          await libraryStore.fetchGames();
+          task.detail = `${result.total} jeux synchronisés`;
+        } catch (error) {
+          await warn(`Background sync failed: ${error}`);
+          throw error;
+        }
+      });
+
+      return; // Don't run finally block — ready already emitted
+    }
+
+    // ===== FIRST RUN: No games in DB → blocking sync =====
+    await info("No games found, starting initial sync...");
+    statusMessage.value = "Synchronisation des jeux...";
+    progress.value = 40;
+
+    try {
       const syncService = GameSyncService.getInstance();
-      await syncService.sync({ skipEnrichment });
+      await syncService.sync({ skipEnrichment: false });
     } catch (error) {
       await warn(`Sync failed (may need authentication or stores not configured): ${error}`);
-      // Don't block — continue with current local library
       progress.value = 60;
     }
+
+    // Load games into Pinia store
+    const libraryStore = useLibraryStore();
+    libraryStore.initialized = true;
+    await libraryStore.fetchGames();
 
     currentGame.value = "";
     statusMessage.value = "Lancement...";
@@ -131,9 +178,7 @@ onMounted(async () => {
     await logError(`Error during splash screen initialization: ${error}`);
     statusMessage.value = "Chargement terminé";
     progress.value = 100;
-    // Continue anyway
   } finally {
-    // Always ensure minimum display time and signal ready
     const elapsed = Date.now() - startTime;
     const remainingTime = Math.max(0, MINIMAL_DISPLAY_TIME - elapsed);
     await new Promise((resolve) => setTimeout(resolve, remainingTime));

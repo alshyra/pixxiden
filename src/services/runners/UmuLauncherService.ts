@@ -10,13 +10,16 @@
  * Commande générée :
  *   GAMEID=<umu_id> STORE=<store> WINEPREFIX=<prefix> umu-run /path/game.exe
  *
+ * UMU Database: Fetched once in bulk from umu_api.php and stored in local SQLite.
+ * Game lookups are instant SQLite queries instead of individual HTTP requests.
+ *
  * @see https://github.com/Open-Wine-Components/umu-launcher
- * @see https://umu.openwinecomponents.org/umu_api.php?codename=<storeId>
+ * @see https://umu.openwinecomponents.org/umu_api.php
  */
 
 import { Game } from "@/types";
-import { fetch } from "@tauri-apps/plugin-http";
 import { info, warn } from "@tauri-apps/plugin-log";
+import { UmuRepository } from "@/lib/database/UmuRepository";
 
 /** Configuration pour construire une commande umu-run */
 export interface UmuLaunchConfig {
@@ -40,8 +43,6 @@ export interface UmuEntry {
   exe_string: string | null;
   notes: string | null;
 }
-
-const UMU_API_BASE = "https://umu.openwinecomponents.org/umu_api.php";
 
 export class UmuLauncherService {
   private static instance: UmuLauncherService | null = null;
@@ -86,71 +87,55 @@ export class UmuLauncherService {
     return [command, env];
   }
 
-  async fetchBySteamId(steamId: string): Promise<UmuEntry | null> {
-    const url = `${UMU_API_BASE}?umu_id=umu-${steamId}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      return null;
-    }
-    const data: UmuEntry[] = await response.json();
-    if (!response.ok || (!data || data.length === 0)) {
-      throw new Error(`No umu entry found for steamid=${steamId}`);
-    }
-    await info(`[UMU] Found umu_id=${steamId} title=${data[0].title}`);
-    return data[0];
-  }
-
-  async fetchByTitle(title: string): Promise<UmuEntry | null> {
-    const url = `${UMU_API_BASE}?title=${encodeURIComponent(title)}`;
-    const response = await fetch(url);
-    const data: UmuEntry[] = await response.json();
-    if (!response.ok || (!data || data.length === 0)) {
-      throw new Error(`No umu entry found for title=${title}`);
-    }
-    await info(`[UMU] Found title=${title} umu_id=${data[0].umu_id}`);
-    return data[0];
-  }
-
-  async fetchByCodename(codename: string): Promise<UmuEntry | null> {
-    const url = `${UMU_API_BASE}?codename=${encodeURIComponent(codename)}`;
-    const response = await fetch(url);
-    const data: UmuEntry[] = await response.json();
-    if (!response.ok || (!data || data.length === 0)) {
-      throw new Error(`No umu entry found for codename=${codename}`);
-    }
-    await info(`[UMU] Found codename=${codename} umu_id=${codename}`);
-    return data[0];
-  }
-
   /**
-   * Interroge l'API umu pour récupérer l'entrée correspondant à un storeId (codename).
-   *
-   * URL : https://umu.openwinecomponents.org/umu_api.php?codename=<storeId>
-   * Retourne le premier résultat ou null si absent/erreur.
+   * Look up a UMU entry for a game using the local SQLite database.
+   * Tries: codename → umu_id (from steamId) → title (fallback).
+   * All lookups are instant local SQLite queries — no HTTP requests.
    */
   async fetchUmuEntry(game: Game): Promise<UmuEntry | null> {
-    if (game.storeData.umuId) return null; // déjà associé à une entrée umu, pas besoin de fetch
+    if (game.storeData.umuId) return null; // Already has UMU ID
 
     if (!game.storeData.storeId) {
-      await warn(`[UMU] No storeId for game ${game.info.title}, skipping umu fetch`);
+      await warn(`[UMU] No storeId for game ${game.info.title}, skipping umu lookup`);
       return null;
     }
+
+    const umuRepo = UmuRepository.getInstance();
+
+    // Try by codename (most common match for store IDs)
     try {
-      return await this.fetchByCodename(game.storeData.storeId);
-    } catch (error) {
-      info(`[UMU] Fetch by codename failed for ${game.info.title} (codename=${game.storeData.storeId})`);
+      const entry = await umuRepo.findByCodename(game.storeData.storeId);
+      if (entry) {
+        await info(`[UMU] Found by codename: ${game.info.title} → ${entry.umu_id}`);
+        return entry;
+      }
+    } catch {
+      // Continue to next lookup
     }
+
+    // Try by umu_id (e.g. "umu-<steamId>")
     try {
-      return await this.fetchBySteamId(game.storeData.storeId);
-    } catch (error) {
-      info(`[UMU] Fetch by steamId failed for ${game.info.title} (steamId=${game.storeData.storeId})`);
+      const entry = await umuRepo.findByUmuId(`umu-${game.storeData.storeId}`);
+      if (entry) {
+        await info(`[UMU] Found by umu_id: ${game.info.title} → ${entry.umu_id}`);
+        return entry;
+      }
+    } catch {
+      // Continue to next lookup
     }
+
+    // Try by title (fallback)
     try {
-      return await this.fetchByTitle(game.info.title);
-    } catch (error) {
-      info(`[UMU] Fetch by title failed for ${game.info.title} by title search`);
+      const entry = await umuRepo.findByTitle(game.info.title);
+      if (entry) {
+        await info(`[UMU] Found by title: ${game.info.title} → ${entry.umu_id}`);
+        return entry;
+      }
+    } catch {
+      // No match found
     }
-    warn(
+
+    await warn(
       `[UMU] No umu entry found for game ${game.info.title} (storeId=${game.storeData.storeId})`,
     );
     return null;

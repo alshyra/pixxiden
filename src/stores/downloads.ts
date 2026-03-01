@@ -1,11 +1,26 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { error as logError, info } from "@tauri-apps/plugin-log";
+import { error as logError, info, warn } from "@tauri-apps/plugin-log";
 import { getInstallationService } from "@/services";
 import { useLibraryStore } from "./library";
 import type { StoreType } from "@/types";
 
 export type DownloadStatus = "queued" | "downloading" | "installing" | "completed" | "error";
+
+export type BackgroundTaskType = "sync" | "enrichment" | "umu-sync";
+export type BackgroundTaskStatus = "running" | "completed" | "error";
+
+export interface BackgroundTask {
+  id: string;
+  type: BackgroundTaskType;
+  label: string;
+  status: BackgroundTaskStatus;
+  progress: number; // 0-100
+  detail: string;
+  startedAt: number;
+  completedAt?: number;
+  error?: string;
+}
 
 export interface DownloadItem {
   gameId: string;
@@ -27,6 +42,7 @@ export interface DownloadItem {
 export const useDownloadsStore = defineStore("downloads", () => {
   // === STATE ===
   const downloads = ref<Map<string, DownloadItem>>(new Map());
+  const backgroundTasks = ref<Map<string, BackgroundTask>>(new Map());
   const installModalGameId = ref<string | null>(null);
 
   // === COMPUTED ===
@@ -49,6 +65,24 @@ export const useDownloadsStore = defineStore("downloads", () => {
   const hasActiveDownloads = computed(() => activeDownloads.value.length > 0);
 
   const totalActiveCount = computed(() => activeDownloads.value.length);
+
+  // Background tasks computed
+  const activeBackgroundTasks = computed(() =>
+    Array.from(backgroundTasks.value.values()).filter((t) => t.status === "running"),
+  );
+
+  const completedBackgroundTasks = computed(() =>
+    Array.from(backgroundTasks.value.values()).filter(
+      (t) => t.status === "completed" || t.status === "error",
+    ),
+  );
+
+  const hasActiveBackgroundTasks = computed(() => activeBackgroundTasks.value.length > 0);
+
+  // Combined: any active activity (downloads or background tasks)
+  const hasActiveActivity = computed(
+    () => hasActiveDownloads.value || hasActiveBackgroundTasks.value,
+  );
 
   // === INSTALL MODAL ===
   function openInstallModal(gameId: string) {
@@ -221,9 +255,84 @@ export const useDownloadsStore = defineStore("downloads", () => {
     return installationService.getGameInfo(gameId, store);
   }
 
+  // === BACKGROUND TASKS ===
+
+  /**
+   * Start a background task (sync, enrichment, umu-sync, etc.)
+   * The task runs asynchronously and its progress is visible in the Downloads view.
+   * @param type Type of background task
+   * @param label Human-readable label displayed in the UI
+   * @param executor Async function that performs the work. Receives the task object for progress updates.
+   */
+  async function startBackgroundTask(
+    type: BackgroundTaskType,
+    label: string,
+    executor: (task: BackgroundTask) => Promise<void>,
+  ): Promise<void> {
+    const id = `${type}-${Date.now()}`;
+    const task: BackgroundTask = {
+      id,
+      type,
+      label,
+      status: "running",
+      progress: 0,
+      detail: "",
+      startedAt: Date.now(),
+    };
+
+    backgroundTasks.value.set(id, task);
+    await info(`[BackgroundTask] Started: ${label} (${type})`);
+
+    // Run the executor asynchronously — don't await (fire-and-forget)
+    executor(task)
+      .then(async () => {
+        task.status = "completed";
+        task.progress = 100;
+        task.completedAt = Date.now();
+        const duration = ((task.completedAt - task.startedAt) / 1000).toFixed(1);
+        await info(`[BackgroundTask] Completed: ${label} in ${duration}s`);
+      })
+      .catch(async (error) => {
+        task.status = "error";
+        task.error = error instanceof Error ? error.message : String(error);
+        task.completedAt = Date.now();
+        await warn(`[BackgroundTask] Failed: ${label} — ${task.error}`);
+      });
+  }
+
+  /**
+   * Update progress of a background task
+   */
+  function updateBackgroundTaskProgress(id: string, progress: number, detail?: string) {
+    const task = backgroundTasks.value.get(id);
+    if (task) {
+      task.progress = progress;
+      if (detail !== undefined) task.detail = detail;
+    }
+  }
+
+  /**
+   * Dismiss a completed/failed background task
+   */
+  function dismissBackgroundTask(id: string) {
+    backgroundTasks.value.delete(id);
+  }
+
+  /**
+   * Clear all completed background tasks
+   */
+  function clearCompletedBackgroundTasks() {
+    for (const [id, task] of backgroundTasks.value) {
+      if (task.status === "completed" || task.status === "error") {
+        backgroundTasks.value.delete(id);
+      }
+    }
+  }
+
   return {
     // State
     downloads,
+    backgroundTasks,
     installModalGameId,
 
     // Computed
@@ -233,6 +342,10 @@ export const useDownloadsStore = defineStore("downloads", () => {
     failedDownloads,
     hasActiveDownloads,
     totalActiveCount,
+    activeBackgroundTasks,
+    completedBackgroundTasks,
+    hasActiveBackgroundTasks,
+    hasActiveActivity,
 
     // Modal
     openInstallModal,
@@ -246,6 +359,12 @@ export const useDownloadsStore = defineStore("downloads", () => {
     isDownloading,
     getDownload,
     fetchGameInfo,
+
+    // Background Tasks
+    startBackgroundTask,
+    updateBackgroundTaskProgress,
+    dismissBackgroundTask,
+    clearCompletedBackgroundTasks,
   };
 });
 
