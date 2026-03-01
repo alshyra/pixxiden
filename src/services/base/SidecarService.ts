@@ -170,6 +170,32 @@ export class SidecarService {
   }
 
   /**
+   * Spawn gogdl CLI with real-time streaming (for GOG install/download)
+   */
+  async spawnGogdlStreaming(
+    args: string[],
+    callbacks: {
+      onStdout?: (line: string) => void;
+      onStderr?: (line: string) => void;
+    } = {},
+  ): Promise<StreamingHandle> {
+    return this.spawnStreaming("gogdl", args, callbacks);
+  }
+
+  /**
+   * Spawn nile CLI with real-time streaming (for Amazon install/download)
+   */
+  async spawnNileStreaming(
+    args: string[],
+    callbacks: {
+      onStdout?: (line: string) => void;
+      onStderr?: (line: string) => void;
+    } = {},
+  ): Promise<StreamingHandle> {
+    return this.spawnStreaming("nile", args, callbacks);
+  }
+
+  /**
    * Check if a sidecar is available
    */
   async isAvailable(sidecar: SidecarName): Promise<boolean> {

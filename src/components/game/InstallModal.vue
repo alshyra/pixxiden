@@ -343,7 +343,7 @@ async function loadDiskInfo() {
   try {
     const diskInfo = await api.getDiskInfo();
     const expandedPath = installPath.value.startsWith("~")
-      ? installPath.value.replace("~", "/home")
+      ? installPath.value.replace("~", await homeDir())
       : installPath.value;
 
     const sortedDisks = [...diskInfo].sort((a, b) => b.mountPoint.length - a.mountPoint.length);
@@ -359,7 +359,7 @@ async function loadDiskInfo() {
 async function loadGameInfo() {
   if (!game.value) return;
 
-  installPath.value = `~/Games/${game.value.storeData.store}`;
+  installPath.value = `${await homeDir()}/Games/${game.value.storeData.store}`;
   gameSize.value = 0;
 
   await loadDiskInfo();

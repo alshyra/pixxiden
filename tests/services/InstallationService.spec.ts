@@ -1,8 +1,8 @@
 /**
  * Tests for InstallationService
  *
- * LegendaryInstallation uses streaming spawn (spawnLegendaryStreaming) for real-time progress.
- * Other installers still use synchronous runXxx methods.
+ * LegendaryInstallation, GogdlInstallation and NileInstallation use streaming spawn
+ * for real-time progress during downloads.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -47,6 +47,8 @@ describe("InstallationService", () => {
       runNile: vi.fn(),
       runCommand: vi.fn(),
       spawnLegendaryStreaming: vi.fn(),
+      spawnGogdlStreaming: vi.fn(),
+      spawnNileStreaming: vi.fn(),
     } as any;
 
     // Mock DatabaseService
@@ -93,27 +95,31 @@ describe("InstallationService", () => {
       const store = "gog";
       const installPath = "/custom/path";
 
-      vi.spyOn(mockSidecar, "runGogdl").mockResolvedValue({
-        code: 0,
-        stdout: "Installation complete",
-        stderr: "",
-      });
+      // GogdlInstallation now uses streaming spawn
+      vi.spyOn(mockSidecar, "spawnGogdlStreaming").mockImplementation(
+        (_args: string[], _callbacks?: any) => {
+          return Promise.resolve(createMockStreamingHandle(0));
+        },
+      );
 
       vi.spyOn(mockDb, "execute").mockResolvedValue({} as any);
 
       await installationService.installGame(gameId, store, { installPath });
 
       // CLI receives --auth-config-path before subcommand, --platform linux, and raw store ID
-      expect(mockSidecar.runGogdl).toHaveBeenCalledWith([
-        "--auth-config-path",
-        expect.any(String),
-        "download",
-        "test-game",
-        "--platform",
-        "linux",
-        "--path",
-        installPath,
-      ]);
+      expect(mockSidecar.spawnGogdlStreaming).toHaveBeenCalledWith(
+        [
+          "--auth-config-path",
+          expect.any(String),
+          "download",
+          "test-game",
+          "--platform",
+          "linux",
+          "--path",
+          installPath,
+        ],
+        expect.any(Object),
+      );
     });
 
     it("should emit progress events during installation", async () => {

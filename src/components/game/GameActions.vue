@@ -73,6 +73,64 @@
       </Button>
     </div>
 
+    <!-- Uninstall Section (shown when game is installed and not launching) -->
+    <template v-if="game?.installation.installed && !isLaunching && !isGameDownloading">
+      <!-- Normal uninstall trigger -->
+      <Button
+        v-if="!showUninstallConfirm && !isUninstalling"
+        variant="ghost"
+        size="sm"
+        class="w-full !text-gray-500 hover:!text-red-400 hover:!border-red-500/30 transition-colors"
+        data-testid="uninstall-button"
+        @click="showUninstallConfirm = true"
+      >
+        <template #icon>
+          <Trash2 class="w-3.5 h-3.5" />
+        </template>
+        Désinstaller
+      </Button>
+
+      <!-- Uninstall confirmation row -->
+      <div v-if="showUninstallConfirm && !isUninstalling" class="flex gap-2">
+        <Button
+          variant="danger"
+          size="sm"
+          class="flex-1"
+          data-testid="uninstall-confirm-button"
+          @click="confirmUninstall"
+        >
+          <template #icon>
+            <AlertTriangle class="w-3.5 h-3.5" />
+          </template>
+          Confirmer
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="shrink-0"
+          data-testid="uninstall-cancel-button"
+          @click="showUninstallConfirm = false"
+        >
+          Annuler
+        </Button>
+      </div>
+
+      <!-- Uninstalling loading state -->
+      <Button
+        v-if="isUninstalling"
+        variant="ghost"
+        size="sm"
+        class="w-full !text-gray-500"
+        disabled
+        data-testid="uninstalling-button"
+      >
+        <template #icon>
+          <Loader2 class="w-3.5 h-3.5 animate-spin" />
+        </template>
+        Désinstallation...
+      </Button>
+    </template>
+
     <!-- Force Close Button -->
     <Button
       v-if="isLaunching"
@@ -99,15 +157,16 @@
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from "vue";
 import { Button, ProgressBar } from "@/components/ui";
-import { Download, Play, Square, Settings } from "lucide-vue-next";
+import { Download, Play, Square, Settings, Trash2, AlertTriangle, Loader2 } from "lucide-vue-next";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 import { useDownloadsStore } from "@/stores/downloads";
+import { useLibraryStore } from "@/stores/library";
 import InstallModal from "./InstallModal.vue";
 import ExecutableConfigModal from "./ExecutableConfigModal.vue";
 
 /**
  * GameActions - Smart Component autonome
- * Gère les actions du jeu (Install/Play/Stop) via useCurrentGame + useDownloadsStore
+ * Gère les actions du jeu (Install/Play/Stop/Uninstall) via useCurrentGame + useDownloadsStore
  * Zéro props, zéro events — tout passe par les stores
  *
  * Focus gamepad injecté depuis GameDetails pour afficher le ring visuel
@@ -115,7 +174,10 @@ import ExecutableConfigModal from "./ExecutableConfigModal.vue";
 
 const { game, isLaunching, playGame, forceCloseGame } = useCurrentGame();
 const downloadsStore = useDownloadsStore();
+const libraryStore = useLibraryStore();
 const showExeConfig = ref(false);
+const showUninstallConfirm = ref(false);
+const isUninstalling = ref(false);
 
 // Inject focus state from parent (GameDetails)
 const actionFocused = inject<Ref<boolean>>("actionFocused", ref(false));
@@ -133,5 +195,16 @@ const isGameDownloading = computed(() => {
 function openInstall() {
   if (!game.value) return;
   downloadsStore.openInstallModal(game.value.id);
+}
+
+async function confirmUninstall() {
+  if (!game.value || isUninstalling.value) return;
+  isUninstalling.value = true;
+  showUninstallConfirm.value = false;
+  try {
+    await libraryStore.uninstallGame(game.value.id);
+  } finally {
+    isUninstalling.value = false;
+  }
 }
 </script>
