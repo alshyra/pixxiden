@@ -40,6 +40,13 @@ vi.mock("@tauri-apps/plugin-log", () => ({
   debug: vi.fn(),
 }));
 
+// Mock @tauri-apps/plugin-fs — GogLaunchStrategy scans the install directory for 'gameinfo'
+// In tests, installPath is already the game directory, so exists() returns true.
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  exists: vi.fn().mockResolvedValue(true),
+  readDir: vi.fn().mockResolvedValue([]),
+}));
+
 // ===== Test Constants =====
 
 const PROTON_PATH = "/home/user/.local/share/pixxiden/runners/GE-Proton10-29/proton";
@@ -155,6 +162,7 @@ describe("Proton Launch Integration", () => {
       title: "The Witcher 3",
       installed: true,
       installPath: "/home/user/Games/GOG/The Witcher 3",
+      installedPlatform: "windows", // Windows build → requires Proton
     });
 
     const gogContext = protonContext({
@@ -207,10 +215,13 @@ describe("Proton Launch Integration", () => {
       );
     });
 
-    it("should skip Proton flags when no protonPath", async () => {
+    it("should keep --platform windows but skip Proton wrapper when no protonPath", async () => {
       const cmd = await strategy.buildCommand(gogGame, noProtonContext());
 
-      expect(cmd).not.toContain("--platform");
+      // --platform is always required by gogdl, even without Proton
+      expect(cmd).toContain("--platform");
+      expect(cmd).toContain("windows");
+      // Proton-specific flags must not be present
       expect(cmd).not.toContain("--no-wine");
       expect(cmd).not.toContain("--wrapper");
     });

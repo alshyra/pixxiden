@@ -100,6 +100,7 @@ export abstract class GameStoreService {
         customExecutablePath: "",
         runner: (row.runner as string) || "",
         cloudSaveSupport: Boolean(row.cloud_save_support),
+        installedPlatform: (row.installed_platform as string) || "",
       },
       gameCompletion: {
         timeToBeatHastily: (row.hltb_main as number) || 0,

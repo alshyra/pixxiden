@@ -378,6 +378,7 @@ export class GameRepository {
         runner: (row.runner as string) || "",
         runnerPath: (row.runner_path as string) || "",
         cloudSaveSupport: Boolean(row.cloud_save_support),
+        installedPlatform: (row.installed_platform as string) || "",
       },
       gameCompletion: {
         timeToBeatHastily: (row.hltb_main as number) || 0,

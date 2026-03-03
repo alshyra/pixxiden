@@ -67,19 +67,7 @@
           "path": "$APPDATA/**"
         },
         {
-          "path": "$HOME/.config/**"
-        },
-        {
-          "path": "$HOME/.local/**"
-        },
-        {
-          "path": "$HOME/.var/**"
-        },
-        {
-          "path": "$HOME/.steam/**"
-        },
-        {
-          "path": "$HOME/.local/share/Steam/**"
+          "path": "$HOME/**"
         }
       ]
     },
@@ -90,16 +78,7 @@
           "path": "$APPDATA/**"
         },
         {
-          "path": "$HOME/.config/heroic/**"
-        },
-        {
-          "path": "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/**"
-        },
-        {
-          "path": "$HOME/.steam/**"
-        },
-        {
-          "path": "$HOME/.local/share/Steam/**"
+          "path": "$HOME/**"
         }
       ]
     },

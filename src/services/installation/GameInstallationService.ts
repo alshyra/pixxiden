@@ -71,11 +71,18 @@ export abstract class GameInstallationService {
   /**
    * Update database after successful installation
    */
-  protected async markAsInstalled(gameId: string, installPath: string): Promise<void> {
-    await this.db.execute(`UPDATE games SET installed = 1, install_path = ? WHERE id = ?`, [
-      installPath,
-      gameId,
-    ]);
+  protected async markAsInstalled(gameId: string, installPath: string, platform = ""): Promise<void> {
+    if (platform) {
+      await this.db.execute(
+        `UPDATE games SET installed = 1, install_path = ?, installed_platform = ? WHERE id = ?`,
+        [installPath, platform, gameId],
+      );
+    } else {
+      await this.db.execute(`UPDATE games SET installed = 1, install_path = ? WHERE id = ?`, [
+        installPath,
+        gameId,
+      ]);
+    }
   }
 
   /**

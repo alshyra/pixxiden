@@ -35,6 +35,8 @@ export interface InstallationData {
   runnerPath: string;
   /** Whether this game supports cloud save sync (e.g. gogdl save-sync) */
   cloudSaveSupport: boolean;
+  /** Installed platform: 'linux', 'windows', 'osx', or '' for unknown (legacy) */
+  installedPlatform: string;
 }
 
 export interface GameCompletionData {
@@ -136,6 +138,7 @@ export function defaultInstallationData(): InstallationData {
     runner: "",
     runnerPath: "",
     cloudSaveSupport: false,
+    installedPlatform: "",
   };
 }
 
@@ -182,6 +185,7 @@ export function createGame(overrides: {
   playTimeMinutes?: number;
   cloudSaveSupport?: boolean;
   umuId?: string;
+  installedPlatform?: string;
 }): Game {
   const now = new Date().toISOString();
   return {
@@ -200,6 +204,7 @@ export function createGame(overrides: {
       executablePath: overrides.executablePath ?? "",
       winePrefix: overrides.winePrefix ?? "",
       cloudSaveSupport: overrides.cloudSaveSupport ?? false,
+      installedPlatform: overrides.installedPlatform ?? "",
     },
     gameCompletion: {
       ...defaultGameCompletionData(),

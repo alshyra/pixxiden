@@ -100,8 +100,12 @@ export class GogdlInstallation extends GameInstallationService {
         throw new Error(`gogdl download exited with code ${result.code}`);
       }
 
-      // Mark as installed in database
-      await this.markAsInstalled(gameId, installDir);
+      // gogdl creates a subfolder named after the game's folder_name inside installDir.
+      // Resolve the actual game directory so the launch strategy gets the correct path.
+      const actualInstallPath = await this.findGameDirectory(installDir, storeId, authPath);
+
+      // Mark as installed in database with the resolved path and platform
+      await this.markAsInstalled(gameId, actualInstallPath, platform);
     } catch (err) {
       await warn(`[GOG Install] Failed: ${err}`);
       throw err;
@@ -140,6 +144,41 @@ export class GogdlInstallation extends GameInstallationService {
     } catch {
       return "~/Games/GOG";
     }
+  }
+
+  /**
+   * After gogdl download, locate the actual game directory inside parentDir.
+   *
+   * Uses `gogdl info <storeId> --json` to obtain the `folder_name` field,
+   * then constructs `parentDir/folder_name`. This avoids filesystem
+   * permission scoping issues when games are installed outside $APPDATA.
+   * Falls back to parentDir if the info call fails.
+   */
+  private async findGameDirectory(
+    parentDir: string,
+    storeId: string,
+    authPath: string,
+  ): Promise<string> {
+    try {
+      const result = await this.sidecar.runGogdl([
+        "--auth-config-path",
+        authPath,
+        "info",
+        storeId,
+        "--json",
+      ]);
+      if (result.code === 0 && result.stdout.trim()) {
+        const info = JSON.parse(result.stdout) as Record<string, unknown>;
+        const folderName = info.folder_name as string | undefined;
+        if (folderName) {
+          await debug(`[GOG Install] Resolved game directory: ${parentDir}/${folderName}`);
+          return `${parentDir}/${folderName}`;
+        }
+      }
+    } catch (err) {
+      await debug(`[GOG Install] Could not resolve folder_name, using parent dir: ${err}`);
+    }
+    return parentDir;
   }
 }
 

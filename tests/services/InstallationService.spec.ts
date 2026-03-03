@@ -11,6 +11,14 @@ import { SidecarService } from "@/services/base/SidecarService";
 import { DatabaseService } from "@/services/base/DatabaseService";
 import type { StreamingHandle } from "@/services/base/SidecarService";
 
+// Mock @tauri-apps/plugin-fs — GogdlInstallation scans the install directory
+// to resolve the actual game subfolder. In tests, return no subdirectories so
+// it falls back to the provided installPath.
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  readDir: vi.fn().mockResolvedValue([]),
+  exists: vi.fn().mockResolvedValue(false),
+}));
+
 /**
  * Helper: creates a mock StreamingHandle that resolves immediately with given code.
  * Optionally calls onStderr/onStdout callbacks before resolving.

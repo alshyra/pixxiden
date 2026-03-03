@@ -66,6 +66,9 @@ CREATE TABLE IF NOT EXISTS games (
   downloading INTEGER DEFAULT 0,
   download_progress REAL,
   
+  -- Installed platform (linux/windows/osx) — needed to decide if Proton is required at launch
+  installed_platform TEXT DEFAULT '',
+
   -- Timestamps
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -145,4 +148,6 @@ export const MIGRATIONS: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_umu_codename ON umu_database(codename)`,
   `CREATE INDEX IF NOT EXISTS idx_umu_title ON umu_database(title)`,
   `CREATE INDEX IF NOT EXISTS idx_umu_store ON umu_database(store)`,
+  // Migration 10: Add installed_platform for GOG/Epic games — 'linux', 'windows', 'osx', or '' for unknown
+  `ALTER TABLE games ADD COLUMN installed_platform TEXT DEFAULT ''`,
 ];

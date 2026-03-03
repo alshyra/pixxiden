@@ -83,6 +83,7 @@ const makeGame = (): Game => ({
     runner: "",
     runnerPath: "",
     cloudSaveSupport: true,
+    installedPlatform: "",
   },
   gameCompletion: {
     timeToBeatHastily: 0,
