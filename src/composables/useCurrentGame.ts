@@ -13,7 +13,8 @@ type UnlistenFn = () => void;
  * Composable pour gérer le jeu courant basé sur l'ID de route
  * Centralise toutes les données et états liés au jeu actuel
  *
- * Utilisé par les Smart Components (GameInfoCard, GameActions, etc.)
+ * Utilisé par les Smart Components (GameOverviewTab, GameMediaTab,
+ * GameInfoTab, GameHeroSection, GameActions)
  * pour accéder aux données du jeu sans prop drilling
  */
 export function useCurrentGame() {
@@ -131,6 +132,14 @@ export function useCurrentGame() {
       day: "numeric",
       month: "short",
     });
+  });
+
+  const formattedTimetoBeat = computed(() => {
+    const timeToBeat = game.value?.gameCompletion.timeToBeatNormally || game.value?.gameCompletion.timeToBeatCompletely;
+    if (!timeToBeat) return "N/A";
+    const hours = Math.floor(timeToBeat);
+    const minutes = Math.round((timeToBeat - hours) * 60);
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   });
 
   const completionStatus = computed(() => {
@@ -302,6 +311,7 @@ export function useCurrentGame() {
     completionStatus,
     launchRunner,
     totalSize,
+    formattedTimetoBeat,
 
     // Download state
     isDownloading,

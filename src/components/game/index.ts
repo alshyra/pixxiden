@@ -7,11 +7,12 @@ export { default as GameOverlay } from "./GameOverlay.vue";
 export { default as OverlayActionCard } from "./OverlayActionCard.vue";
 export { default as ExecutableConfigModal } from "./ExecutableConfigModal.vue";
 
-// New sub-components for GameDetails refactor
-export { default as GameInfoCard } from "./GameInfoCard.vue";
+// GameDetails sub-components
 export { default as GameActions } from "./GameActions.vue";
-export { default as GameStatsGrid } from "./GameStatsGrid.vue";
 export { default as GameHeroSection } from "./GameHeroSection.vue";
+export { default as GameOverviewTab } from "./GameOverviewTab.vue";
+export { default as GameMediaTab } from "./GameMediaTab.vue";
+export { default as GameInfoTab } from "./GameInfoTab.vue";
 export { default as DownloadCard } from "./DownloadCard.vue";
 export { default as AssetSlotGrid } from "./AssetSlotGrid.vue";
 export { default as SteamGridGallery } from "./SteamGridGallery.vue";

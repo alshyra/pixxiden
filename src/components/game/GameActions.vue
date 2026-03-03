@@ -1,184 +1,71 @@
 <template>
-  <div class="space-y-2">
-    <!-- Install Button -->
+  <div class="flex items-center gap-3 shrink-0">
     <Button
-      v-if="!game?.installation.installed && !isGameDownloading"
+      v-if="!isLaunching"
+      :class="[{ 'is-focused': actionFocused }]"
       variant="primary"
-      size="lg"
-      class="w-full"
-      :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': actionFocused }"
-      data-testid="install-button"
-      @click="openInstall"
+      :disabled="isGameDownloading"
+      data-testid="primary-action-button"
+      @click="handlePrimaryAction"
     >
-      <template #icon>
-        <Download class="w-5 h-5" />
-      </template>
-      Installer
+      <Play class="w-4 h-4" />
+      {{ primaryLabel }}
     </Button>
 
-    <!-- Download Progress (from downloads store) -->
-    <div v-if="isGameDownloading && currentDownload" class="space-y-3">
-      <ProgressBar
-        :value="currentDownload.progress"
-        label="Téléchargement..."
-        variant="gradient"
-        :glow="true"
-        bordered
-        show-value
-      >
-        <template #subtitle>
-          <span
-            v-if="currentDownload.downloadSpeed"
-            class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
-          >
-            {{ currentDownload.downloadSpeed }}
-          </span>
-          <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">
-            {{ currentDownload.downloadedSize || "0 MB" }} / {{ currentDownload.totalSize }}
-          </span>
-        </template>
-      </ProgressBar>
-    </div>
-
-    <!-- Play Button + Config -->
-    <div
-      v-if="game?.installation.installed && !isLaunching"
-      class="flex gap-2"
+    <Button
+      v-if="!isLaunching"
+      class="settings-button"
+      variant="outline"
+      data-testid="customize-button"
+      @click="openCustomize"
     >
-      <Button
-        variant="success"
-        size="lg"
-        class="flex-1"
-        :class="{ 'ring-2 ring-[#5e5ce6] shadow-[0_0_15px_rgba(94,92,230,0.4)]': actionFocused }"
-        data-testid="play-button"
-        @click="playGame"
-      >
-        <template #icon>
-          <Play class="w-5 h-5" />
-        </template>
-        Lancer le jeu
-      </Button>
+      <Settings class="w-4 h-4" />
+      Paramètres
+    </Button>
 
-      <!-- Exe Config Button (non-Steam games only) -->
-      <Button
-        v-if="game?.storeData.store !== 'steam'"
-        variant="ghost"
-        size="lg"
-        class="shrink-0 !px-3"
-        data-testid="exe-config-button"
-        :title="game?.installation.executablePath ? 'Modifier l\'exécutable' : 'Configurer l\'exécutable'"
-        @click="showExeConfig = true"
-      >
-        <Settings class="w-5 h-5" />
-      </Button>
+    <div
+      v-if="isGameDownloading && currentDownload"
+      class="text-xs text-[#a0a0b0] font-semibold"
+      data-testid="download-status"
+    >
+      Téléchargement {{ Math.round(currentDownload.progress || 0) }}%
     </div>
 
-    <!-- Uninstall Section (shown when game is installed and not launching) -->
-    <template v-if="game?.installation.installed && !isLaunching && !isGameDownloading">
-      <!-- Normal uninstall trigger -->
-      <Button
-        v-if="!showUninstallConfirm && !isUninstalling"
-        variant="ghost"
-        size="sm"
-        class="w-full !text-gray-500 hover:!text-red-400 hover:!border-red-500/30 transition-colors"
-        data-testid="uninstall-button"
-        @click="showUninstallConfirm = true"
-      >
-        <template #icon>
-          <Trash2 class="w-3.5 h-3.5" />
-        </template>
-        Désinstaller
-      </Button>
-
-      <!-- Uninstall confirmation row -->
-      <div v-if="showUninstallConfirm && !isUninstalling" class="flex gap-2">
-        <Button
-          variant="danger"
-          size="sm"
-          class="flex-1"
-          data-testid="uninstall-confirm-button"
-          @click="confirmUninstall"
-        >
-          <template #icon>
-            <AlertTriangle class="w-3.5 h-3.5" />
-          </template>
-          Confirmer
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          class="shrink-0"
-          data-testid="uninstall-cancel-button"
-          @click="showUninstallConfirm = false"
-        >
-          Annuler
-        </Button>
-      </div>
-
-      <!-- Uninstalling loading state -->
-      <Button
-        v-if="isUninstalling"
-        variant="ghost"
-        size="sm"
-        class="w-full !text-gray-500"
-        disabled
-        data-testid="uninstalling-button"
-      >
-        <template #icon>
-          <Loader2 class="w-3.5 h-3.5 animate-spin" />
-        </template>
-        Désinstallation...
-      </Button>
-    </template>
-
-    <!-- Force Close Button -->
     <Button
       v-if="isLaunching"
-      variant="danger"
-      size="lg"
-      class="w-full"
+      class="force-close-button"
       data-testid="force-close-button"
       @click="forceCloseGame"
     >
-      <template #icon>
-        <Square class="w-5 h-5" />
-      </template>
+      <Square class="w-4 h-4" />
       Forcer la fermeture
     </Button>
 
     <!-- Install Modal (autonomous — no props, no events) -->
     <InstallModal />
 
-    <!-- Executable Config Modal -->
-    <ExecutableConfigModal v-model="showExeConfig" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from "vue";
-import { Button, ProgressBar } from "@/components/ui";
-import { Download, Play, Square, Settings, Trash2, AlertTriangle, Loader2 } from "lucide-vue-next";
+import { useRouter } from "vue-router";
+import { Play, Square, Settings } from "lucide-vue-next";
 import { useCurrentGame } from "@/composables/useCurrentGame";
 import { useDownloadsStore } from "@/stores/downloads";
-import { useLibraryStore } from "@/stores/library";
 import InstallModal from "./InstallModal.vue";
-import ExecutableConfigModal from "./ExecutableConfigModal.vue";
+import Button from "../ui/Button.vue";
 
 /**
  * GameActions - Smart Component autonome
  * Gère les actions du jeu (Install/Play/Stop/Uninstall) via useCurrentGame + useDownloadsStore
- * Zéro props, zéro events — tout passe par les stores
  *
  * Focus gamepad injecté depuis GameDetails pour afficher le ring visuel
  */
 
 const { game, isLaunching, playGame, forceCloseGame } = useCurrentGame();
+const router = useRouter();
 const downloadsStore = useDownloadsStore();
-const libraryStore = useLibraryStore();
-const showExeConfig = ref(false);
-const showUninstallConfirm = ref(false);
-const isUninstalling = ref(false);
-
 // Inject focus state from parent (GameDetails)
 const actionFocused = inject<Ref<boolean>>("actionFocused", ref(false));
 
@@ -192,19 +79,25 @@ const isGameDownloading = computed(() => {
   return downloadsStore.isDownloading(game.value.id);
 });
 
-function openInstall() {
-  if (!game.value) return;
-  downloadsStore.openInstallModal(game.value.id);
+const primaryLabel = computed(() => {
+  if (isGameDownloading.value) return "Téléchargement...";
+  if (game.value?.installation.installed) return "▶ Jouer";
+  return "Installer";
+});
+
+function handlePrimaryAction() {
+  if (!game.value || isGameDownloading.value) return;
+
+  if (!game.value.installation.installed) {
+    downloadsStore.openInstallModal(game.value.id);
+    return;
+  }
+
+  playGame();
 }
 
-async function confirmUninstall() {
-  if (!game.value || isUninstalling.value) return;
-  isUninstalling.value = true;
-  showUninstallConfirm.value = false;
-  try {
-    await libraryStore.uninstallGame(game.value.id);
-  } finally {
-    isUninstalling.value = false;
-  }
+function openCustomize() {
+  if (!game.value) return;
+  router.push({ name: "game-customize", params: { id: game.value.id } });
 }
 </script>

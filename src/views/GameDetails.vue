@@ -1,38 +1,30 @@
 <template>
   <div
     data-testid="game-detail"
-    class="h-screen w-full bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col"
+    class="game-detail-fullscreen"
   >
-    <!-- Hero Section (Smart Component) -->
-    <GameHeroSection />
+    <GameHeroSection class="hero-section" />
 
-    <!-- Main Content -->
-    <div class="flex-1 mx-auto px-10 mt-[15%] relative z-20 w-full mb-6">
-      <div class="grid grid-cols-12 gap-6 h-full items-start">
-        <!-- Left Column: Game Info Card (Smart Component) -->
-        <div class="col-span-12 lg:col-span-4 space-y-4 h-full flex flex-col">
-          <GameInfoCard @customize="navigateToCustomize()" />
-          <GameStatsGrid />
+    <div class="bottom-panel">
+      <div class="action-bar">
+        <GameActions />
+
+        <div class="tab-bar">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            :class="['tab-button', { active: activeTab === tab.id }]"
+            @click="activeTab = tab.id"
+          >
+            {{ tab.label }}
+          </button>
         </div>
-        <!-- Right Column: Stats & Synopsis -->
-        <div class="col-span-12 lg:col-span-8 space-y-6 h-full flex flex-col">
-          <Caroussel :images="screenshots" />
+      </div>
 
-          <!-- Stats Grid (Smart Component) -->
-
-          <!-- Synopsis -->
-          <section data-testid="game-synopsis" class="px-2 overflow-hidden flex-shrink">
-            <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2 italic">
-              Synopsis
-            </h3>
-            <p
-              data-testid="game-description"
-              class="text-xs text-gray-400 leading-snug italic line-clamp-4 opacity-80"
-            >
-              {{ game?.info.description || "Missing description" }}
-            </p>
-          </section>
-        </div>
+      <div class="tab-content">
+        <GameOverviewTab v-if="activeTab === 'overview'" />
+        <GameMediaTab v-if="activeTab === 'media'" />
+        <GameInfoTab v-if="activeTab === 'info'" />
       </div>
     </div>
 
@@ -48,30 +40,36 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, provide } from "vue";
-import { useRouter } from "vue-router";
-import { onKeyStroke } from "@vueuse/core";
-import { useLibraryStore } from "@/stores/library";
-import { useDownloadsStore } from "@/stores/downloads";
-import { useGamepad } from "@/composables/useGamepad";
+import {
+  GameActions,
+  GameHeroSection,
+  GameInfoTab,
+  GameMediaTab,
+  GameOverviewTab,
+  LaunchOverlay,
+} from "@/components/game";
 import { useCurrentGame } from "@/composables/useCurrentGame";
-import { useSideNavStore } from "@/stores/sideNav";
-import { GameHeroSection, GameInfoCard, GameStatsGrid, LaunchOverlay } from "@/components/game";
+import { useGamepad } from "@/composables/useGamepad";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
-import Caroussel from "@/components/ui/Caroussel.vue";
+import { useDownloadsStore } from "@/stores/downloads";
+import { useLibraryStore } from "@/stores/library";
+import { useSideNavStore } from "@/stores/sideNav";
+import { onKeyStroke } from "@vueuse/core";
+import { onMounted, onUnmounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
 /**
- * GameDetails - Page détail d'un jeu
+ * GameDetails - Page détail d'un jeu (Layout Option B — Console UX)
  *
  * Architecture "Smart Components":
- * - Les composants enfants (GameHeroSection, GameInfoCard, GameStatsGrid, GameActions)
+ * - Les composants enfants (GameHeroSection, GameActions, GameOverviewTab, GameMediaTab, GameInfoTab)
  *   récupèrent eux-mêmes leurs données via le composable useCurrentGame
- * - Le parent ne fait que l'orchestration (navigation, lifecycle, focus)
- * - Zéro "Props Drilling" : les données ne passent plus par le parent
+ * - Le parent ne fait que l'orchestration (navigation, lifecycle, tabs, focus)
+ * - Zéro "Props Drilling" : les données ne passent pas par le parent
  *
  * Navigation Gamepad:
- * - Focus automatique sur le bouton principal (Installer/Lancer)
- * - A/Confirm: Exécute l'action (Install ou Play selon l'état)
+ * - LB/RB: navigation entre les onglets (Vue d'ensemble / Médias / Infos)
+ * - A/Confirm: Exécute l'action principale (Install ou Play selon l'état)
  * - B/Back: Retour à la bibliothèque
  */
 
@@ -85,7 +83,6 @@ const sideNavStore = useSideNavStore();
 // useCurrentGame centralise l'accès aux données du jeu courant
 const {
   game,
-  screenshots,
   isLaunching,
   launchError,
   launchRunner,
@@ -95,12 +92,26 @@ const {
   cleanup,
 } = useCurrentGame();
 
-// === FOCUS STATE ===
-// Focus toujours sur le bouton d'action principal pour navigation gamepad
-const actionFocused = ref(true);
+const tabs = [
+  { id: "overview", label: "Vue d'ensemble" },
+  { id: "media", label: "Médias" },
+  { id: "info", label: "Infos" },
+] as const;
 
-// Expose le focus aux composants enfants via provide
-provide("actionFocused", actionFocused);
+type TabId = (typeof tabs)[number]["id"];
+const activeTab = ref<TabId>("overview");
+
+function setPreviousTab() {
+  const index = tabs.findIndex((tab) => tab.id === activeTab.value);
+  const nextIndex = (index - 1 + tabs.length) % tabs.length;
+  activeTab.value = tabs[nextIndex].id;
+}
+
+function setNextTab() {
+  const index = tabs.findIndex((tab) => tab.id === activeTab.value);
+  const nextIndex = (index + 1) % tabs.length;
+  activeTab.value = tabs[nextIndex].id;
+}
 
 // === INPUT HANDLERS ===
 onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
@@ -111,13 +122,21 @@ onKeyStroke(KEYBOARD_SHORTCUTS.CONFIRM, () => {
   handleConfirm();
 });
 
-onGamepad("back", () => {
+const cleanupBack = onGamepad("back", () => {
   if (sideNavStore.isOpen) return;
   router.back();
 });
-onGamepad("confirm", () => {
+const cleanupConfirm = onGamepad("confirm", () => {
   if (sideNavStore.isOpen) return;
   handleConfirm();
+});
+const cleanupLb = onGamepad("lb", () => {
+  if (sideNavStore.isOpen) return;
+  setPreviousTab();
+});
+const cleanupRb = onGamepad("rb", () => {
+  if (sideNavStore.isOpen) return;
+  setNextTab();
 });
 
 // Handler unifié pour Confirm: gère Install ET Play
@@ -134,12 +153,6 @@ function handleConfirm() {
   playGame();
 }
 
-// Navigate to fullscreen image customization page
-function navigateToCustomize() {
-  if (!game.value) return;
-  router.push({ name: "game-customize", params: { id: game.value.id } });
-}
-
 // === LIFECYCLE ===
 onMounted(async () => {
   await setupEventListeners();
@@ -150,6 +163,73 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  cleanupBack();
+  cleanupConfirm();
+  cleanupLb();
+  cleanupRb();
   cleanup();
 });
 </script>
+
+<style scoped>
+.game-detail-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0f;
+}
+
+.hero-section {
+  height: 60vh;
+  flex-shrink: 0;
+}
+
+.bottom-panel {
+  height: 40vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0d0d0f;
+}
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  padding: 16px 40px;
+  gap: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.tab-bar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.tab-button {
+  border: none;
+  background: transparent;
+  color: #a0a0b0;
+  border-bottom: 3px solid transparent;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab-button.active {
+  color: #ffffff;
+  border-bottom-color: #5e5ce6;
+}
+
+.tab-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 20px 40px;
+}
+</style>

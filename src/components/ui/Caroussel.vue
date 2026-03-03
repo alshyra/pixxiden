@@ -61,7 +61,7 @@ const ratio = computed(() => {
 
 // Heights
 const INACTIVE_HEIGHT = 200;
-const ACTIVE_HEIGHT = 340;
+const ACTIVE_HEIGHT = 240;
 const GAP = 24;
 
 // Widths derived from aspect ratio
