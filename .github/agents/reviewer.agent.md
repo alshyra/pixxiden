@@ -1,7 +1,7 @@
 ---
 name: Planner
 description: Analyse le codebase Pixxiden, consulte la documentation, et produit un plan d'implémentation détaillé avec fichiers exacts par étape. Ne code jamais.
-model: Claude Haiku 4.5 (copilot)
+model: Claude Sonnet 4.6 (copilot)
 tools: [vscode, execute, read, edit, search, web, memory, todo]
 ---
 
@@ -68,3 +68,4 @@ Avant de planifier, confirme :
 - Marquer les étapes UI comme domaine **Design** — l'Orchestrator les délègue au Designer en priorité
 - Signaler si une étape modifie le schéma SQLite (aucun système de migration — changement manuel)
 - Signaler si une nouvelle commande Tauri doit être enregistrée dans `lib.rs`
+- Vérifier si du code est devenu obsolète et doit être supprimé — ne jamais laisser du dead code

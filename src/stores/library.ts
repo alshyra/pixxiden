@@ -22,6 +22,11 @@ export const useLibraryStore = defineStore("library", () => {
   const syncErrors = ref<string[]>([]);
   const hasSynced = ref(false);
   const initialized = ref(false);
+  const featuredGameId = ref<string | null>(null);
+
+  function setFeaturedGame(gameId: string | null) {
+    featuredGameId.value = gameId;
+  }
 
   // Computed: Get a game by ID
   const getGame = computed(() => (gameId: string) => {
@@ -340,7 +345,9 @@ export const useLibraryStore = defineStore("library", () => {
     error,
     syncErrors,
     initialized,
+    featuredGameId,
     getGame,
+    setFeaturedGame,
     initialize,
     fetchGames,
     syncLibrary,

@@ -4,10 +4,18 @@ import { useLibraryStore } from "@/stores/library";
 import type { Game } from "@/types";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import type { Event } from "@tauri-apps/api/event";
 import { error as logError } from "@tauri-apps/plugin-log";
 import { getInstallationService, getGameLaunchService } from "@/services";
 
 type UnlistenFn = () => void;
+type GameEventPayload = {
+  gameId?: string;
+  error?: string;
+  progress?: number;
+  downloaded?: string;
+  speed?: string;
+};
 
 /**
  * Composable pour gérer le jeu courant basé sur l'ID de route
@@ -22,7 +30,9 @@ export function useCurrentGame() {
   const libraryStore = useLibraryStore();
 
   // === CORE STATE ===
-  const gameId = computed(() => route.params.id as string);
+  const gameId = computed(
+    () => (route.params.id as string) || libraryStore.featuredGameId || "",
+  );
   const game = computed<Game | undefined>(() => libraryStore.getGame(gameId.value));
 
   // === DOWNLOAD STATE ===
@@ -38,7 +48,10 @@ export function useCurrentGame() {
   // === TAURI HELPERS ===
   const listeners: UnlistenFn[] = [];
 
-  const safeListen = async (event: string, handler: (event: any) => void): Promise<UnlistenFn> => {
+  const safeListen = async (
+    event: string,
+    handler: (event: Event<GameEventPayload>) => void,
+  ): Promise<UnlistenFn> => {
     try {
       const unlisten = await listen(event, handler);
       listeners.push(unlisten);
@@ -135,7 +148,8 @@ export function useCurrentGame() {
   });
 
   const formattedTimetoBeat = computed(() => {
-    const timeToBeat = game.value?.gameCompletion.timeToBeatNormally || game.value?.gameCompletion.timeToBeatCompletely;
+    const timeToBeat =
+      game.value?.gameCompletion.timeToBeatNormally || game.value?.gameCompletion.timeToBeatCompletely;
     if (!timeToBeat) return "N/A";
     const hours = Math.floor(timeToBeat);
     const minutes = Math.round((timeToBeat - hours) * 60);
@@ -182,10 +196,11 @@ export function useCurrentGame() {
           isLaunching.value = false;
         }
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       isLaunching.value = false;
-      launchError.value = error?.message || error?.toString() || "Unknown error";
-      logError(`Failed to launch game: ${error}`);
+      const message = error instanceof Error ? error.message : String(error);
+      launchError.value = message || "Unknown error";
+      void logError(`Failed to launch game: ${message}`);
     }
   }
 
@@ -195,8 +210,9 @@ export function useCurrentGame() {
     try {
       const launchService = getGameLaunchService();
       await launchService.forceClose(game.value.id);
-    } catch (error) {
-      logError(`Failed to force close game: ${error}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      void logError(`Failed to force close game: ${message}`);
     } finally {
       isLaunching.value = false;
       launchError.value = null;
@@ -223,8 +239,9 @@ export function useCurrentGame() {
           }
         },
       });
-    } catch (error) {
-      logError(`Failed to start installation: ${error}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      void logError(`Failed to start installation: ${message}`);
       isDownloading.value = false;
     }
   }
@@ -236,33 +253,33 @@ export function useCurrentGame() {
 
   // === TAURI EVENT SETUP ===
   async function setupEventListeners() {
-    await safeListen("game-launching", (event: any) => {
+    await safeListen("game-launching", (event) => {
       if (event.payload?.gameId === gameId.value) {
         isLaunching.value = true;
         launchError.value = null;
       }
     });
 
-    await safeListen("game-launched", (event: any) => {
+    await safeListen("game-launched", (event) => {
       if (event.payload?.gameId === gameId.value) {
         setTimeout(() => (isLaunching.value = false), 500);
       }
     });
 
-    await safeListen("game-launch-failed", (event: any) => {
+    await safeListen("game-launch-failed", (event) => {
       if (event.payload?.gameId === gameId.value) {
         launchError.value = event.payload?.error || "Unknown error";
       }
     });
 
-    await safeListen("game-installing", (event: any) => {
+    await safeListen("game-installing", (event) => {
       if (event.payload?.gameId === gameId.value) {
         isDownloading.value = true;
         downloadProgress.value = 0;
       }
     });
 
-    await safeListen("game-install-progress", (event: any) => {
+    await safeListen("game-install-progress", (event) => {
       if (event.payload?.gameId === gameId.value) {
         downloadProgress.value = event.payload.progress || 0;
         downloadedSize.value = event.payload.downloaded || "0 MB";
@@ -270,7 +287,7 @@ export function useCurrentGame() {
       }
     });
 
-    await safeListen("game-installed", (event: any) => {
+    await safeListen("game-installed", (event) => {
       if (event.payload?.gameId === gameId.value) {
         downloadProgress.value = 100;
         setTimeout(() => {
@@ -280,10 +297,10 @@ export function useCurrentGame() {
       }
     });
 
-    await safeListen("game-install-failed", (event: any) => {
+    await safeListen("game-install-failed", (event) => {
       if (event.payload?.gameId === gameId.value) {
         isDownloading.value = false;
-        logError(`Install failed: ${event.payload?.error}`);
+        void logError(`Install failed: ${event.payload?.error}`);
       }
     });
   }

@@ -1,7 +1,8 @@
-import GameDetails from "@/views/GameDetails.vue";
+import LibraryLayout from "@/views/LibraryLayout.vue";
+import LibraryContent from "@/views/LibraryContent.vue";
+import GameDetailContent from "@/views/GameDetailContent.vue";
 import GameCustomize from "@/views/GameCustomize.vue";
 import GameOverlayWindow from "@/views/GameOverlayWindow.vue";
-import LibraryFullscreen from "@/views/LibraryFullscreen.vue";
 import SystemView from "@/views/SystemView.vue";
 import AccountsView from "@/views/AccountsView.vue";
 import { createRouter, createWebHistory } from "vue-router";
@@ -9,18 +10,24 @@ import { createRouter, createWebHistory } from "vue-router";
 const routes = [
   {
     path: "/",
-    name: "library",
-    component: LibraryFullscreen,
-  },
-  {
-    path: "/game/:id",
-    name: "game-detail",
-    component: GameDetails,
-  },
-  {
-    path: "/game/:id/customize",
-    name: "game-customize",
-    component: GameCustomize,
+    component: LibraryLayout,
+    children: [
+      {
+        path: "",
+        name: "library",
+        component: LibraryContent,
+      },
+      {
+        path: "game/:id",
+        name: "game-detail",
+        component: GameDetailContent,
+      },
+      {
+        path: "game/:id/customize",
+        name: "game-customize",
+        component: GameCustomize,
+      },
+    ],
   },
   {
     path: "/overlay",

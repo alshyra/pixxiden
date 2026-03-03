@@ -1,13 +1,12 @@
 <template>
   <div
     data-testid="library-view"
-    class="relative min-h-screen bg-remix-black overflow-hidden pb-20 transition-all duration-600"
+    class="absolute inset-0 pointer-events-none"
   >
-    <!-- Hero Banner -->
-    <GameHeroSection class="transition-all duration-600" />
-
-    <!-- Games Carousel -->
-    <div data-testid="game-carousel" class="absolute bottom-16 left-0 right-0">
+    <div
+      data-testid="game-carousel"
+      class="absolute bottom-16 left-0 right-0 pointer-events-auto carousel-enter"
+    >
       <GameCarousel
         ref="carouselRef"
         :games="filteredGames"
@@ -18,31 +17,10 @@
       />
     </div>
 
-    <!-- Top Filters -->
-    <TopFilters v-model="currentFilter" />
+    <div class="pointer-events-auto filters-enter">
+      <TopFilters v-model="currentFilter" />
+    </div>
 
-    <!-- Loading Overlay -->
-    <Transition
-      enter-active-class="transition-opacity duration-300"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-300"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="loading"
-        data-testid="library-loading"
-        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm"
-      >
-        <div
-          class="w-12 h-12 border-4 border-white/20 border-t-remix-accent rounded-full animate-spin mb-4"
-        />
-        <p class="text-white/60 text-sm font-medium">Chargement de votre bibliothèque...</p>
-      </div>
-    </Transition>
-
-    <!-- Empty State -->
     <Transition
       enter-active-class="transition-all duration-500"
       enter-from-class="opacity-0 scale-95"
@@ -54,7 +32,7 @@
       <div
         v-if="!loading && filteredGames.length === 0"
         data-testid="library-empty"
-        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
+        class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center pointer-events-auto"
       >
         <div class="mb-6 opacity-50">
           <Package class="w-24 h-24 text-white/30" />
@@ -88,7 +66,6 @@
       </div>
     </Transition>
 
-    <!-- Game Count Badge -->
     <Transition
       enter-active-class="transition-all duration-300"
       enter-from-class="opacity-0 translate-y-4"
@@ -100,7 +77,7 @@
       <div
         v-if="!loading && filteredGames.length > 0"
         data-testid="game-count"
-        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md"
+        class="fixed bottom-20 right-4 sm:right-8 px-4 py-2 bg-black/80 border border-white/10 rounded-lg text-xs font-semibold text-white/50 backdrop-blur-md pointer-events-none"
       >
         {{ filteredGames.length }} {{ filteredGames.length === 1 ? "jeu" : "jeux" }}
       </div>
@@ -109,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import { useLibraryStore } from "@/stores/library";
@@ -118,30 +95,26 @@ import { useSideNavStore } from "@/stores/sideNav";
 import { KEYBOARD_SHORTCUTS } from "@/constants/shortcuts";
 import { Button } from "@/components/ui";
 import { RefreshCw, Package } from "lucide-vue-next";
-import { warn } from "@tauri-apps/plugin-log";
 import type { Game } from "@/types";
 import GameCarousel from "@/components/game/GameCarousel.vue";
-import { GameHeroSection } from "@/components/game";
 import { TopFilters } from "@/components/layout";
 import { storeToRefs } from "pinia";
 
 const router = useRouter();
 const libraryStore = useLibraryStore();
-const { games } = storeToRefs(libraryStore);
+const { games, loading, syncing } = storeToRefs(libraryStore);
 const { on: onGamepad } = useGamepad();
 const sideNavStore = useSideNavStore();
 
-// Carousel ref for programmatic scroll
 const carouselRef = ref<InstanceType<typeof GameCarousel> | null>(null);
 
-// Local state
-const loading = ref(true);
-const syncing = ref(false);
-const currentFilter = ref("all");
+type FilterKey = "all" | "installed" | "epic" | "gog" | "amazon" | "steam";
+
+const currentFilter = ref<FilterKey>("all");
+const selectedIndex = ref(0);
 const selectedGame = ref<Game | null>(null);
 const playingGame = ref<Game | null>(null);
 
-// Filter games based on current filter
 const filteredGames = computed(() => {
   switch (currentFilter.value) {
     case "installed":
@@ -155,36 +128,63 @@ const filteredGames = computed(() => {
     case "steam":
       return games.value.filter((g) => g.storeData.store === "steam");
     default:
-      // 'all' - sort alphabetically
       return games.value.slice().sort((a, b) => a.info.title.localeCompare(b.info.title));
   }
 });
 
-// Current selection index in carousel
-const selectedIndex = ref(0);
+watch(
+  filteredGames,
+  (list) => {
+    if (list.length === 0) {
+      selectedGame.value = null;
+      libraryStore.setFeaturedGame(null);
+      selectedIndex.value = 0;
+      return;
+    }
 
-// Navigate in carousel
+    const currentGame = selectedGame.value;
+    const currentStillVisible = currentGame ? list.some((g) => g.id === currentGame.id) : false;
+
+    if (!currentStillVisible) {
+      const featuredGame = libraryStore.featuredGameId
+        ? list.find((g) => g.id === libraryStore.featuredGameId)
+        : null;
+
+      const gameToSelect = featuredGame || list[0];
+      selectedGame.value = gameToSelect;
+      libraryStore.setFeaturedGame(gameToSelect.id);
+      const newIdx = list.indexOf(gameToSelect);
+      selectedIndex.value = newIdx >= 0 ? newIdx : 0;
+      nextTick(() => carouselRef.value?.scrollToSelected());
+    } else {
+      const newIdx = currentGame ? list.findIndex((g) => g.id === currentGame.id) : -1;
+      if (newIdx !== -1) selectedIndex.value = newIdx;
+    }
+  },
+  { immediate: true },
+);
+
 function navigateCarousel(direction: "left" | "right") {
   const total = filteredGames.value.length;
   if (total === 0) return;
 
   if (direction === "left") {
-    selectedIndex.value = selectedIndex.value > 0 ? selectedIndex.value - 1 : total - 1; // Wrap to end
+    selectedIndex.value = selectedIndex.value > 0 ? selectedIndex.value - 1 : total - 1;
   } else {
-    selectedIndex.value = selectedIndex.value < total - 1 ? selectedIndex.value + 1 : 0; // Wrap to beginning
+    selectedIndex.value = selectedIndex.value < total - 1 ? selectedIndex.value + 1 : 0;
   }
 
-  // Update selected game
   selectedGame.value = filteredGames.value[selectedIndex.value] || null;
+  if (selectedGame.value) {
+    libraryStore.setFeaturedGame(selectedGame.value.id);
+  }
 
-  // Scroll to the selected game (keyboard/gamepad navigation)
   nextTick(() => {
     carouselRef.value?.scrollToSelected();
   });
 }
 
-// Navigate filters (left/right via LB/RB)
-const filterOrder = ["all", "installed", "epic", "gog", "amazon", "steam"];
+const filterOrder: FilterKey[] = ["all", "installed", "epic", "gog", "amazon", "steam"];
 
 function navigateFilters(direction: "up" | "down") {
   const currentIdx = filterOrder.indexOf(currentFilter.value);
@@ -196,58 +196,34 @@ function navigateFilters(direction: "up" | "down") {
   }
 }
 
-// Select a game
 function selectGame(game: Game) {
   selectedGame.value = game;
-  // Update index to match
+  libraryStore.setFeaturedGame(game.id);
   const idx = filteredGames.value.findIndex((g) => g.id === game.id);
   if (idx !== -1) {
     selectedIndex.value = idx;
   }
 }
 
-// Open game details
 function openGameDetails(game: Game | null) {
   const gameToOpen = game || selectedGame.value;
   if (!gameToOpen) return;
-  router.push(`/game/${gameToOpen.id}`);
+  router.push({ name: "game-detail", params: { id: gameToOpen.id } });
 }
 
-// Open settings page
 function openSettings() {
   router.push("/settings");
 }
 
-// Load games
-async function loadGames() {
-  loading.value = true;
-  try {
-    await libraryStore.fetchGames();
-
-    // Auto-select first game if available
-    if (filteredGames.value.length > 0) {
-      selectedGame.value = filteredGames.value[0];
-    }
-  } catch (error) {
-    await warn(`Failed to load games: ${error}`);
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Handle keyboard shortcuts
 onKeyStroke("ArrowLeft", () => {
   navigateCarousel("left");
 });
-
 onKeyStroke("ArrowRight", () => {
   navigateCarousel("right");
 });
-
 onKeyStroke("ArrowUp", () => {
   navigateFilters("up");
 });
-
 onKeyStroke("ArrowDown", () => {
   navigateFilters("down");
 });
@@ -255,7 +231,6 @@ onKeyStroke("ArrowDown", () => {
 onKeyStroke(["q", "Q"], () => {
   switchFilter("prev");
 });
-
 onKeyStroke(["e", "E"], () => {
   switchFilter("next");
 });
@@ -268,96 +243,94 @@ onKeyStroke(["s", "S"], (event: KeyboardEvent) => {
 });
 
 onKeyStroke("Enter", () => {
-  if (selectedGame.value) {
-    openGameDetails(selectedGame.value);
-  }
+  if (selectedGame.value) openGameDetails(selectedGame.value);
 });
 
-onKeyStroke("a", () => {
-  if (selectedGame.value) {
-    openGameDetails(selectedGame.value);
-  }
-});
-
-onKeyStroke("A", () => {
-  if (selectedGame.value) {
-    openGameDetails(selectedGame.value);
-  }
+onKeyStroke(["a", "A"], () => {
+  if (selectedGame.value) openGameDetails(selectedGame.value);
 });
 
 onKeyStroke(KEYBOARD_SHORTCUTS.BACK, () => {
   router.back();
 });
 
-// Load games on mount
-onMounted(async () => {
-  await loadGames();
-});
-
-// Quick filter switch with LB/RB
 function switchFilter(direction: "prev" | "next") {
   const currentIdx = filterOrder.indexOf(currentFilter.value);
-
   if (direction === "prev") {
-    // Go to previous, wrap to last if at beginning
     currentFilter.value =
       currentIdx > 0 ? filterOrder[currentIdx - 1] : filterOrder[filterOrder.length - 1];
   } else {
-    // Go to next, wrap to first if at end
     currentFilter.value =
       currentIdx < filterOrder.length - 1 ? filterOrder[currentIdx + 1] : filterOrder[0];
   }
 }
 
-// Setup gamepad handlers
-onGamepad("navigate", ({ direction }: { direction: string }) => {
+const cleanupNavigate = onGamepad("navigate", ({ direction }: { direction: string }) => {
   if (sideNavStore.isOpen) return;
-  if (direction === "left") {
-    navigateCarousel("left");
-  } else if (direction === "right") {
-    navigateCarousel("right");
-  } else if (direction === "up") {
-    navigateFilters("up");
-  } else if (direction === "down") {
-    navigateFilters("down");
-  }
+  if (direction === "left") navigateCarousel("left");
+  else if (direction === "right") navigateCarousel("right");
+  else if (direction === "up") navigateFilters("up");
+  else if (direction === "down") navigateFilters("down");
 });
 
-onGamepad("confirm", () => {
+const cleanupConfirm = onGamepad("confirm", () => {
   if (sideNavStore.isOpen) return;
-  if (selectedGame.value) {
-    openGameDetails(selectedGame.value);
-  }
+  if (selectedGame.value) openGameDetails(selectedGame.value);
 });
 
-onGamepad("options", () => {
+const cleanupOptions = onGamepad("options", () => {
   if (sideNavStore.isOpen) return;
   sideNavStore.open();
 });
 
-// LB/RB for quick filter switching
-onGamepad("lb", () => {
+const cleanupLb = onGamepad("lb", () => {
   if (sideNavStore.isOpen) return;
   switchFilter("prev");
 });
 
-onGamepad("rb", () => {
+const cleanupRb = onGamepad("rb", () => {
   if (sideNavStore.isOpen) return;
   switchFilter("next");
+});
+
+onUnmounted(() => {
+  cleanupNavigate();
+  cleanupConfirm();
+  cleanupOptions();
+  cleanupLb();
+  cleanupRb();
 });
 </script>
 
 <style scoped>
-/* Custom transition duration */
-.duration-600 {
-  transition-duration: 600ms;
+/* Animations d'entrée */
+.filters-enter {
+  animation: slide-from-top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* Blur effect when settings open (applied from parent) */
-.view-back {
-  opacity: 0.3;
-  transform: scale(0.92) translateZ(0);
-  filter: grayscale(0.8) blur(8px);
-  pointer-events: none;
+.carousel-enter {
+  animation: slide-from-bottom 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slide-from-top {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-from-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 </style>

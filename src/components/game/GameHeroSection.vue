@@ -5,7 +5,7 @@
         v-if="heroImage"
         :src="heroImage"
         :alt="game?.info.title"
-        class="w-full h-full object-cover object-center"
+        class="w-full h-full object-cover object-center transition-opacity duration-700"
       />
       <div
         v-else
@@ -13,11 +13,9 @@
       />
     </div>
 
-    <div
-      class="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-[#0d0d0f]"
-    />
+    <div class="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-[#0d0d0f]" />
 
-    <div class="absolute bottom-8 left-10 z-10 max-w-[70vw]">
+    <div class="absolute left-10 z-10 max-w-[70vw]" style="bottom: calc(42vh + 2rem)">
       <h1 class="text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
         {{ game?.info.title || "N/A" }}
       </h1>

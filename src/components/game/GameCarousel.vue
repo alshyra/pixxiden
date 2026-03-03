@@ -4,14 +4,14 @@
     <div
       ref="carouselRef"
       class="relative overflow-x-auto scrollbar-hide"
-      style="height: 312px"
+      style="height: 340px"
       @scroll="updateScrollState"
       @wheel="handleWheel"
     >
       <!-- Width spacer: gives the scroll container its full scrollable width
            without rendering every card. Height matches container so the
            absolutely-positioned cards are clipped correctly. -->
-      <div :style="{ width: `${totalWidth}px`, height: '312px' }"></div>
+      <div :style="{ width: `${totalWidth}px`, height: '340px' }"></div>
 
       <!-- Rendered visible slice, shifted to its correct absolute position -->
       <div
@@ -24,7 +24,7 @@
           :game="game"
           :selected="selectedId === game.id"
           :playing="playingId === game.id"
-          class="flex-shrink-0 w-36 md:w-44"
+          class="flex-shrink-0 w-40 md:w-48"
           @mouseenter="emit('select', game)"
           @click="emit('open', game)"
         />
@@ -67,7 +67,7 @@ import GameCard from "./GameCard.vue";
 
 // ── Virtual scroll constants ──────────────────────────────────────────────────
 // Keep in sync with the Tailwind classes used on GameCard.
-const CARD_WIDTH = 176; // w-44  = 11 rem = 176 px
+const CARD_WIDTH = 192; // w-48  = 12 rem = 192 px
 const CARD_GAP = 16; //   gap-4 =  1 rem =  16 px
 const PADDING_X = 48; //  px-12 =  3 rem =  48 px
 const BUFFER = 8; //      extra cards rendered on each side of the viewport

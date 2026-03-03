@@ -1,5 +1,4 @@
 export { default as GameCard } from "./GameCard.vue";
-export { default as HeroBanner } from "./HeroBanner.vue";
 export { default as GameCarousel } from "./GameCarousel.vue";
 export { default as InstallModal } from "./InstallModal.vue";
 export { default as LaunchOverlay } from "./LaunchOverlay.vue";

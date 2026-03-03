@@ -20,6 +20,7 @@ const footerButtonIcons: Record<ControllerType, Record<string, string>> = {
 export function useFooterControls() {
   const route = useRoute();
   const { state: gamepadState } = useGamepad();
+  const { game } = useCurrentGame();
 
   // Reactive controller type from gamepad state
   const controllerType = computed<ControllerType>(() => gamepadState.value.type);
@@ -27,7 +28,7 @@ export function useFooterControls() {
 
   // Dynamic buttons based on current route
   const buttons = computed<FooterButton[]>(() => {
-    const routeName = route.name as string;
+    const routeName = typeof route.name === "string" ? route.name : "";
 
     switch (routeName) {
       case "library":
@@ -39,14 +40,10 @@ export function useFooterControls() {
         ];
 
       case "game-detail": {
-        // Get game state to determine the correct action label
-        const { game } = useCurrentGame();
-        const actionLabel = computed(() =>
-          game.value?.installation.installed ? "Lancer" : "Installer"
-        );
+        const actionLabel = game.value?.installation.installed ? "Lancer" : "Installer";
 
         return [
-          { key: "A", label: actionLabel.value, action: "play" },
+          { key: "A", label: actionLabel, action: "play" },
           { key: "B", label: "Retour", action: "back" },
           { key: "X", label: "Options", action: "options" },
         ];
