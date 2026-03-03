@@ -2,10 +2,13 @@
  * Scenario 03 — Navigation
  *
  * User journey: user navigates between all main sections of the app:
- * Library → Settings (all tabs) → Downloads → back to Library.
+ * Library → SideNav → Accounts → Library → SideNav → System → Library → Downloads.
  *
- * Tests that each view renders correctly and the app doesn't crash.
- * Uses keyboard shortcuts and programmatic navigation (no nav bar in this app).
+ * Navigation architecture (as of current codebase):
+ * - "S" key opens the SideNav overlay (NOT a route)
+ * - SideNav items navigate to: / | /downloads | /accounts | /system
+ * - No /settings/* routes exist: settings are split across /accounts and /system
+ * - Escape closes the SideNav overlay without navigating
  */
 
 import { waitForAppReady } from "../helpers/utils";
@@ -16,7 +19,7 @@ import { NavigationHelper } from "../page-objects/NavigationHelper";
 
 describe("Scenario 03: Navigation", () => {
   const library = new LibraryPage();
-  const settings = new SettingsPage();
+  const sideNav = new SettingsPage(); // SettingsPage now represents SideNav + views
   const downloads = new DownloadsPage();
   const nav = new NavigationHelper();
 
@@ -26,53 +29,65 @@ describe("Scenario 03: Navigation", () => {
     await library.waitForLoaded(45000);
   });
 
-  describe("Library → Settings flow", () => {
-    it("should open settings via keyboard shortcut S", async () => {
-      await browser.keys(["s"]);
-      await browser.pause(1000);
-      await settings.waitForReady();
-      expect(await settings.isDisplayed()).toBe(true);
-      console.log("⚙️ Settings opened via 'S' key");
+  describe("Library → SideNav flow", () => {
+    it("should open the SideNav via keyboard shortcut S", async () => {
+      await sideNav.openViaSKey();
+      await sideNav.waitForReady();
+      expect(await sideNav.isDisplayed()).toBe(true);
+      console.log("☰ SideNav opened via 'S' key");
     });
 
-    it("should display all settings navigation items", async () => {
-      const hasAll = await settings.hasAllNavItems();
+    it("should display all main navigation items in the SideNav", async () => {
+      const hasAll = await sideNav.hasAllNavItems();
       expect(hasAll).toBe(true);
-      console.log("📋 All settings nav items visible");
+      console.log("📋 All SideNav items visible (Library, Downloads, Accounts, System)");
     });
 
-    it("should navigate to System settings tab", async () => {
-      await settings.navigateTo("system");
-      const isActive = await settings.isNavActive("system");
-      expect(isActive).toBe(true);
-      console.log("⚙️ System settings tab active");
-    });
-
-    it("should navigate to Store settings tab", async () => {
-      await settings.navigateTo("store");
-      const isActive = await settings.isNavActive("store");
-      expect(isActive).toBe(true);
-      console.log("🏪 Store settings tab active");
-    });
-
-    it("should navigate to API Keys settings tab", async () => {
-      await settings.navigateTo("api-keys");
-      const isActive = await settings.isNavActive("api-keys");
-      expect(isActive).toBe(true);
-      console.log("🔑 API Keys settings tab active");
-    });
-
-    it("should navigate to Advanced settings tab", async () => {
-      await settings.navigateTo("advanced");
-      const isActive = await settings.isNavActive("advanced");
-      expect(isActive).toBe(true);
-      console.log("🔧 Advanced settings tab active");
-    });
-
-    it("should close settings and return to library via Escape", async () => {
-      await settings.close();
+    it("should close SideNav when pressing Escape and return to library", async () => {
+      await sideNav.close();
       await library.waitForReady();
-      console.log("🔙 Back to library from settings");
+      expect(await library.isLoading()).toBe(false);
+      console.log("🔙 SideNav closed via Escape");
+    });
+  });
+
+  describe("Library → Accounts flow", () => {
+    it("should open SideNav and navigate to Accounts view", async () => {
+      await sideNav.openViaSKey();
+      await sideNav.waitForReady();
+      await sideNav.navigateTo("accounts");
+      await sideNav.waitForAccountsReady();
+      expect(await sideNav.isAccountsDisplayed()).toBe(true);
+      console.log("👤 Accounts view displayed");
+    });
+
+    it("should return to library from Accounts via SideNav", async () => {
+      await sideNav.openViaSKey();
+      await sideNav.waitForReady();
+      await sideNav.navigateTo("library");
+      await library.waitForReady();
+      expect(await library.hasFilters()).toBe(true);
+      console.log("🔙 Back to library from Accounts");
+    });
+  });
+
+  describe("Library → System flow", () => {
+    it("should open SideNav and navigate to System view", async () => {
+      await sideNav.openViaSKey();
+      await sideNav.waitForReady();
+      await sideNav.navigateTo("system");
+      await sideNav.waitForSystemReady();
+      expect(await sideNav.isSystemDisplayed()).toBe(true);
+      console.log("⚙️ System view displayed");
+    });
+
+    it("should return to library from System via SideNav", async () => {
+      await sideNav.openViaSKey();
+      await sideNav.waitForReady();
+      await sideNav.navigateTo("library");
+      await library.waitForReady();
+      expect(await library.hasFilters()).toBe(true);
+      console.log("🔙 Back to library from System");
     });
   });
 
@@ -101,30 +116,37 @@ describe("Scenario 03: Navigation", () => {
   });
 
   describe("Programmatic route navigation", () => {
-    it("should navigate to settings via direct route", async () => {
-      await nav.goToSettings("store");
-      await settings.waitForReady();
-      expect(await settings.isDisplayed()).toBe(true);
-      console.log("🛤️ Direct route to settings/store works");
+    it("should navigate to accounts via direct route", async () => {
+      await nav.goToAccounts();
+      await sideNav.waitForAccountsReady();
+      expect(await sideNav.isAccountsDisplayed()).toBe(true);
+      console.log("🛤️ Direct route /accounts works");
+    });
+
+    it("should navigate to system via direct route", async () => {
+      await nav.goToSystem();
+      await sideNav.waitForSystemReady();
+      expect(await sideNav.isSystemDisplayed()).toBe(true);
+      console.log("🛤️ Direct route /system works");
     });
 
     it("should navigate back to library via direct route", async () => {
       await nav.goToLibrary();
       await library.waitForReady();
-      console.log("🛤️ Direct route to library works");
+      console.log("🛤️ Direct route / (library) works");
     });
   });
 
   describe("App stability after navigation", () => {
     it("should keep the app responsive after rapid navigation", async () => {
       // Rapidly navigate between views
-      await nav.goToSettings("system");
+      await nav.goToAccounts();
       await browser.pause(300);
       await nav.goToDownloads();
       await browser.pause(300);
       await nav.goToLibrary();
       await browser.pause(300);
-      await nav.goToSettings("api-keys");
+      await nav.goToSystem();
       await browser.pause(300);
       await nav.goToLibrary();
 

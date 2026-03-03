@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import { ref, provide, onMounted, onUnmounted } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { attachConsole, debug, warn, error as logError } from "@tauri-apps/plugin-log";
 import { GameOverlay } from "@/components/game";
@@ -139,6 +140,21 @@ function onSetupComplete() {
 function onSetupSkip() {
   showSetupWizard.value = false;
 }
+
+// Global 'S' key shortcut to open SideNav from any view (mirrors LibraryContent/Fullscreen behaviour)
+onKeyStroke(["s", "S"], (event: KeyboardEvent) => {
+  const target = document.activeElement as HTMLElement;
+  if (
+    target?.tagName !== "INPUT" &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    !isSplashScreen.value &&
+    !showSetupWizard.value
+  ) {
+    sideNavStore.open();
+  }
+});
 
 // Provide overlay control to child components
 provide("gameOverlay", gameOverlay);

@@ -2,8 +2,17 @@
  * Page Object Model — Navigation Helper
  *
  * Handles top-level navigation between main views:
- * Library, Downloads, Settings.
- * Also handles the splashscreen → main app transition.
+ * Library, Downloads, Accounts (/accounts), System (/system).
+ *
+ * Navigation is done via programmatic history pushState (Vue Router compatible).
+ * For SideNav-based navigation, use SettingsPage.navigateTo().
+ *
+ * Routes:
+ *   /           → Library (LibraryContent.vue)
+ *   /game/:id   → Game Detail (GameDetailContent.vue)
+ *   /downloads  → Downloads (DownloadsView.vue)
+ *   /accounts   → Accounts — stores + API keys (AccountsView.vue)
+ *   /system     → System settings (SystemView.vue)
  */
 
 import { waitForAppReady } from "../helpers/utils";
@@ -18,8 +27,6 @@ export class NavigationHelper {
   async navigateTo(path: string): Promise<void> {
     // Use Vue Router's push internally to avoid full page reload
     await browser.execute((p: string) => {
-      // Access the Vue app's router via the global __VUE_DEVTOOLS_GLOBAL_HOOK__
-      // or by navigating to the URL directly
       window.history.pushState({}, "", p);
       window.dispatchEvent(new PopStateEvent("popstate"));
     }, path);
@@ -41,11 +48,33 @@ export class NavigationHelper {
     await this.navigateTo("/downloads");
   }
 
-  /** Navigate to Settings */
+  /**
+   * Navigate to a settings-related view.
+   * Mapping from old section names to new routes:
+   *   "accounts" | "store" | "api-keys" → /accounts
+   *   "system"   | "advanced"           → /system
+   */
   async goToSettings(
-    section: "system" | "store" | "api-keys" | "advanced" = "system",
+    section: "accounts" | "system" | "store" | "api-keys" | "advanced" = "accounts",
   ): Promise<void> {
-    await this.navigateTo(`/settings/${section}`);
+    const routeMap: Record<string, string> = {
+      accounts: "/accounts",
+      store: "/accounts",
+      "api-keys": "/accounts",
+      system: "/system",
+      advanced: "/system",
+    };
+    await this.navigateTo(routeMap[section] ?? "/accounts");
+  }
+
+  /** Navigate to the Accounts view (/accounts) */
+  async goToAccounts(): Promise<void> {
+    await this.navigateTo("/accounts");
+  }
+
+  /** Navigate to the System view (/system) */
+  async goToSystem(): Promise<void> {
+    await this.navigateTo("/system");
   }
 
   /** Get the current route path */

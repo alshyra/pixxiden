@@ -9,7 +9,7 @@ export const Selectors = {
   // App Shell
   app: "#app",
 
-  // Library View (LibraryFullscreen.vue)
+  // Library View (LibraryContent.vue + LibraryLayout.vue)
   library: {
     view: '[data-testid="library-view"]',
     loading: '[data-testid="library-loading"]',
@@ -18,10 +18,11 @@ export const Selectors = {
     carousel: '[data-testid="game-carousel"]',
   },
 
-  // Hero Banner (HeroBanner.vue)
+  // Hero Banner (GameHeroSection.vue — used in LibraryLayout)
   hero: {
     banner: '[data-testid="hero-banner"]',
     title: '[data-testid="hero-title"]',
+    meta: '[data-testid="hero-meta"]',
   },
 
   // Top Filters (TopFilters.vue)
@@ -41,23 +42,22 @@ export const Selectors = {
     // dynamic: [data-id="<gameId>"]
   },
 
-  // Game Detail (GameDetails.vue)
+  // Game Detail (GameDetailContent.vue)
   gameDetail: {
     view: '[data-testid="game-detail"]',
+    // Synopsis tab in GameOverviewTab (first tab "Vue d'ensemble")
     synopsis: '[data-testid="game-synopsis"]',
     description: '[data-testid="game-description"]',
   },
 
-  // Game Info Card (GameInfoCard.vue)
-  gameInfo: {
-    title: '[data-testid="game-info-title"]',
-    developer: '[data-testid="game-info-developer"]',
-  },
-
   // Game Actions (GameActions.vue)
+  // primary-action-button serves as both Install and Play button.
+  // data-game-state="installed"     → Play mode
+  // data-game-state="not-installed" → Install mode
   gameActions: {
-    installButton: '[data-testid="install-button"]',
-    playButton: '[data-testid="play-button"]',
+    primaryActionButton: '[data-testid="primary-action-button"]',
+    installButton: '[data-testid="primary-action-button"][data-game-state="not-installed"]',
+    playButton: '[data-testid="primary-action-button"][data-game-state="installed"]',
     forceCloseButton: '[data-testid="force-close-button"]',
   },
 
@@ -66,16 +66,26 @@ export const Selectors = {
     view: '[data-testid="downloads-view"]',
   },
 
-  // Settings View (SettingsView.vue)
-  settings: {
-    view: '[data-testid="settings-view"]',
-    navSystem: '[data-testid="settings-nav-/settings/system"]',
-    navStore: '[data-testid="settings-nav-/settings/store"]',
-    navApiKeys: '[data-testid="settings-nav-/settings/api-keys"]',
-    navAdvanced: '[data-testid="settings-nav-/settings/advanced"]',
+  // Accounts View — /accounts (AccountsView.vue)
+  accounts: {
+    view: '[data-testid="accounts-view"]',
   },
 
-  // Store Settings (StoresSettings.vue / StoreCard.vue)
+  // System View — /system (SystemView.vue)
+  system: {
+    view: '[data-testid="system-view"]',
+  },
+
+  // Side Nav (SideNav.vue) — opened via "S" key or gamepad Options button
+  sideNav: {
+    nav: '[data-testid="side-nav"]',
+    library: '[data-testid="sidenav-library"]',
+    downloads: '[data-testid="sidenav-downloads"]',
+    accounts: '[data-testid="sidenav-accounts"]',
+    system: '[data-testid="sidenav-system"]',
+  },
+
+  // Store Settings (StoreCard.vue) — accessible in /accounts
   storeSettings: {
     epicCard: '[data-testid="store-card-epic"]',
     gogCard: '[data-testid="store-card-gog"]',

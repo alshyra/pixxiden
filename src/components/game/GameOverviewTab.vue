@@ -1,6 +1,6 @@
 <template>
-  <div class="h-full grid grid-cols-2 gap-4 overflow-hidden">
-    <p class="text-[#a0a0b0] text-[15px] leading-6 line-clamp-4">
+  <div data-testid="game-synopsis" class="h-full grid grid-cols-2 gap-4 overflow-hidden">
+    <p data-testid="game-description" class="text-[#a0a0b0] text-[15px] leading-6 line-clamp-4">
       {{ game?.info.description || "Aucune description disponible." }}
     </p>
 

@@ -6,6 +6,7 @@
       variant="primary"
       :disabled="isGameDownloading"
       data-testid="primary-action-button"
+      :data-game-state="game?.installation.installed ? 'installed' : 'not-installed'"
       @click="handlePrimaryAction"
     >
       <Play class="w-4 h-4" />

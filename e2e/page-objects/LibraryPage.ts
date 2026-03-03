@@ -3,11 +3,26 @@
  *
  * Handles the main game library view (LibraryFullscreen.vue).
  * Responsible for: game carousel, hero banner, filters, game selection.
+ *
+ * Gamepad-first: navigation uses keyboard shortcuts that mirror gamepad buttons
+ * as defined in src/composables/useGamepad.ts.
+ *   - Confirm / A    → Enter
+ *   - Back    / B    → Escape
+ *   - RB      / R1   → E  (cycle filter forward)
+ *   - LB      / L1   → Q  (cycle filter backward)
+ *   - D-pad          → Arrow keys
  */
 
 import { Selectors } from "../helpers/selectors";
+import { gamepad } from "../helpers/gamepad";
+
+/** Filter order as defined in LibraryContent.vue */
+const FILTER_ORDER = ["all", "installed", "epic", "gog", "amazon", "steam"] as const;
+type FilterName = (typeof FILTER_ORDER)[number];
 
 export class LibraryPage {
+  /** Tracks the current active filter index — kept in sync by navigateToFilter() */
+  private currentFilterIndex = 0;
   /** Wait for the library view to be displayed */
   async waitForReady(timeout = 15000): Promise<void> {
     const view = await $(Selectors.library.view);
@@ -72,25 +87,32 @@ export class LibraryPage {
     await card.click();
   }
 
-  /** Click on the first game card */
+  /**
+   * Select (focus) the first game card and open its detail page.
+   * Gamepad equivalent: A button (Enter) — the first card is focused by default.
+   */
   async selectFirstGame(): Promise<void> {
     const cards = await this.getGameCards();
     if (cards.length === 0) throw new Error("No game cards found");
-    await cards[0].click();
+    await gamepad.confirm();
   }
 
-  /** Double-click on a game card to open details */
-  async openGameDetails(gameId: string): Promise<void> {
-    const card = await $(`[data-id="${gameId}"]`);
-    await card.waitForDisplayed({ timeout: 5000 });
-    await card.doubleClick();
-  }
-
-  /** Open details for first game card */
+  /** Open details for first game card (same as selectFirstGame — confirm opens detail). */
   async openFirstGameDetails(): Promise<void> {
     const cards = await this.getGameCards();
     if (cards.length === 0) throw new Error("No game cards found");
-    await cards[0].doubleClick();
+    await gamepad.confirm();
+  }
+
+  /**
+   * Open detail for a specific game by data-id.
+   * Uses JS click since navigating to an arbitrary card by keyboard is impractical.
+   */
+  async openGameDetails(gameId: string): Promise<void> {
+    const card = await $(`[data-id="${gameId}"]`);
+    await card.waitForDisplayed({ timeout: 5000 });
+    await browser.execute((el: any) => el.click(), card);
+    await browser.pause(300);
   }
 
   /** Get the hero banner title text */
@@ -108,22 +130,46 @@ export class LibraryPage {
 
   // ===== Filters =====
 
-  /** Click a store filter */
-  async clickFilter(
-    filter: "all" | "installed" | "epic" | "gog" | "amazon" | "steam",
-  ): Promise<void> {
-    const selectorMap: Record<string, string> = {
-      all: Selectors.filters.all,
-      installed: Selectors.filters.installed,
-      epic: Selectors.filters.epic,
-      gog: Selectors.filters.gog,
-      amazon: Selectors.filters.amazon,
-      steam: Selectors.filters.steam,
-    };
-    const el = await $(selectorMap[filter]);
-    await el.waitForDisplayed({ timeout: 5000 });
-    await el.click();
-    await browser.pause(500); // Wait for filter animation
+  /**
+   * Navigate to a store filter using gamepad LB/RB cycling (Q / E keys).
+   *
+   * Filter order (matches LibraryContent.vue filterOrder):
+   *   0=all  1=installed  2=epic  3=gog  4=amazon  5=steam
+   *
+   * RB (E) cycles forward, LB (Q) cycles backward.
+   * State is tracked per LibraryPage instance; reset with resetFilter().
+   */
+  async clickFilter(filter: FilterName): Promise<void> {
+    const targetIndex = FILTER_ORDER.indexOf(filter);
+    if (targetIndex === -1) throw new Error(`Unknown filter: ${filter}`);
+
+    const total = FILTER_ORDER.length;
+    let delta = (targetIndex - this.currentFilterIndex + total) % total;
+
+    // Choose shortest path: forward (RB) or backward (LB)
+    if (delta > total / 2) {
+      // Shorter to go backward
+      const backSteps = total - delta;
+      for (let i = 0; i < backSteps; i++) {
+        await gamepad.lb();
+      }
+    } else {
+      // Forward
+      for (let i = 0; i < delta; i++) {
+        await gamepad.rb();
+      }
+    }
+
+    this.currentFilterIndex = targetIndex;
+    await browser.pause(300); // Wait for filter animation
+  }
+
+  /**
+   * Reset filter tracker to "all" without pressing any keys.
+   * Call this if you've navigated away from the library and come back.
+   */
+  resetFilterState(): void {
+    this.currentFilterIndex = 0;
   }
 
   /** Check if filters bar is visible */

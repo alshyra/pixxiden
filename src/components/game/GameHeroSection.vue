@@ -1,5 +1,5 @@
 <template>
-  <div class="relative z-0 w-full h-full overflow-hidden bg-[#0a0a0a]">
+  <div data-testid="hero-banner" class="relative z-0 w-full h-full overflow-hidden bg-[#0a0a0a]">
     <div class="absolute inset-0 transition-opacity duration-1000">
       <img
         v-if="heroImage"
@@ -16,10 +16,10 @@
     <div class="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-[#0d0d0f]" />
 
     <div class="absolute left-10 z-10 max-w-[70vw]" style="bottom: calc(42vh + 2rem)">
-      <h1 class="text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+      <h1 data-testid="hero-title" class="text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
         {{ game?.info.title || "N/A" }}
       </h1>
-      <p class="text-[#a0a0b0] text-sm mt-2">
+      <p data-testid="hero-meta" class="text-[#a0a0b0] text-sm mt-2">
         {{ game?.info.developer || "N/A" }} · {{ releaseYear || "N/A" }} · {{ game?.info.genres?.join(", ") || "N/A" }}
       </p>
 

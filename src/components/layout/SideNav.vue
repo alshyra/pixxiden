@@ -12,6 +12,7 @@
   <Transition name="slide-from-left">
     <nav
       v-if="sideNavStore.isOpen"
+      data-testid="side-nav"
       class="fixed left-0 top-0 bottom-0 w-[320px] z-50 bg-[#0f0f12] backdrop-blur-xl border-r border-white/10 flex flex-col shadow-2xl"
     >
       <!-- Header -->
@@ -30,6 +31,7 @@
         <button
           v-for="(item, index) in menuItems"
           :key="item.id"
+          :data-testid="`sidenav-${item.id}`"
           class="w-full px-6 py-4 flex items-center gap-4 transition-all duration-150 group"
           :class="{
             'bg-[#5e5ce6] shadow-[0_0_20px_rgba(94,92,230,0.5)]': focusedIndex === index,

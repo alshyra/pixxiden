@@ -235,3 +235,7 @@ Designed for **SteamOS-style session mode** (Wayland + Gamescope):
 - Adding new Tauri commands (ensure proper registration in `lib.rs`)
 - Modifying sidecar binary sources (update `dependencies.yaml` + test on Linux)
 - Implementing new store integrations (follow `GameStoreService` pattern)
+
+# Conclusion
+
+Dont close thread untill your changes are validated by the user through mcp-interactive.

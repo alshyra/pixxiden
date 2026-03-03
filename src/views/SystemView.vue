@@ -1,6 +1,7 @@
 <template>
   <div
     ref="scrollContainer"
+    data-testid="system-view"
     class="h-screen bg-[#050505] text-white overflow-y-auto pb-24"
   >
     <div class="max-w-5xl mx-auto px-8 py-8 space-y-10">
