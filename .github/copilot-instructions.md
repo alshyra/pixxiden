@@ -238,4 +238,4 @@ Designed for **SteamOS-style session mode** (Wayland + Gamescope):
 
 # Conclusion
 
-Dont close thread untill your changes are validated by the user through mcp-interactive.
+Dont close thread untill your changes are validated by the user through `vscode/askQuestions`.
